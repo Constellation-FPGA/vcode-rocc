@@ -20,3 +20,17 @@ class VCodeAccel(opcodes: OpcodeSet)(implicit p: Parameters) extends LazyRoCC(op
   override lazy val module = new VCodeAccelImp(this)
 }
 
+/** Implementation class for the VCODE accelerator.
+  *
+  * @constructor Create a new VCODE accelerator implementation, attached to
+  * one VCodeAccel interface with one of the custom opcode sets.
+  * @param outer The "interface" for the accelerator to attach to.
+  * This separation allows us to attach multiple of these accelerators to
+  * different HARTs, and multiple to attach to a single HART using different
+  * custom opcode sets.
+  */
+class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
+  val cmd = Queue(io.cmd)
+  cmd.ready := true.B
+}
+
