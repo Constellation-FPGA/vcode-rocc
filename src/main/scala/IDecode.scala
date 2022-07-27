@@ -5,6 +5,7 @@ import chisel3.util._
 import freechips.rocketchip.config.Parameters
 import freechips.rocketchip.tile.HasCoreParameters
 import Instructions._
+import vcoderocc.constants._
 
 /** Trait holding an abstract (non-instantiated) mapping between the instruction
   * bit pattern and its control signals.
@@ -25,7 +26,7 @@ class CtrlSigs extends Bundle { // TODO: Rename to BinOpCtrlSigs?
   /** List of default control signal values
     * @return List of default control signal values. */
   def default_decode_ctrl_sigs: List[BitPat] =
-    List(BitPat("b0"))
+    List(N)
 
   /** Decodes an instruction to its control signals.
     * @param inst The instruction bit pattern to be decoded.
