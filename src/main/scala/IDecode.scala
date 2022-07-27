@@ -21,10 +21,11 @@ trait DecodeConstants extends HasCoreParameters { // TODO: Not sure if extends n
 class CtrlSigs extends Bundle { // TODO: Rename to BinOpCtrlSigs?
   /* All control signals used in this coprocessor
    * See rocket-chip's rocket/IDecode.scala#IntCtrlSigs#default */
-  // val legal = Bool() // Example control signal.
+  val legal = Bool() // Example control signal.
   /** List of default control signal values
     * @return List of default control signal values. */
-  def default_decode_ctrl_sigs: List[BitPat] = List()
+  def default_decode_ctrl_sigs: List[BitPat] =
+    List(BitPat("b0"))
 
   /** Decodes an instruction to its control signals.
     * @param inst The instruction bit pattern to be decoded.
@@ -36,7 +37,7 @@ class CtrlSigs extends Bundle { // TODO: Rename to BinOpCtrlSigs?
     val decoder = freechips.rocketchip.rocket.DecodeLogic(inst, default_decode_ctrl_sigs, decode_table)
     /* Make sequence ordered how signals are ordered.
      * See rocket-chip's rocket/IDecode.scala#IntCtrlSigs#decode#sigs */
-    val ctrl_sigs = Seq()
+    val ctrl_sigs = Seq(legal)
     /* Decoder is a minimized truth-table. We partially apply the map here,
      * which allows us to apply an instruction to get its control signals back.
      * We then zip that with the sequence of names for the control signals. */
