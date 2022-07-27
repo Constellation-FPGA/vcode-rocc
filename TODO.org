@@ -3,3 +3,8 @@
 
 1. Split instruction encodings out to separate file and automatically generate the Chisel & documentation from it.
    (Write once and run script to re-build the instruction encodings & documentation)
+2. Support more complex RoCC instruction decoding (if need be).
+   Look at Rocket's ~IDecode.scala~ & ~Decode.scala~ files.
+   ~IDecode.scala~ deals with mapping the particular bit patterns to signals.
+   ~Decode.scala~ deals with using a QMCMinimizer to generate a truth table to decode against.
+   Instructions that use ~?~ have the ~?~ ignored by the minimizer.
