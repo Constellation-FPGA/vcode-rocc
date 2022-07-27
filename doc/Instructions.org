@@ -63,6 +63,10 @@ The binary operations require pointers to the two vectors be passed, and the ins
 | VCODE Operation | Chisel Symbol | ~funct7~ Encoding |
 | ~+~             | ~PLUS_INT~    | ~0000000~         |
 
+** Vector Operations
+| VCODE Operation | Chisel Symbol   | ~funct7~ Encoding |
+| ~+_SCAN~        | ~PLUS_SCAN_INT~ | ~???????~         |
+
 * Footnotes
 [fn:1]RISC-V supports instructions of other sizes as well.
 See the "Expanded Instruction-Length Encoding" section in the unprivileged RISC-V specification.
