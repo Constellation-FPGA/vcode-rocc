@@ -1,0 +1,5 @@
+#+TITLE: TODO List
+#+AUTHOR: Karl Hallsby
+
+1. Split instruction encodings out to separate file and automatically generate the Chisel & documentation from it.
+   (Write once and run script to re-build the instruction encodings & documentation)
