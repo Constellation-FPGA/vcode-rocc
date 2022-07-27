@@ -23,5 +23,22 @@ class CtrlSigs extends Bundle { // TODO: Rename to BinOpCtrlSigs?
   /** List of default control signal values
     * @return List of default control signal values. */
   def default_decode_ctrl_sigs: List[BitPat] = List()
-}
 
+  /** Decodes an instruction to its control signals.
+    * @param inst The instruction bit pattern to be decoded.
+    * @param table Table of instruction bit patterns mapping to list of control
+    * signal values.
+    * @return Sequence of control signal values for the provided instruction.
+    */
+  def decode(inst: UInt, decode_table: Iterable[(BitPat, List[BitPat])]) = {
+    val decoder = freechips.rocketchip.rocket.DecodeLogic(inst, default_decode_ctrl_sigs, decode_table)
+    /* Make sequence ordered how signals are ordered.
+     * See rocket-chip's rocket/IDecode.scala#IntCtrlSigs#decode#sigs */
+    val ctrl_sigs = Seq()
+    /* Decoder is a minimized truth-table. We partially apply the map here,
+     * which allows us to apply an instruction to get its control signals back.
+     * We then zip that with the sequence of names for the control signals. */
+    ctrl_sigs zip decoder map{case(s,d) => s := d}
+    this
+  }
+}
