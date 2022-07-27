@@ -1,0 +1,58 @@
+#+TITLE: VCODE RoCC Instructions
+#+AUTHOR: Karl Hallsby
+
+* RoCC Instructions
+RoCC instructions are an extension provided by UC Berkeley's parameterizable Rocket-core and BOOM cores.
+They take up four of the standard[fn:1] 32-bit encoding sets.
+The list of opcode sets and their bit patters from ~[6:0]~ are shown below.
+  1. /custom-0/
+     ~[6:0]~ = ~0001011~
+  2. /custom-1/
+     ~[6:0]~ = ~0101011~
+  3. /custom-2/ (Reserved for RV128I instructions)
+     ~[6:0]~ = ~1011011~
+  4. /custom-3/ (Reserved for RV128I instructions)
+     ~[6:0]~ = ~1111011~
+By default, you will always have /custom-0/ and /custom-1/ available to you.
+/custom-2/ and /custom-3/ are only available if RV128I instructions are *not* implemented.
+
+** Encoding
+RoCC instruction use the standard 32-bit encoding, but change some of the fields and their values.
+| Bit Index    | 31-25         | 24-20 | 19-15 | 14 |  13 |  12 | 11-7 | 6-0              |
+| Use          | funct7        | rs2   | rs1   | xd | xs1 | xs2 | rd   | opcode           |
+| RoCC Meaning | roccinst[6:0] | src2  | src1  |    |     |     | dest | /custom-0/1/2/3/ |
+Thus, we have $2^7$ possible instructions we can send to an accelerator.
+
+If ~xs1 == 0~ and ~xs2 == 1~, the main core *cannot* decode the instruction!
+
+** Communication
+*** Main Processor to RoCC Coprocessor
+When a RoCC instruction is passed through the main core to the coprocessor, several fields are passed over the RoCCIO bus (a ~DecoupledIO~ bus/queue).
+  1. A portion of the original instruction.
+     Namely, bit indices ~[32:7]~ are passed.
+  2. The *contents* of ~rs1~, if ~xs1 == 1~.
+  3. The *contents* of ~rs2~, if ~xs2 == 1~.
+  4. Some ready/valid synchronization bits.
+
+If any of the ~x~ bits are set to ~0~, then the register address provided refers to a RoCC-internal register [[https://webthesis.biblio.polito.it/6589/1/tesi.pdf][design programming riscv coprocessor]].
+
+*** RoCC Coprocessor to Main Processor
+When a RoCC instruction is informed that it must return data (by having ~xd != 0~), then the coprocessor will send a message back over a separate ~DecoupledIO~ queue.
+  1. The register number to write the result to.
+     This information was provided with the instruction that originally started the computation, ~rd~.
+  2. The contents to save *into* ~rd~.
+  3. Some ready/valid synchronization bits.
+
+*** Blocking & Nonblocking Operations
+Instructions issued to the coprocessor can either block or not block the main core.
+How this is decided depends on the values provided in the instruction.
+  * If ~xd == 1~, but the destination register is ~x0~ (the zero register) the processor will *not* wait for the coprocessor.
+  * If ~xd~ is ~0~, the processor will *not* wait for the coprocessor.
+
+*** Additional Communications
+The RoCC accelerator can interrupt the main processor.
+The RoCC accelerator can inform the main processor it is busy by setting the ~busy~ line high.
+
+* Footnotes
+[fn:1]RISC-V supports instructions of other sizes as well.
+See the "Expanded Instruction-Length Encoding" section in the unprivileged RISC-V specification.
