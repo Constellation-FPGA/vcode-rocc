@@ -72,6 +72,14 @@ The binary operations require pointers to the two vectors be passed, and the ins
 | VCODE Operation | Chisel Symbol   | ~funct7~ Encoding |
 | ~+_SCAN~        | ~PLUS_SCAN_INT~ | ~???????~         |
 
+** Using the Instructions
+When writing the instruction in C code, use volatile inline assembly (~asm volatile ("insn")~ or ~__asm__ __volatile__ ("insn")~)
+The instruction follows the format shown below:
+~customX rd, rs1, rs2, funct7~, where ~funct7~ is written in hexadecimal.
+
+The compiler should automatically set the ~x~ flag bits based on the provided value of the register.
+Meaning if you want to ignore a register, provide the zero register.
+
 * Footnotes
 [fn:1]RISC-V supports instructions of other sizes as well.
 See the "Expanded Instruction-Length Encoding" section in the unprivileged RISC-V specification.
