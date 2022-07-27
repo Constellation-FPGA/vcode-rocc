@@ -2,7 +2,9 @@ package vcoderocc
 
 import chisel3._
 import chisel3.util._
+import freechips.rocketchip.config.Parameters
 import freechips.rocketchip.tile.HasCoreParameters
+import Instructions._
 
 /** Trait holding an abstract (non-instantiated) mapping between the instruction
   * bit pattern and its control signals.
@@ -41,4 +43,14 @@ class CtrlSigs extends Bundle { // TODO: Rename to BinOpCtrlSigs?
     ctrl_sigs zip decoder map{case(s,d) => s := d}
     this
   }
+}
+
+/** Class holding a table that implements the DecodeConstants table that mapping
+  * a binary operation's instruction bit pattern to control signals.
+  * @param p Implicit parameter of key-value pairs that can globally alter the
+  * parameters of the design during elaboration.
+  */
+class BinOpDecode(implicit val p: Parameters) extends DecodeConstants {
+  val decode_table: Array[(BitPat, List[BitPat])] = Array(
+    PLUS_INT-> List())
 }
