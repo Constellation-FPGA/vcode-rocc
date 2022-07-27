@@ -32,6 +32,13 @@ class VCodeAccel(opcodes: OpcodeSet)(implicit p: Parameters) extends LazyRoCC(op
 class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
   val cmd = Queue(io.cmd)
   cmd.ready := true.B
+
+  /* Create the decode table at the top-level of the implementation
+   * If additional instructions are added as separate classes in Instructions.scala
+   * they can be added above BinOpDecode class. */
+  val decode_table = {
+    Seq(new BinOpDecode)
+  } flatMap(_.decode_table)
 }
 
 /** Mixin to build a chip that includes a VCode accelerator.
