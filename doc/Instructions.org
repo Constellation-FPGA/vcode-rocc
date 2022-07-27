@@ -53,6 +53,11 @@ How this is decided depends on the values provided in the instruction.
 The RoCC accelerator can interrupt the main processor.
 The RoCC accelerator can inform the main processor it is busy by setting the ~busy~ line high.
 
+* VCODE Instruction Encoding
+In all of the encodings below, I will always specify the ~funct7~ field.
+Usually the context of the operation will determine which of the ~x~ flags to set, and the actual register number is variable.
+If the value for either the ~x~ bits or the register number *must* be set to a certain value, it will be said.
+
 * Footnotes
 [fn:1]RISC-V supports instructions of other sizes as well.
 See the "Expanded Instruction-Length Encoding" section in the unprivileged RISC-V specification.
