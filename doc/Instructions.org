@@ -58,6 +58,11 @@ In all of the encodings below, I will always specify the ~funct7~ field.
 Usually the context of the operation will determine which of the ~x~ flags to set, and the actual register number is variable.
 If the value for either the ~x~ bits or the register number *must* be set to a certain value, it will be said.
 
+** Control Operations
+These operations are ones that are required to make the hardware work, but do *not* perform a computation.
+Namely, these are instructions that have *no VCODE equivalent*.
+| Chisel Symbol | ~funct7~ Encoding |
+
 ** Binary Operations
 The binary operations require pointers to the two vectors be passed, and the instruction determines the operation to perform.
 | VCODE Operation | Chisel Symbol | ~funct7~ Encoding |
