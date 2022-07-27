@@ -39,6 +39,8 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
   val decode_table = {
     Seq(new BinOpDecode)
   } flatMap(_.decode_table)
+  // Add the control signals
+  val ctrl_sigs = Reg(new CtrlSigs)
 }
 
 /** Mixin to build a chip that includes a VCode accelerator.
