@@ -61,16 +61,26 @@ If the value for either the ~x~ bits or the register number *must* be set to a c
 ** Control Operations
 These operations are ones that are required to make the hardware work, but do *not* perform a computation.
 Namely, these are instructions that have *no VCODE equivalent*.
-| Chisel Symbol | ~funct7~ Encoding |
+| Chisel Symbol | ~funct7~ Encoding (Binary) | ~funct7~ Encoding (Hex) |
+|---------------+----------------------------+-------------------------|
+|               |                            |                       0 |
+#+TBLFM: $3='(format "%x" (string-to-number $2 2))
 
 ** Binary Operations
 The binary operations require pointers to the two vectors be passed, and the instruction determines the operation to perform.
-| VCODE Operation | Chisel Symbol | ~funct7~ Encoding |
-| ~+~             | ~PLUS_INT~    | ~0000000~         |
+| VCODE Operation | Chisel Symbol | ~funct7~ Encoding (Binary) | ~funct7~ Encoding (Hex) |
+|-----------------+---------------+----------------------------+-------------------------|
+| ~+~             | ~PLUS_INT~    |                    0000000 |                       0 |
+|                 |               |                    0101011 |                      2b |
+|                 |               |                            |                       0 |
+|                 |               |                            |                       0 |
+#+TBLFM: $4='(format "%x" (string-to-number $3 2))
 
 ** Vector Operations
-| VCODE Operation | Chisel Symbol   | ~funct7~ Encoding |
-| ~+_SCAN~        | ~PLUS_SCAN_INT~ | ~???????~         |
+| VCODE Operation | Chisel Symbol   | ~funct7~ Encoding (Binary) | ~funct7~ Encoding (Hex) |
+|-----------------+-----------------+----------------------------+-------------------------|
+| ~+_SCAN~        | ~PLUS_SCAN_INT~ | ???????                    |                       0 |
+#+TBLFM: $4='(format "%x" (string-to-number $3 2))
 
 ** Using the Instructions
 When writing the instruction in C code, use volatile inline assembly (~asm volatile ("insn")~ or ~__asm__ __volatile__ ("insn")~)
