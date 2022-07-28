@@ -84,11 +84,22 @@ The binary operations require pointers to the two vectors be passed, and the ins
 
 ** Using the Instructions
 When writing the instruction in C code, use volatile inline assembly (~asm volatile ("insn")~ or ~__asm__ __volatile__ ("insn")~)
-The instruction follows the format shown below:
-~customX rd, rs1, rs2, funct7~, where ~funct7~ is written in hexadecimal.
+The disassembled instruction follows the format shown below, where ~funct7~ is written in hexadecimal.
+#+begin_src asm
+customX rd, rs1, rs2, funct7
+#+end_src
 
-The compiler should automatically set the ~x~ flag bits based on the provided value of the register.
-Meaning if you want to ignore a register, provide the zero register.
+When writing these yourself, manually, you should make use of GAS's built-in support for building instructions out of bytes.
+See the info manual (as)RISC-V-Formats for how this works.
+#+begin_src c
+/* .insn r CUSTOM_X, x_flags, funct7, rd, rs1, rs2 */
+__asm__ __volatile__ (
+    ".insn r CUSTOM_" #X ", %3, %4, %0, %1, %2\n\t"
+    : "=r" (rd)
+    : "r" (rs1), "r" (rs2),
+      "i" (ROCC_XD | ROCC_XS1 | ROCC_XS2), "i" (funct));
+#+end_src
+For more examples of how this should be done, see [[https://github.com/ucb-bar/sha3/blob/master/software/tests/src/rocc.h][SHA3 RoCC Header]].
 
 * Footnotes
 [fn:1]RISC-V supports instructions of other sizes as well.
