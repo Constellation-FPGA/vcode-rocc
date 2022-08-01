@@ -21,6 +21,8 @@ BUILD_DIR := build
 TEST_BIN_DIR := bin
 
 OBJS = $(addprefix $(BUILD_DIR)/,$(TEST_SRCS:%.c=%.o))
+TEST_BINS := $(addprefix $(TEST_BIN_DIR)/,$(TEST_SRCS:%.c=%))
+SIM_BINS := $(addprefix $(TEST_BIN_DIR)/,$(TEST_SRCS:%.c=%.riscv))
 
 INCLUDE_FLAGS := -I$(INCLUDE_DIRS)
 
