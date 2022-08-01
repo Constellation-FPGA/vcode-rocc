@@ -122,6 +122,17 @@ void _init(int cid, int nc)
   exit(ret);
 }
 
+void _exit(int status)
+{
+    // Make sure gcc doesn't inline _exit, so we can actually set a breakpoint
+    // on it.
+    volatile int i = 42;
+    exit(status);
+    // _exit isn't supposed to return.
+    while (i)
+        ;
+}
+
 #undef putchar
 int putchar(int ch)
 {
