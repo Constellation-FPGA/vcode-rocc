@@ -13,6 +13,7 @@ RISCV_PREFIX := riscv64-unknown-elf
 CC :=  $(RISCV_PREFIX)-gcc
 OBJDUMP := $(RISCV_PREFIX)-objdump
 
+RISCV_GCC_OPTS ?= -static -mcmodel=medany -fno-common -fno-builtin-printf -Wall -fvisibility=hidden -nostdlib -nostartfiles
 
 TEST_SRCS :=
 include src/modules.mk
