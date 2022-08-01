@@ -6,6 +6,9 @@ else
 $(info Running with RISCV=$(RISCV))
 endif
 
+XLEN ?= 64
+NHARTS ?= 1
+
 basedir := $(abspath .)
 
 RISCV_PREFIX := riscv64-unknown-elf
@@ -13,7 +16,7 @@ RISCV_PREFIX := riscv64-unknown-elf
 CC :=  $(RISCV_PREFIX)-gcc
 OBJDUMP := $(RISCV_PREFIX)-objdump
 
-RISCV_GCC_OPTS ?= -static -mcmodel=medany -fno-common -fno-builtin-printf -Wall -fvisibility=hidden -nostdlib -nostartfiles
+RISCV_GCC_OPTS ?= -DPREALLOCATE=1 -static -std=gnu99 -mcmodel=medany -fno-common -fno-builtin-printf -Wall -fvisibility=hidden -nostdlib -nostartfiles
 
 TEST_SRCS :=
 include src/modules.mk
@@ -27,7 +30,7 @@ SIM_BINS := $(addprefix $(TEST_BIN_DIR)/,$(TEST_SRCS:%.c=%.riscv))
 
 INCLUDE_FLAGS := -I$(INCLUDE_DIRS)
 
-CFLAGS := -g
+CFLAGS := -g -D__riscv_xlen=$(XLEN)
 CFLAGS += $(INCLUDE_FLAGS)
 
 SIM_LDSCRIPT := $(abspath utils/link.ld)
