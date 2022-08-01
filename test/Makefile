@@ -34,12 +34,20 @@ SIM_LDSCRIPT := $(abspath utils/link.ld)
 LDFLAGS := -static -nostdlib -nostartfiles -lgcc -T$(SIM_LDSCRIPT)
 .PHONY: build
 
-build: $(TEST_BINS)
-	@echo "$(TEST_BINS)"
+build: $(OBJS) $(SIM_BINS) $(TEST_BINS)
 
-bin/%: src/%.c
+bin/%.riscv: $(BUILD_DIR)/%.o $(OBJS) $(LDSCRIPT)
+	@echo "Linking test binaries for baremetal"
 	@mkdir -p bin
-	$(CC) $(CFLAGS) $< -o $@
+	$(CC) $(CFLAGS) $(RISCV_GCC_OPTS) $(LDFLAGS) -o $@ $< $(UTIL_OBJS)
+
+bin/%: $(BUILD_DIR)/%.o $(OBJS)
+	@echo "Linking test binaries for ELF"
+	@mkdir -p bin
+	$(CC) $(CFLAGS) -o $@ $<
+
+
+
 
 clean:
 	rm -rf $(TEST_BIN_DIR)
