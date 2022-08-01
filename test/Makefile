@@ -30,7 +30,7 @@ SIM_BINS := $(addprefix $(TEST_BIN_DIR)/,$(TEST_SRCS:%.c=%.riscv))
 
 INCLUDE_FLAGS := -I$(INCLUDE_DIRS)
 
-CFLAGS := -g -D__riscv_xlen=$(XLEN) -DNHARTS=$(NHARTS) -mcmodel=medany
+CFLAGS := -g -D__riscv_xlen=$(XLEN) -mcmodel=medany
 CFLAGS += $(INCLUDE_FLAGS)
 
 SIM_LDSCRIPT := $(abspath utils/link.ld)
