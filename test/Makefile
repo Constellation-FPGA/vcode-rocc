@@ -32,6 +32,10 @@ CFLAGS += $(INCLUDE_FLAGS)
 
 SIM_LDSCRIPT := $(abspath utils/link.ld)
 LDFLAGS := -static -nostdlib -nostartfiles -lgcc -T$(SIM_LDSCRIPT)
+include utils/Makefile
+UTIL_OBJS := $(addprefix $(BUILD_DIR)/,$(UTIL_OBJS))
+OBJS += $(UTIL_OBJS)
+
 .PHONY: build
 
 build: $(OBJS) $(SIM_BINS) $(TEST_BINS)
