@@ -20,6 +20,8 @@ INCLUDE_DIRS := $(abspath ./include)
 BUILD_DIR := build
 TEST_BIN_DIR := bin
 
+OBJS = $(addprefix $(BUILD_DIR)/,$(TEST_SRCS:%.c=%.o))
+
 INCLUDE_FLAGS := -I$(INCLUDE_DIRS)
 
 CFLAGS := -g
