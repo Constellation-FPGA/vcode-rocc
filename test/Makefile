@@ -61,4 +61,4 @@ $(BUILD_DIR)/%.o: utils/%.c
 	$(CC) $(CFLAGS) -o $@ -c $<
 
 clean:
-	rm -rf $(TEST_BIN_DIR)
+	rm -rf $(TEST_BIN_DIR) $(BUILD_DIR) utils/*.o src/*.o
