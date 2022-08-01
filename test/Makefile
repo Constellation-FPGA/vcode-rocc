@@ -54,7 +54,11 @@ $(BUILD_DIR)/%.o: src/%.c
 	@mkdir -p build
 	$(CC) $(CFLAGS) -c $< -o $@
 
+$(BUILD_DIR)/%.o: utils/%.S
+	$(CC) $(CFLAGS) -D__ASSEMBLY__=1 -o $@ -c $<
 
+$(BUILD_DIR)/%.o: utils/%.c
+	$(CC) $(CFLAGS) -o $@ -c $<
 
 clean:
 	rm -rf $(TEST_BIN_DIR)
