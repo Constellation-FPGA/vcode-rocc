@@ -50,6 +50,9 @@ bin/%: $(BUILD_DIR)/%.o $(OBJS)
 	@mkdir -p bin
 	$(CC) $(CFLAGS) -o $@ $<
 
+$(BUILD_DIR)/%.o: src/%.c
+	@mkdir -p build
+	$(CC) $(CFLAGS) -c $< -o $@
 
 
 
