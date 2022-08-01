@@ -8,10 +8,11 @@ endif
 
 basedir := $(abspath .)
 
-TARGET := riscv64-unknown-elf
+RISCV_PREFIX := riscv64-unknown-elf
 
-CC :=  $(TARGET)-gcc
-OBJDUMP := $(TARGET)-objdump
+CC :=  $(RISCV_PREFIX)-gcc
+OBJDUMP := $(RISCV_PREFIX)-objdump
+
 
 TEST_SRCS := $(wildcard src/*.c)
 INCLUDE_DIRS := $(abspath ./include)
