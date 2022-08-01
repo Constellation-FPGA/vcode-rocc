@@ -16,6 +16,7 @@ OBJDUMP := $(RISCV_PREFIX)-objdump
 
 TEST_SRCS := $(wildcard src/*.c)
 INCLUDE_DIRS := $(abspath ./include)
+BUILD_DIR := build
 TEST_BIN_DIR := bin
 TEST_BINS := $(TEST_SRCS:src/%.c=$(TEST_BIN_DIR)/%)
 
