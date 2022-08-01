@@ -30,6 +30,8 @@ INCLUDE_FLAGS := -I$(INCLUDE_DIRS)
 CFLAGS := -g
 CFLAGS += $(INCLUDE_FLAGS)
 
+SIM_LDSCRIPT := $(abspath utils/link.ld)
+LDFLAGS := -static -nostdlib -nostartfiles -lgcc -T$(SIM_LDSCRIPT)
 .PHONY: build
 
 build: $(TEST_BINS)
