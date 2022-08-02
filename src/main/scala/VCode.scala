@@ -57,3 +57,10 @@ class WithVCodeAccel extends Config((site, here, up) => {
   * in the synthesized hardware design.
   */
 case object VCodePrintfEnable extends Field[Boolean](false)
+
+/** Mixin to enable print statements from the synthesized design.
+  * This mixin should only be used AFTER the WithVCodeAccel mixin.
+  */
+class WithVCodePrintf extends Config((site, here, up) => {
+  case VCodePrintfEnable => true
+})
