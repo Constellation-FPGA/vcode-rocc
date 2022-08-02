@@ -46,7 +46,7 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
    * sent to the DecoupledIO Queue. */
   when(cmd.valid) {
     if(p(VCodePrintfEnable)) {
-      printf(midas.targetutils.SynthesizePrintf("We got a command!\n"))
+      printf("This is just a test!\n");
     }
   }
 }
