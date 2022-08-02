@@ -46,6 +46,15 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
   // Add the control signals
   val ctrl_sigs = Reg(new CtrlSigs)
 
+  // If invalid instruction, raise exception
+  val exception = cmd.valid && !ctrl_sigs.legal
+  io.interrupt := exception
+  when(exception) {
+    if(p(VCodePrintfEnable)) {
+      printf("Raising exception to processor through interrupt!\nILLEGAL INSTRUCTION!\n");
+    }
+  }
+
   /* The valid bit is raised to true by the main processor when the command is
    * sent to the DecoupledIO Queue. */
   when(cmd.valid) {
