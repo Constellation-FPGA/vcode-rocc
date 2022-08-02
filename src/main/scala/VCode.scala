@@ -41,6 +41,14 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
   } flatMap(_.decode_table)
   // Add the control signals
   val ctrl_sigs = Reg(new CtrlSigs)
+
+  /* The valid bit is raised to true by the main processor when the command is
+   * sent to the DecoupledIO Queue. */
+  when(cmd.valid) {
+    if(p(VCodePrintfEnable)) {
+      printf(midas.targetutils.SynthesizePrintf("We got a command!\n"))
+    }
+  }
 }
 
 /** Mixin to build a chip that includes a VCode accelerator.
