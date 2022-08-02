@@ -52,7 +52,9 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
     // Only decode when the instruction is valid
     val ctrl = Wire(new CtrlSigs()).decode(rocc_inst.funct, decode_table)
     if(p(VCodePrintfEnable)) {
-      printf("This is just a test!\n");
+      printf("Got funct7 = 0x%x\trs1.val=0x%x\trs2.val=0x%x\n",
+        rocc_inst.funct, rocc_cmd.rs1, rocc_cmd.rs2)
+      printf("The instruction legal: %d\n", ctrl.legal)
     }
   }
 }
