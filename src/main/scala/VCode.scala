@@ -30,7 +30,11 @@ class VCodeAccel(opcodes: OpcodeSet)(implicit p: Parameters) extends LazyRoCC(op
   * custom opcode sets.
   */
 class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
+  // io is "implicit" because we inherit from LazyRoCCModuleImp.
+  // io is the RoCCCoreIO
   val cmd = Queue(io.cmd)
+  val rocc_cmd = cmd.bits // The entire RoCC Command provided to the accelerator
+  val rocc_inst = rocc_cmd.inst // The customX instruction in instruction stream
   cmd.ready := true.B
 
   /* Create the decode table at the top-level of the implementation
