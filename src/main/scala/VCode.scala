@@ -52,3 +52,8 @@ class WithVCodeAccel extends Config((site, here, up) => {
       vcodeAccel
     })
 })
+
+/** Design-level configuration option to toggle the synthesis of print statements
+  * in the synthesized hardware design.
+  */
+case object VCodePrintfEnable extends Field[Boolean](false)
