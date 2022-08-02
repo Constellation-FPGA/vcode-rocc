@@ -43,8 +43,9 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
   val decode_table = {
     Seq(new BinOpDecode)
   } flatMap(_.decode_table)
-  // Add the control signals
-  val ctrl_sigs = Reg(new CtrlSigs)
+
+  // Decode instruction, yielding control signals
+  val ctrl_sigs = Wire(new CtrlSigs()).decode(rocc_inst.funct, decode_table)
 
   // If invalid instruction, raise exception
   val exception = cmd.valid && !ctrl_sigs.legal
@@ -58,13 +59,11 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
   /* The valid bit is raised to true by the main processor when the command is
    * sent to the DecoupledIO Queue. */
   when(cmd.valid) {
-    // Only decode when the instruction is valid
-    val ctrl = Wire(new CtrlSigs()).decode(rocc_inst.funct, decode_table)
     // TODO: Find a nice way to condense these conditional prints
     if(p(VCodePrintfEnable)) {
       printf("Got funct7 = 0x%x\trs1.val=0x%x\trs2.val=0x%x\n",
         rocc_inst.funct, rocc_cmd.rs1, rocc_cmd.rs2)
-      printf("The instruction legal: %d\n", ctrl.legal)
+      printf("The instruction legal: %d\n", ctrl_sigs.legal)
     }
   }
 }
