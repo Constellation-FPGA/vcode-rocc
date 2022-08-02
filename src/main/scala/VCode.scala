@@ -49,6 +49,8 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
   /* The valid bit is raised to true by the main processor when the command is
    * sent to the DecoupledIO Queue. */
   when(cmd.valid) {
+    // Only decode when the instruction is valid
+    val ctrl = Wire(new CtrlSigs()).decode(rocc_inst.funct, decode_table)
     if(p(VCodePrintfEnable)) {
       printf("This is just a test!\n");
     }
