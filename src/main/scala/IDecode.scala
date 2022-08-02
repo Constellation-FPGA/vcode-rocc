@@ -54,5 +54,5 @@ class CtrlSigs extends Bundle { // TODO: Rename to BinOpCtrlSigs?
   */
 class BinOpDecode(implicit val p: Parameters) extends DecodeConstants {
   val decode_table: Array[(BitPat, List[BitPat])] = Array(
-    PLUS_INT-> List())
+    PLUS_INT-> List(Y))
 }
