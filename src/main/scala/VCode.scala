@@ -35,7 +35,8 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
   val cmd = Queue(io.cmd)
   val rocc_cmd = cmd.bits // The entire RoCC Command provided to the accelerator
   val rocc_inst = rocc_cmd.inst // The customX instruction in instruction stream
-  cmd.ready := true.B
+  cmd.ready := true.B // Always ready to accept a command
+  io.resp.valid := false.B // Always invalid response until otherwise
 
   /* Create the decode table at the top-level of the implementation
    * If additional instructions are added as separate classes in Instructions.scala
@@ -80,6 +81,20 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
   alu.io.in2 := rocc_cmd.rs2
   alu_out := alu.io.out
   alu_cout := alu.io.cout
+
+  /***************
+   * RESPOND
+   **************/
+  val response = Reg(new RoCCResponse)
+  response.rd := rocc_inst.rd
+  response.data := alu_out
+  // Send response to main processor
+  /* TODO: Response can only be sent once all memory transactions and arithmetic
+   * operations have completed. */
+  when(cmd.valid) {
+    io.resp.bits := response
+    io.resp.valid := true.B
+  }
 }
 
 /** Mixin to build a chip that includes a VCode accelerator.
