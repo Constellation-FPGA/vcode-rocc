@@ -29,4 +29,7 @@ class ALU(implicit p: Parameters) extends CoreModule()(p) {
     val out = Output(UInt(xLen.W))
     val cout = Output(UInt(xLen.W))
   })
+
+  // ADD/SUB
+  io.out := io.in1 + io.in2
 }
