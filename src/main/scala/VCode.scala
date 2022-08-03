@@ -93,7 +93,13 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
   /* TODO: Response can only be sent once all memory transactions and arithmetic
    * operations have completed. */
   when(response_required && io.resp.ready) {
+    if(p(VCodePrintfEnable)) {
+      printf("Main processor ready for response? %d\n", io.resp.ready)
+    }
     io.resp.enq(response) // Sends response & sets valid bit
+    if(p(VCodePrintfEnable)) {
+      printf("VCode accelerator made response bits valid? %d\n", io.resp.valid)
+    }
   }
   // TODO: Find way to make valid response false when no response needed or ready
   // io.resp.valid := false.B // Always invalid response until otherwise
