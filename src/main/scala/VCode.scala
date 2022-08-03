@@ -66,6 +66,20 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
       printf("The instruction legal: %d\n", ctrl_sigs.legal)
     }
   }
+
+  /***************
+   * EXECUTE
+   **************/
+  val alu = Module(new ALU)
+  val alu_out = Wire(UInt())
+  val alu_cout = Wire(UInt())
+  // Hook up the ALU to VCode signals
+  alu.io.fn := ctrl_sigs.alu_fn
+  // FIXME: Only use rs1/rs2 if xs1/xs2 =1, respectively.
+  alu.io.in1 := rocc_cmd.rs1
+  alu.io.in2 := rocc_cmd.rs2
+  alu_out := alu.io.out
+  alu_cout := alu.io.cout
 }
 
 /** Mixin to build a chip that includes a VCode accelerator.
