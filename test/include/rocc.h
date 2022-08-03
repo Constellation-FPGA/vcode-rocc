@@ -5,6 +5,10 @@
 #ifndef ROCC_H
 #define ROCC_H
 
+// Currently, 0x7F is an undefined funct7 code.
+// funct7 is 7 bits, in this case, all of them are 1.
+#define ILLEGAL_ROCC_FUNCT7 0x7F
+
 // Standard macro that passes rd, rs1, and rs2 via registers
 #define ROCC_INSTRUCTION_DSS(X, rd, rs1, rs2, funct) \
     ROCC_INSTRUCTION_R_R_R(X, rd, rs1, rs2, funct)

@@ -1,1 +1,2 @@
-TEST_SRCS += rocc_add.c host_add.c
+TEST_SRCS += rocc_add.c host_add.c \
+             rocc_illegal.c
