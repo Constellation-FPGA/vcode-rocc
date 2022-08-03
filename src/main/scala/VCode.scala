@@ -90,7 +90,7 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
   // Send response to main processor
   /* TODO: Response can only be sent once all memory transactions and arithmetic
    * operations have completed. */
-  when(cmd.valid) {
+  when(cmd.valid && ctrl_sigs.legal && io.resp.ready) {
     io.resp.enq(response) // Sends response & sets valid bit
   }
   // TODO: Find way to make valid response false when no response needed or ready
