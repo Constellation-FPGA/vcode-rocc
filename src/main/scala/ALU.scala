@@ -31,5 +31,6 @@ class ALU(implicit p: Parameters) extends CoreModule()(p) {
   })
 
   // ADD/SUB
-  io.out := io.in1 + io.in2
+  val in2_inv = Mux(isSub(io.fn), ~io.in2, io.in2)
+  io.out := io.in1 + in2_inv + isSub(io.fn)
 }
