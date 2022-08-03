@@ -44,6 +44,9 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
     Seq(new BinOpDecode)
   } flatMap(_.decode_table)
 
+  /***************
+   * DECODE
+   **************/
   // Decode instruction, yielding control signals
   val ctrl_sigs = Wire(new CtrlSigs()).decode(rocc_inst.funct, decode_table)
 
