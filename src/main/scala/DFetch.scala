@@ -22,3 +22,11 @@ class DCacheFetcher(implicit p: Parameters) extends CoreModule()(p) {
    * Only using M_XRD and M_XWR */
   val io = IO(new Bundle {})
 }
+
+/** Module connecting VCode accelerator directly to the L1-L2 crossbar connecting
+  * all tiles to other components in the system.
+  * @param p Implicit parameter passed by build system of top-level design parameters.
+  */
+class DMemFetcher(implicit p: Parameters) extends CoreModule()(p) {
+  val io = IO(new Bundle {})
+}
