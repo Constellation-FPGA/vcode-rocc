@@ -13,7 +13,7 @@ object ALU {
 
   /** Unknown ALU function */
   def FN_X = BitPat("b????")
-  def FN_ADD = BitPat("b0000") // FIXME: Try to express BitPat as just an integer?
+  def FN_ADD = BitPat("b0000")
 }
 
 /** Implementation of an ALU.
