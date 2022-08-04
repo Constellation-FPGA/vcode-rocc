@@ -71,6 +71,13 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
   }
 
   /***************
+   * DATA FETCH
+   * Most instructions pass pointers to vectors, so we need to fetch that before
+   * operating on the data.
+   **************/
+  val data_fetcher = Module(new DCacheFetcher)
+
+  /***************
    * EXECUTE
    **************/
   val alu = Module(new ALU)
