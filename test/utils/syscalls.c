@@ -59,6 +59,8 @@ void __attribute__((noreturn)) tohost_exit(uintptr_t code)
   while (1);
 }
 
+static inline int is_trap_interrupt(uint64_t mcause) { return mcause >> 63; }
+
 uintptr_t __attribute__((weak)) handle_trap(uintptr_t cause, uintptr_t epc, uintptr_t regs[32])
 {
   tohost_exit(1337);
