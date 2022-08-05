@@ -3,7 +3,7 @@
  * in register a7.
  * The actual mode we end up executing in depends on medeleg register. */
 int main() {
-    asm volatile("addi a7, 0, 0\n\t"
+    asm volatile("addi a7, x0, 0\n\t"
                  "ecall");
     return 0;
 }
