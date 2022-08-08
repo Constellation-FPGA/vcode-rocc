@@ -110,6 +110,14 @@ _start:
   la t0, trap_entry
   csrw mtvec, t0
 
+#define ROCC_INTERRUPT_BIT 0x2000
+  # Enable RoCC interrupts
+  csrr t0, mie
+  li t1, ROCC_INTERRUPT_BIT
+  or t0, t0, t1
+  csrw mie, t0
+  csrr t0, mie
+
   # initialize global pointer
 .option push
 .option norelax
