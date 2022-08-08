@@ -63,7 +63,12 @@ static inline int is_trap_interrupt(uint64_t mcause) { return mcause >> 63; }
 
 uintptr_t __attribute__((weak)) handle_trap(uintptr_t cause, uintptr_t epc, uintptr_t regs[32])
 {
-  tohost_exit(1337);
+    if (is_trap_interrupt(cause)) {
+        tohost_exit(2022);
+    } else {
+        // The trap was an exception
+        tohost_exit(1337);
+    }
 }
 
 void exit(int code)
