@@ -128,6 +128,14 @@ static void init_tls()
             "csrw " #xie ", t0\n");             \
 }
 
+static inline
+void enable_machine_interrupts() {
+    asm volatile("csrr t0, mstatus\n"
+                 "li t1, 0x8\n"       // Set MIE. 0xA sets both MIE & SIE.
+                 "or t0, t0, t1\n"
+                 "csrw mstatus, t0" /* Set the MIE bit */);
+}
+
 void _init(int cid, int nc)
 {
   init_tls();
