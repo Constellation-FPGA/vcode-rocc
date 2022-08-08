@@ -110,6 +110,15 @@ static void init_tls()
   memset(thread_pointer + tdata_size, 0, tbss_size);
 }
 
+/** Clears Timer Interrupt Pending bit in xIP CSR.
+ * xIP is one of the interrupt pending registers. */
+#define CLEAR_PENDING_TIMER_INTERRUPTS(xip) {   \
+        asm("csrr t0, " #xip "\n"               \
+            "lui t1, 0x7F\n"                    \
+            "and t0, t0, t1\n"                  \
+            "csrw " #xip ", t0\n");             \
+}
+
 /** Clears Timer Interrupt Enable bit in xIE CSR.
  * xIE is one of the interrupt enable registers. */
 #define DISABLE_TIMER_INTERRUPTS(xie) {         \
