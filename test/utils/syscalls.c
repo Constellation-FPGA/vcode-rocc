@@ -110,6 +110,15 @@ static void init_tls()
   memset(thread_pointer + tdata_size, 0, tbss_size);
 }
 
+/** Clears Timer Interrupt Enable bit in xIE CSR.
+ * xIE is one of the interrupt enable registers. */
+#define DISABLE_TIMER_INTERRUPTS(xie) {         \
+        asm("csrr t0, " #xie "\n"               \
+            "lui t1, 0x7F\n"                    \
+            "and t0, t0, t1\n"                  \
+            "csrw " #xie ", t0\n");             \
+}
+
 void _init(int cid, int nc)
 {
   init_tls();
