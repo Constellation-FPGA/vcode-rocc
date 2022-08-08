@@ -118,6 +118,13 @@ _start:
   csrw mie, t0
   csrr t0, mie
 
+  # Enable Machine Interrupts
+  csrr t0, mstatus
+  li t1, MSTATUS_MIE
+  or t0, t0, t1
+  csrw mstatus, t0
+  csrr t0, mstatus
+
   # initialize global pointer
 .option push
 .option norelax
