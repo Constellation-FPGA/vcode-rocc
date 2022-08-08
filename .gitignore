@@ -6,8 +6,6 @@ docs-target/
 *.fir
 *.v
 *.anno.json
-*.swp
-*~
 .addons-dont-touch
 /lib/
 /test_lib/
@@ -18,3 +16,12 @@ vcode-rocc.jar
 .bloop
 .metals
 /project
+
+# Emacs temporary files
+## Autosave files
+.\#*
+## Backup files
+*~
+
+# Vim temporary files
+*.swp
