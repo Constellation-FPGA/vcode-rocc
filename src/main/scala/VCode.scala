@@ -77,6 +77,11 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
    * operating on the data.
    **************/
   val data_fetcher = Module(new DCacheFetcher)
+  val data1 = Wire(Bits(p(XLen).W))
+  val data2 = Wire(Bits(p(XLen).W))
+
+  data1 := rocc_cmd.rs1
+  data2 := rocc_cmd.rs2
 
   /***************
    * EXECUTE
@@ -87,8 +92,8 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
   // Hook up the ALU to VCode signals
   alu.io.fn := ctrl_sigs.alu_fn
   // FIXME: Only use rs1/rs2 if xs1/xs2 =1, respectively.
-  alu.io.in1 := rocc_cmd.rs1
-  alu.io.in2 := rocc_cmd.rs2
+  alu.io.in1 := data1
+  alu.io.in2 := data2
   alu_out := alu.io.out
   alu_cout := alu.io.cout
 
