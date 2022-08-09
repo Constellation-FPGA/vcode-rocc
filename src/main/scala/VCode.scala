@@ -80,6 +80,10 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
   val data1 = Wire(Bits(p(XLen).W))
   val data2 = Wire(Bits(p(XLen).W))
 
+  // RoCC must assert RoCCCoreIO.busy line high when memory actions happening
+  val busy = RegInit(false.B)
+  rocc_io.busy := data_ctrl.io.busy // TODO: Properly set busy to Bool(true), eventually
+
   data1 := rocc_cmd.rs1
   data2 := rocc_cmd.rs2
 
