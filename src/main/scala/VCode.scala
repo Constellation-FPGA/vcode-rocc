@@ -76,7 +76,28 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
    * Most instructions pass pointers to vectors, so we need to fetch that before
    * operating on the data.
    **************/
-  val data_fetcher = Module(new DCacheFetcher)
+  val data_ctrl = Module(new DCacheFetcher)
+  val dmem_data = Wire(Bits(p(XLen).W))
+  /** Connect a HellaCacheReq decoupled ready/valid queue to the data control
+    * module. */
+  def data_fetcher(req: DecoupledIO[HellaCacheReq]) {
+    // Set up Ready/Valid signals between the request queue and control module
+    req.valid := data_ctrl.io.req_valid
+    data_ctrl.io.req_ready := req.ready
+    // Set up body of memory request queue
+    req.bits.tag  := data_ctrl.io.req_tag
+    req.bits.addr := data_ctrl.io.req_addr
+    req.bits.cmd  := data_ctrl.io.req_cmd
+    req.bits.size := data_ctrl.io.req_size
+    req.bits.data := dmem_data
+  }
+  data_fetcher(rocc_io.mem.req)
+  data_ctrl.io.resp_valid <> rocc_io.mem.resp.valid
+  data_ctrl.io.resp_tag   <> rocc_io.mem.resp.bits.tag
+  data_ctrl.io.resp_data  := rocc_io.mem.resp.bits.data
+
+  dmem_data := 0.U // FIXME: This is where write-back should happen
+
   val data1 = Wire(Bits(p(XLen).W))
   val data2 = Wire(Bits(p(XLen).W))
 
