@@ -24,7 +24,7 @@ class CtrlSigs extends Bundle { // TODO: Rename to BinOpCtrlSigs?
   /* All control signals used in this coprocessor
    * See rocket-chip's rocket/IDecode.scala#IntCtrlSigs#default */
   val legal = Bool() // Example control signal.
-  val alu_fn = Bits(SZ_ALU_FN)
+  val alu_fn = Bits(SZ_ALU_FN.W)
   /** List of default control signal values
     * @return List of default control signal values. */
   def default_decode_ctrl_sigs: List[BitPat] =

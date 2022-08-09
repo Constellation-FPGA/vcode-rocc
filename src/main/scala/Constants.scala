@@ -9,7 +9,7 @@ package object constants extends
 /** Mixin for constants representing options.
  */
 trait OptionConstants {
-  def X = BitPat("b?")
-  def Y = BitPat("b1")
-  def N = BitPat("b0")
+  def X = BitPat.dontCare(1)
+  def Y = BitPat.Y()
+  def N = BitPat.N()
 }
