@@ -15,9 +15,11 @@ import freechips.rocketchip.rocket.constants.MemoryOpConstants
 
 /** Module connecting VCode accelerator to main processor's non-blocking L1 data
   * cache.
+  *
   * @param p Implicit parameter passed by build system of top-level design parameters.
   */
-class DCacheFetcher(implicit p: Parameters) extends CoreModule()(p) {
+class DCacheFetcher(implicit p: Parameters) extends CoreModule()(p)
+    with MemoryOpConstants {
   /* For now, we only support "raw" loading and storing.
    * Only using M_XRD and M_XWR */
   val io = IO(new Bundle {})
@@ -25,8 +27,10 @@ class DCacheFetcher(implicit p: Parameters) extends CoreModule()(p) {
 
 /** Module connecting VCode accelerator directly to the L1-L2 crossbar connecting
   * all tiles to other components in the system.
+  *
   * @param p Implicit parameter passed by build system of top-level design parameters.
   */
-class DMemFetcher(implicit p: Parameters) extends CoreModule()(p) {
+class DMemFetcher(implicit p: Parameters) extends CoreModule()(p)
+    with MemoryOpConstants {
   val io = IO(new Bundle {})
 }
