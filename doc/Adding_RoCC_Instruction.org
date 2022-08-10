@@ -1,0 +1,118 @@
+#+TITLE: Adding RoCC Instruction
+#+AUTHOR: Karl Hallsby
+
+* The Example
+I will be using one of two examples in this document.
+One relies on a similar operator already being present, and the other is completely new.
+
+** Similar Operator
+At the time of writing this, the addition operator ~+~ in VCODE, ~PLUS_INT~ in Chisel, is already defined and implemented.
+The example here wants to add a similar subtraction operation, called ~MINUS_INT~.
+
+Subtraction is *very* similar to addition, particularly when working in two's complement, where subtraction can be implemented as addition.
+Because the operator is so similar, few new control signals need to be added and no new ALU functional units are required.
+
+** Brand new Operator
+A brand new operator, such as a unary ~NOT~ operation will require different control signals than anything defined before.
+In addition, it behaves differently than the already-defined ~PLUS_INT~ operator, because ~NOT~ only requires one input.
+
+* Choose ~funct7~ Encoding
+All the operators currently used are given in [[file:Instructions.org::*VCODE Instruction Encoding][VCODE Instruction Encoding]].
+You can choose an unused encoding from there.
+When you do add one, make sure to update the relevant tables.
+*NOTE: ~funct7~ encodings MUST be 7-bits wide!*
+
+If you use Emacs, you can have the hexadecimal version of the encoding automatically updated by moving the point to the ~#+TBLFM~ line and pressing ~C-c C-c~.
+
+The ~funct7~ encoding can be thought of like a traditional opcode from the perspective of the accelerator.
+
+* Add ~funct7~ Encoding as Instruction
+Go to the ~Instructions.scala~ file in the accelerator's source directory and add the corresponding binary bit pattern.
+For example, if you chose a ~funct7~ encoding of ~0110010~, then the bit pattern to include in the source file is ~BitPat("b0110010")~.
+
+* Decode ~funct7~
+Now that the instruction's encoding is defined, you have to inform the CPU how to decode the opcode.
+In the ~CtrlSigs~ class, there is a listing of bit patterns which form the control signals.
+In addition, there is also a list of default control signals, which *must* be defined.
+
+** New Instruction does not need new Control Signal
+If an instruction does not need any additional/new control signals, then the instruction needs to be added to a relevant decode table class.
+
+For example, at the time of writing an addition operator ~+~/~PLUS_INT~ has already been defined.
+If we want to add subtraction, then we need to inform the ALU that "subtraction" (subtraction by two's complement addition) is required.
+This instruction is a binary operator, so no new decode table is needed, and no *new* control signal is needed, but the ALU functional unit control signal should be changed.
+In this case, the new control signal will be to tell the ALU to use subtraction.
+See [[*New ALU Functional Unit?][New ALU Functional Unit?]] for how to add this control signal to the ALU.
+
+For subtraction add the ~MINUS_INT~ instruction to the ~BinOpDecode~'s ~decode_table~, and map it to a list in the same order as the ~ctrl_sigs~ in the ~CtrlSigs~ class.
+It would look something like this:
+#+begin_src scala
+// If ctrl_sigs must be in this order:
+// val ctrl_sigs = Seq(legal, alu_fn)
+// then BinOpDecode looks like:
+class BinOpDecode(implicit val p: Parameters) extends DecodeConstants {
+  val decode_table: Array[(BitPat, List[BitPat])] = Array(
+    PLUS_INT-> List(Y, FN_ADD),
+    MINUS_INT-> List(Y, FN_SUB))
+}
+#+end_src
+
+** New Instruction needs new Control Signal
+What if a new instruction needs an entirely new control signal?
+Add the new control signal to the ~CtrlSigs~ class.
+They do *not* need to be listed in-order, but it may make it easier to follow.
+You also need to add it to the default decode control signal list.
+Lastly, you need to update the ~ctrl_sigs~ inside the ~decode~ method with your new control signal.
+*Note the ORDER of the control signals. The default control signals AND decoded control signals MUST match the ~ctrl_sigs~ sequence order.*
+
+In addition, if you add a new control signal, make sure you add it to all the other already-defined instructions too.
+It helps if you define an unknown/invalid state using an all don't care (~"b?"~) bit pattern.
+
+*** New Operator Class?
+If the new instruction requires a completely new operator class, such as unary ~NOT~, then add a new decode table class which extends the ~DecodeConstants~ class.
+See [[*New ALU Functional Unit?][New ALU Functional Unit?]] for how to add a new ALU functional unit control signal.
+For example,
+#+begin_src scala
+class UnaryOpDecode(implicit val p: Parameters) extends DecodeConstants {
+  val decode_table: Array[(BitPat, List[BitPat])] = Array(
+    NOT-> List(Y, FN_NOT))
+}
+#+end_src
+
+On top of defining this new table, it needs to be installed into the top-level decode table, in ~VCode.scala~.
+This top-level decode table is minimized by the build system, and is pattern matched against to figure out what control signals to decode the instruction to.
+#+begin_src scala
+val decode_table = {
+    Seq(new UnaryOpDecode) ++:
+    Seq(new BinOpDecode)
+  } flatMap(_.decode_table)
+#+end_src
+Note the use of the ~++:~ operator, which composes two sequences together.
+The ~++:~ is a *right-associative* (right-to-left) operator!
+That means in this example it is actually bottom-to-top.
+This is only important if you override the decoded control signals for some instructions.
+
+* Execute
+The answer is actually computed here.
+
+** Already-Existing ALU Functional Unit?
+Sometimes one operation is so similar to another, the exact same functional unit can be reused.
+In this case, nothing needs to happen.
+Just reuse the ~FN_???~ in the ~ALU~ object.
+
+** New ALU Functional Unit "Address"?
+If a new instruction requires either a new functional unit, or differentiation from a similar instruction, then you must add a new value to the ~ALU~ object.
+For example, say we are adding support for both the subtraction and NOT operation.
+#+begin_src scala
+object ALU {
+  val SZ_ALU_FN = 4
+
+  def FN_X = BitPat.dontCare(SZ_ALU_FN)
+  // This funky syntax creates a bit pattern of specified length with that value
+  def FN_ADD = BitPat(0.U(SZ_ALU_FN.W))
+  def FN_SUB = BitPat(1.U(SZ_ALU_FN.W))
+  def FN_NOT = BitPat(2.U(SZ_ALU_FN.W))
+}
+#+end_src
+
+If the new instruction requires new and bespoke hardware, that must be implemented in the ~ALU~ class.
