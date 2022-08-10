@@ -1,0 +1,67 @@
+#+TITLE: Repository Layout
+#+AUTHOR: Karl Hallsby
+
+* ~doc~
+The directory this file is in.
+It holds documentation for this entire project.
+
+* ~test~
+This holds whole-program tests for the accelerator.
+These are C programs which are compiled to a bare-metal RISC-V binary.
+Some conveniences are included in the
+
+* ~src~
+This is the source for the accelerator.
+
+** ~src/main/scala~
+The main source files for the accelerator.
+Most of this repository was based on the [[https://github.com/chipsalliance/rocket-chip][rocket-chip]] repository, especially when it came to designing interfaces between modules and how to pass data between them.
+
+*** ~Constants.scala~
+Contains constant values that are useful to share throughout the entire project.
+These include option constants for the legality of an instruction, along with any other constants that need to be defined and shared.
+
+*** ~Instructions.scala~
+Contains an object that contains 0-ary methods that define bit patterns for instruction sequences.
+See [[file:Instructions.org][Instruction Documentation]] for their definition and mapping to VCODE operators.
+See [[file:Adding_RoCC_Instruction.org][Adding RoCC Instructions]] for how to add an instruction.
+
+*** ~IDecode.scala~
+Contains decode tables for an instruction to a list of control signal bit patterns.
+These tables are defined as classes which extend the ~DecodeConstants~ trait.
+The main way an instruction is decoded is by calling the ~decode~ method on a wire of control signals, ~Wire[CtrlSigs]~ in Scala parlance.
+
+See [[file:Adding_RoCC_Instruction.org][Adding RoCC Instructions]] for how to add a decode for an instruction.
+
+*** ~DFetch.scala~
+Contains modules for fetching data from the memory subsystem.
+Takes in a pointer, fetches the data, and returns it to the accelerator.
+
+One of the modules connects to the main processor's L1 data cache (~DCacheFetcher~).
+The other module connects to the L1-L2 crossbar for closer memory access (~DMemFetcher~).
+
+*** ~ALU.scala~
+Wraps functional units to compute things.
+Each functional unit has an "address", which allows us to choose which functional unit to use.
+
+See [[file:Adding_RoCC_Instruction.org][Adding RoCC Instructions]] for how to add a new functional unit and its address.
+
+*** ~VCode.scala~
+The top-level module for the accelerator.
+It connects the ~RoCCCoreIO~ signal bus to all the other components of the system, passes decoded instruction control signals around, kicks off memory requests, and returns results.
+It extends ~LazyRoCCModule~ so that it is properly picked up by the build system.
+
+It also exports two classes, ~WithVCodeAccel~ and ~WithVCodePrintf~, which are to be used when building a design.
+~WithVCodeAccel~ actually includes the accelerator in the design.
+~WithVCodePrintf~ adds printing statements to the synthesized design.
+~WithVCodePrintf~ requires ~WithVCodeAccel~ to have already been used.
+
+** ~src/test/scala~
+Single-module testbenches (unit tests) for each of the modules in the accelerator.
+
+* ~TODO.org~
+A list of items that would be good to implement.
+
+* ~shell.nix~
+A [[https://nixos.org/][Nix]] file to create a development shell for this project.
+If this is being used in conjunction with Chipyard, it is not really necessary.
