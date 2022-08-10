@@ -25,3 +25,14 @@ or
 ```sh
 sbt:projectRoot> test
 ```
+
+# Building Whole-Program Tests #
+Whole-program tests are small C programs which test functionality of the built design for correctness.
+They must be compiled with a working RISC-V toolchain.
+
+To build the tests:
+```bash
+$ cd tests
+$ make
+```
+If you do not have `$RISCV` set to the root of your RISC-V toolchain installation in your environment, a warning will be printed.
