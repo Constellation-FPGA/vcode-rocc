@@ -36,3 +36,14 @@ $ cd tests
 $ make
 ```
 If you do not have `$RISCV` set to the root of your RISC-V toolchain installation in your environment, a warning will be printed.
+
+# Documentation #
+Because Chisel is just scala code, we can automatically build documentation from the source code.
+To to this, you will need SBT.
+```bash
+$ sbt doc
+# A lot of output....
+# Main Scala API documentation to .../vcode-rocc/target/scala-2.12/api
+```
+
+Inside of the `target/scala-2.12/api/` directory is an `index.html`, which can be opened in a web browser for easy viewing.
