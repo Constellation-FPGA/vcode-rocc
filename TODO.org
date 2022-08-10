@@ -8,4 +8,4 @@
    ~IDecode.scala~ deals with mapping the particular bit patterns to signals.
    ~Decode.scala~ deals with using a QMCMinimizer to generate a truth table to decode against.
    Instructions that use ~?~ have the ~?~ ignored by the minimizer.
-3. Get testing to understand the RoCC interrupt signal from the CSRs and return a non-zero test exit code.
+3.
