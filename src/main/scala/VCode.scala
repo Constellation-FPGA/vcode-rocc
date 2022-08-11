@@ -96,15 +96,20 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
   data_ctrl.io.resp_tag   <> rocc_io.mem.resp.bits.tag
   data_ctrl.io.resp_data  := rocc_io.mem.resp.bits.data
 
-  dmem_data := 0.U // FIXME: This is where write-back should happen
-
   val data1 = Wire(Bits(p(XLen).W))
   val data2 = Wire(Bits(p(XLen).W))
+  dmem_data := 0.U // FIXME: This is where write-back should happen
+
+  when(data_ctrl.io.resp_valid) {
+    data1 := data_ctrl.io.resp_data // FIXME: For now, we assume tag is correct
+  }
 
   // RoCC must assert RoCCCoreIO.busy line high when memory actions happening
   val busy = RegInit(false.B)
   rocc_io.busy := data_ctrl.io.busy // TODO: Properly set busy to Bool(true), eventually
 
+  // data1 := data_fetcher.io.data
+  // data2 := data_fetcher.io.data
   data1 := rocc_cmd.rs1
   data2 := rocc_cmd.rs2
 
