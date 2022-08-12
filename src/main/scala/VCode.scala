@@ -7,6 +7,7 @@ import freechips.rocketchip.config._
 import freechips.rocketchip.diplomacy._
 import freechips.rocketchip.rocket._
 import freechips.rocketchip.tilelink._
+import vcoderocc.constants._
 
 /** The outer wrapping class for the VCODE accelerator.
   *
@@ -77,6 +78,7 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
    * operating on the data.
    **************/
   val data_ctrl = Module(new DCacheFetcher)
+  data_ctrl.io.cmd := rocc_cmd // Inform Cache fetcher the command given
   val dmem_data = Wire(Bits(p(XLen).W))
   /** Connect a HellaCacheReq decoupled ready/valid queue to the data control
     * module. */
@@ -96,16 +98,27 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
   data_ctrl.io.resp_tag   <> rocc_io.mem.resp.bits.tag
   data_ctrl.io.resp_data  := rocc_io.mem.resp.bits.data
 
-  dmem_data := 0.U // FIXME: This is where write-back should happen
-
   val data1 = Wire(Bits(p(XLen).W))
   val data2 = Wire(Bits(p(XLen).W))
 
-  // RoCC must assert RoCCCoreIO.busy line high when memory actions happening
-  val busy = RegInit(false.B)
-  rocc_io.busy := data_ctrl.io.busy // TODO: Properly set busy to Bool(true), eventually
+  /***************
+   * CONTROL UNIT
+   * Control unit connects ALU & Data fetcher together, properly sequencing them
+   **************/
+  val ctrl_unit = Module(new ControlUnit())
+  ctrl_unit.io.cmd := rocc_cmd
+  ctrl_unit.io.ctrl_sigs := ctrl_sigs
+  dmem_data := 0.U // FIXME: This is where write-back should happen
 
-  data1 := rocc_cmd.rs1
+  // RoCC must assert RoCCCoreIO.busy line high when memory actions happening
+  rocc_io.busy := ctrl_unit.io.busy
+
+  // when(!busy) {
+  //   data1 := data_ctrl.io.data1
+  //   // data2 := data_ctrl.io.data2
+  // }
+  data1 := data_ctrl.io.data1
+  // data1 := rocc_cmd.rs1
   data2 := rocc_cmd.rs2
 
   /***************
