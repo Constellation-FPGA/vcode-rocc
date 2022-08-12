@@ -35,21 +35,6 @@ class DCacheFetcher(implicit p: Parameters) extends CoreModule()(p) {
     val sfence = Input(Bool())
   })
 
-  when(io.req_ready) {
-    io.req_tag   := 0.U // Tag is 7 bits
-    io.req_cmd   := M_XRD // Performing read
-    io.req_addr := io.cmd.rs1 // Address to read
-    // FIXME
-    // data_ctrl.io.req_size  := MemorySizeConstants.MT64 // Xfer size
-    io.req_valid := true.B
-    io.busy := true.B
-  }
-
-  when(io.resp_valid) {
-    io.data1 := io.resp_data // FIXME: For now, we assume tag is correct
-    io.busy := false.B
-  }
-
   /** Internal buffer to organize and synchronize the two operands' data. */
   // val buffer = new Bundle {
   //   val myWidth = 64
