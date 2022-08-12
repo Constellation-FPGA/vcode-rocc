@@ -91,7 +91,7 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
     req.bits.addr := data_ctrl.io.req_addr
     req.bits.cmd  := data_ctrl.io.req_cmd
     req.bits.size := data_ctrl.io.req_size
-    req.bits.data := dmem_data
+    req.bits.data := dmem_data // FIXME: Connect to Control Unit
   }
   data_fetcher(rocc_io.mem.req)
   data_ctrl.io.resp_valid <> rocc_io.mem.resp.valid
@@ -106,21 +106,15 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
    * Control unit connects ALU & Data fetcher together, properly sequencing them
    **************/
   val ctrl_unit = Module(new ControlUnit())
+  val ctrl_exception = Wire(Bool()); ctrl_exception := ctrl_unit.io.exception
+  val ctrl_busy = Wire(Bool()); ctrl_busy := ctrl_unit.io.busy
   ctrl_unit.io.cmd := rocc_cmd
   ctrl_unit.io.ctrl_sigs := ctrl_sigs
   dmem_data := 0.U // FIXME: This is where write-back should happen
 
   // RoCC must assert RoCCCoreIO.busy line high when memory actions happening
   val busy = RegInit(false.B)
-  rocc_io.busy := data_ctrl.io.busy // TODO: Properly set busy to Bool(true), eventually
-
-  // when(!busy) {
-  //   data1 := data_ctrl.io.data1
-  //   // data2 := data_ctrl.io.data2
-  // }
-  data1 := data_ctrl.io.data1
-  // data1 := rocc_cmd.rs1
-  data2 := rocc_cmd.rs2
+  rocc_io.busy := data_ctrl.io.busy || ctrl_busy // TODO: Properly set busy to Bool(true), eventually
 
   /***************
    * EXECUTE
@@ -142,16 +136,15 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
   // Check if the accelerator needs to respond
   val response_required = cmd.valid && ctrl_sigs.legal && rocc_inst.xd
   val response = Reg(new RoCCResponse)
-  response.rd := rocc_inst.rd
-  response.data := alu_out
+  response <> ctrl_unit.io.response
   // Send response to main processor
   /* TODO: Response can only be sent once all memory transactions and arithmetic
    * operations have completed. */
-  when(response_required && io.resp.ready) {
+  when(response_required && !busy && io.resp.ready) {
     if(p(VCodePrintfEnable)) {
       printf("Main processor ready for response? %d\n", io.resp.ready)
     }
-    io.resp.enq(response) // Sends response & sets valid bit
+    rocc_io.resp.enq(response) // Sends response & sets valid bit
     if(p(VCodePrintfEnable)) {
       printf("VCode accelerator made response bits valid? %d\n", io.resp.valid)
     }
