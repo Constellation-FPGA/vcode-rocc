@@ -2,16 +2,19 @@ package vcoderocc
 
 import chisel3._
 import chisel3.util._
-import freechips.rocketchip.rocket.HellaCacheIO
+import freechips.rocketchip.rocket.{HellaCacheIO, HellaCacheReq}
 import freechips.rocketchip.tile.{XLen, RoCCCommand, RoCCResponse}
 import freechips.rocketchip.config._
 
 class ControlUnit(implicit p: Parameters) extends Module {
   val io = IO(new Bundle {
+    // RoCCCoreIO passthrough
     val cmd = Input(new RoCCCommand())
     val response = Output(new RoCCResponse())
+    val mem = Input(new HellaCacheIO())
+    // Accelerator-internal Control signals
     val ctrl_sigs = Input(new CtrlSigs())
-    // val mem = Input(new HellaCacheIO)
+    // Special signals
     val exception = Output(Bool())
     val busy = Output(Bool())
   })

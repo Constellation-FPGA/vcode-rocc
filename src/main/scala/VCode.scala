@@ -109,6 +109,8 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
   val ctrl_exception = Wire(Bool()); ctrl_exception := ctrl_unit.io.exception
   val ctrl_busy = Wire(Bool()); ctrl_busy := ctrl_unit.io.busy
   ctrl_unit.io.cmd := rocc_cmd
+  // Control unit response hooked up below when response returned with .enq
+  ctrl_unit.io.mem := rocc_io.mem
   ctrl_unit.io.ctrl_sigs := ctrl_sigs
   dmem_data := 0.U // FIXME: This is where write-back should happen
 
