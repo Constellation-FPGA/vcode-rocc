@@ -94,25 +94,30 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
    * operating on the data.
    **************/
   val data_ctrl = Module(new DCacheFetcher)
-  data_ctrl.io.cmd := rocc_cmd // Inform Cache fetcher the command given
+  val status = RegEnable(rocc_io.cmd.bits.status, io.cmd.fire)
   val dmem_data = Wire(Bits(p(XLen).W))
   /** Connect a HellaCacheReq decoupled ready/valid queue to the data control
     * module. */
   def data_fetcher(req: DecoupledIO[HellaCacheReq]) {
     // Set up Ready/Valid signals between the request queue and control module
-    req.valid := data_ctrl.io.req_valid
-    data_ctrl.io.req_ready := req.ready
+    req.valid := ctrl_unit.io.mem.req_valid
+    ctrl_unit.io.mem.req_ready := req.ready
     // Set up body of memory request queue
-    req.bits.tag  := data_ctrl.io.req_tag
-    req.bits.addr := data_ctrl.io.req_addr
-    req.bits.cmd  := data_ctrl.io.req_cmd
-    req.bits.size := data_ctrl.io.req_size
+    req.bits.tag  := ctrl_unit.io.mem.req_tag
+    req.bits.addr := ctrl_unit.io.mem.req_addr
+    req.bits.cmd  := ctrl_unit.io.mem.req_cmd
+    req.bits.size := ctrl_unit.io.mem.req_size
     req.bits.data := dmem_data // FIXME: Connect to Control Unit
   }
-  data_fetcher(rocc_io.mem.req)
-  data_ctrl.io.resp_valid <> rocc_io.mem.resp.valid
-  data_ctrl.io.resp_tag   <> rocc_io.mem.resp.bits.tag
-  data_ctrl.io.resp_data  := rocc_io.mem.resp.bits.data
+  // data_fetcher(rocc_io.mem.req)
+  data_fetcher(data_ctrl.io.req)
+  rocc_io.mem.req <> data_ctrl.io.mem
+  data_ctrl.io.status := status
+  data_ctrl.io.sfence := ctrl_unit.io.sfence
+
+  ctrl_unit.io.mem.resp_valid <> rocc_io.mem.resp.valid
+  ctrl_unit.io.mem.resp_tag   <> rocc_io.mem.resp.bits.tag
+  ctrl_unit.io.mem.resp_data  := rocc_io.mem.resp.bits.data
 
   val data1 = Wire(Bits(p(XLen).W)); data1 := rocc_cmd.rs1
   val data2 = Wire(Bits(p(XLen).W)); data2 := rocc_cmd.rs2
@@ -138,7 +143,8 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
   // Check if the accelerator needs to respond
   val response_required = cmd.valid && ctrl_sigs.legal && rocc_inst.xd
   val response = Reg(new RoCCResponse)
-  response <> ctrl_unit.io.response
+  response.rd := ctrl_unit.io.response.rd
+  response.data := ctrl_unit.io.response.data
   // Send response to main processor
   /* TODO: Response can only be sent once all memory transactions and arithmetic
    * operations have completed. */
