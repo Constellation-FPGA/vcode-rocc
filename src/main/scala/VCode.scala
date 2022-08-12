@@ -73,6 +73,22 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
   }
 
   /***************
+   * CONTROL UNIT
+   * Control unit connects ALU & Data fetcher together, properly sequencing them
+   **************/
+  val ctrl_unit = Module(new ControlUnit())
+  val ctrl_exception = Wire(Bool()); ctrl_exception := ctrl_unit.io.exception
+  val ctrl_busy = Wire(Bool()); ctrl_busy := ctrl_unit.io.busy
+  ctrl_unit.io.cmd := rocc_cmd
+  // Control unit response hooked up below when response returned with .enq
+  // ctrl_unit.io.mem := rocc_io.mem
+  ctrl_unit.io.ctrl_sigs := ctrl_sigs
+
+  // RoCC must assert RoCCCoreIO.busy line high when memory actions happening
+  val busy = RegInit(false.B)
+  rocc_io.busy := ctrl_unit.io.busy // TODO: Properly set busy to Bool(true), eventually
+
+  /***************
    * DATA FETCH
    * Most instructions pass pointers to vectors, so we need to fetch that before
    * operating on the data.
@@ -114,23 +130,7 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
   alu_out := alu.io.out
   alu_cout := alu.io.cout
 
-  /***************
-   * CONTROL UNIT
-   * Control unit connects ALU & Data fetcher together, properly sequencing them
-   **************/
-  val ctrl_unit = Module(new ControlUnit())
-  val ctrl_exception = Wire(Bool()); ctrl_exception := ctrl_unit.io.exception
-  val ctrl_busy = Wire(Bool()); ctrl_busy := ctrl_unit.io.busy
-  ctrl_unit.io.cmd := rocc_cmd
-  // Control unit response hooked up below when response returned with .enq
-  ctrl_unit.io.mem := rocc_io.mem
-  ctrl_unit.io.ctrl_sigs := ctrl_sigs
   dmem_data := 0.U // FIXME: This is where write-back should happen
-
-  // RoCC must assert RoCCCoreIO.busy line high when memory actions happening
-  val busy = RegInit(false.B)
-  rocc_io.busy := data_ctrl.io.busy || ctrl_busy // TODO: Properly set busy to Bool(true), eventually
-
 
   /***************
    * RESPOND
