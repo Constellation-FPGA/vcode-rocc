@@ -93,27 +93,8 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
    * Most instructions pass pointers to vectors, so we need to fetch that before
    * operating on the data.
    **************/
-  val data_ctrl = Module(new DCacheFetcher)
   val status = RegEnable(rocc_io.cmd.bits.status, io.cmd.fire)
   val dmem_data = Wire(Bits(p(XLen).W))
-  /** Connect a HellaCacheReq decoupled ready/valid queue to the data control
-    * module. */
-  def data_fetcher(req: DecoupledIO[HellaCacheReq]) {
-    // Set up Ready/Valid signals between the request queue and control module
-    req.valid := ctrl_unit.io.mem.req_valid
-    ctrl_unit.io.mem.req_ready := req.ready
-    // Set up body of memory request queue
-    req.bits.tag  := ctrl_unit.io.mem.req_tag
-    req.bits.addr := ctrl_unit.io.mem.req_addr
-    req.bits.cmd  := ctrl_unit.io.mem.req_cmd
-    req.bits.size := ctrl_unit.io.mem.req_size
-    req.bits.data := dmem_data // FIXME: Connect to Control Unit
-  }
-  // data_fetcher(rocc_io.mem.req)
-  data_fetcher(data_ctrl.io.req)
-  rocc_io.mem.req <> data_ctrl.io.mem
-  data_ctrl.io.status := status
-  data_ctrl.io.sfence := ctrl_unit.io.sfence
 
   ctrl_unit.io.mem.resp_valid <> rocc_io.mem.resp.valid
   ctrl_unit.io.mem.resp_tag   <> rocc_io.mem.resp.bits.tag

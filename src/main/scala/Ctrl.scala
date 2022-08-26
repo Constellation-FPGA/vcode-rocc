@@ -35,7 +35,7 @@ class ControlUnit(implicit p: Parameters) extends CoreModule()(p) with MemoryOpC
     // Special signals
     val exception = Output(Bool())
     val busy = Output(Bool())
-    val sfence = Output(Bool())
+    // val sfence = Output(Bool())
   })
 
   // 4 states. Nil is End-of-list and not counted.
