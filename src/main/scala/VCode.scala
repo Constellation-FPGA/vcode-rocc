@@ -94,7 +94,7 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
    * operating on the data.
    **************/
   val status = RegEnable(rocc_io.cmd.bits.status, io.cmd.fire)
-  val dmem_data = Wire(Bits(p(XLen).W))
+  val dmem_data = Wire(Bits(p(XLen).W)) // Data to SEND to memory
 
   ctrl_unit.io.mem.resp_valid <> rocc_io.mem.resp.valid
   ctrl_unit.io.mem.resp_tag   <> rocc_io.mem.resp.bits.tag
