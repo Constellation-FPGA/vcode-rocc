@@ -86,7 +86,7 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
 
   // RoCC must assert RoCCCoreIO.busy line high when memory actions happening
   val busy = RegInit(false.B)
-  rocc_io.busy := ctrl_unit.io.busy // TODO: Properly set busy to Bool(true), eventually
+  rocc_io.busy := ctrl_unit.io.busy && !ctrl_unit.io.fetched_data.valid
 
   /***************
    * DATA FETCH
@@ -99,8 +99,9 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
   ctrl_unit.io.mem.resp_valid <> rocc_io.mem.resp.valid
   ctrl_unit.io.mem.resp_tag   <> rocc_io.mem.resp.bits.tag
   ctrl_unit.io.mem.resp_data  := rocc_io.mem.resp.bits.data
+  ctrl_unit.io.mem.req_ready := rocc_io.mem.req.ready
 
-  val data1 = Wire(Bits(p(XLen).W)); data1 := rocc_cmd.rs1
+  val data1 = Wire(Bits(p(XLen).W)); data1 := ctrl_unit.io.fetched_data.bits
   val data2 = Wire(Bits(p(XLen).W)); data2 := rocc_cmd.rs2
   /***************
    * EXECUTE UNIT

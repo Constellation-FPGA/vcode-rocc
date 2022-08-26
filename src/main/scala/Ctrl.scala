@@ -36,6 +36,7 @@ class ControlUnit(implicit p: Parameters) extends CoreModule()(p) with MemoryOpC
     val exception = Output(Bool())
     val busy = Output(Bool())
     // val sfence = Output(Bool())
+    val fetched_data = Output(Valid(Bits(p(XLen).W)))
   })
 
   // 4 states. Nil is End-of-list and not counted.
@@ -44,6 +45,9 @@ class ControlUnit(implicit p: Parameters) extends CoreModule()(p) with MemoryOpC
 
   val data1 = Wire(Bits(p(XLen).W))
   val data2 = Wire(Bits(p(XLen).W))
+
+  io.fetched_data.bits := 0.U
+  io.fetched_data.valid := false.B
 
   io.mem.req_tag := 0.U(6.W)
   io.mem.req_size := BitPat.bitPatToUInt(MT64)
