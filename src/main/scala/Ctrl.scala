@@ -56,6 +56,11 @@ class ControlUnit(implicit p: Parameters) extends CoreModule()(p) with MemoryOpC
   io.mem.req_valid := false.B // TODO: Make request valid to initiate transfer
   switch(execute_state) {
     is(idle) {
+      when(io.ctrl_sigs.is_mem_op) {
+        io.mem.req_valid := true.B
+        execute_state := fetchingData
+        io.busy := true.B
+      }
     }
     is(fetchingData) {
     }
