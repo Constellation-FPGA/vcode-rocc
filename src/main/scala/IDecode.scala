@@ -23,7 +23,7 @@ trait DecodeConstants extends HasCoreParameters { // TODO: Not sure if extends n
 class CtrlSigs extends Bundle { // TODO: Rename to BinOpCtrlSigs?
   /* All control signals used in this coprocessor
    * See rocket-chip's rocket/IDecode.scala#IntCtrlSigs#default */
-  val legal = Bool() // Example control signal.
+  val legal = Bool()
   val alu_fn = Bits(SZ_ALU_FN)
   /** List of default control signal values
     * @return List of default control signal values. */
