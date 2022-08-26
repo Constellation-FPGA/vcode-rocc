@@ -30,7 +30,7 @@ import freechips.rocketchip.rocket.{MStatus, HellaCacheReq, HellaCacheResp}
 class DCacheFetcher(implicit p: Parameters) extends CoreModule()(p) {
   val io = IO(new Bundle {
     val req = Flipped(Decoupled(new HellaCacheReq()))
-    val mem = Decoupled(new HellaCacheResp())
+    val paddr_req = Decoupled(new HellaCacheReq())
     val status = Input(new MStatus())
     val sfence = Input(Bool())
   })
@@ -49,6 +49,8 @@ class DCacheFetcher(implicit p: Parameters) extends CoreModule()(p) {
   //   // Enable
   //   val w_enable = Wire(Bool())
   // }
+
+  io.paddr_req <> io.req
 }
 
 /** Module connecting VCode accelerator directly to the L1-L2 crossbar connecting
