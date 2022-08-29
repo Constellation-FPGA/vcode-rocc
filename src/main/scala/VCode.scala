@@ -87,6 +87,22 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
   val data2 = Wire(Bits(p(XLen).W))
 
   /***************
+   * EXECUTE
+   **************/
+  val alu = Module(new ALU)
+  val alu_out = Reg(UInt())
+  val alu_cout = Wire(UInt())
+  // Hook up the ALU to VCode signals
+  alu.io.fn := ctrl_sigs.alu_fn
+  // FIXME: Only use rs1/rs2 if xs1/xs2 =1, respectively.
+  alu.io.in1 := data1
+  alu.io.in2 := data2
+  when(alu.io.out.valid) {
+    alu_out := alu.io.out.bits
+  }
+  alu_cout := alu.io.cout
+
+  /***************
    * CONTROL UNIT
    * Control unit connects ALU & Data fetcher together, properly sequencing them
    **************/
@@ -108,19 +124,6 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
   // data1 := rocc_cmd.rs1
   data2 := rocc_cmd.rs2
 
-  /***************
-   * EXECUTE
-   **************/
-  val alu = Module(new ALU)
-  val alu_out = Wire(UInt())
-  val alu_cout = Wire(UInt())
-  // Hook up the ALU to VCode signals
-  alu.io.fn := ctrl_sigs.alu_fn
-  // FIXME: Only use rs1/rs2 if xs1/xs2 =1, respectively.
-  alu.io.in1 := data1
-  alu.io.in2 := data2
-  alu_out := alu.io.out
-  alu_cout := alu.io.cout
 
   /***************
    * RESPOND
