@@ -12,6 +12,7 @@ class ControlUnit(implicit p: Parameters) extends Module {
     val ctrl_sigs = Input(new CtrlSigs())
     val busy = Output(Bool())
     // TODO: Rework these booleans to an Enum which can be "exported"
+    val should_fetch = Output(Bool())
     val should_execute = Output(Bool())
   })
 
@@ -20,6 +21,7 @@ class ControlUnit(implicit p: Parameters) extends Module {
   val execute_state = RegInit(idle) // Reset to idle state
 
   val busy = RegInit(false.B); io.busy := busy
+  val should_fetch = RegInit(false.B); io.should_fetch := should_fetch
   val should_execute = RegInit(false.B); io.should_execute := should_execute
 
   switch(execute_state) {
@@ -27,8 +29,10 @@ class ControlUnit(implicit p: Parameters) extends Module {
     }
     is(fetchingData) {
       busy := true.B
+      should_fetch := true.B
     }
     is(exe) {
+      should_fetch := false.B
       should_execute := true.B
     }
     is(write) {
