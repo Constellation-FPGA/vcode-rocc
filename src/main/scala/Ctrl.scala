@@ -11,6 +11,8 @@ class ControlUnit(implicit p: Parameters) extends Module {
     val cmd = Input(new RoCCCommand())
     val ctrl_sigs = Input(new CtrlSigs())
     val busy = Output(Bool())
+    // TODO: Rework these booleans to an Enum which can be "exported"
+    val should_execute = Output(Bool())
   })
 
   // 4 states. Nil is End-of-list and not counted.
@@ -18,6 +20,7 @@ class ControlUnit(implicit p: Parameters) extends Module {
   val execute_state = RegInit(idle) // Reset to idle state
 
   val busy = RegInit(false.B); io.busy := busy
+  val should_execute = RegInit(false.B); io.should_execute := should_execute
 
   switch(execute_state) {
     is(idle) {
@@ -26,8 +29,10 @@ class ControlUnit(implicit p: Parameters) extends Module {
       busy := true.B
     }
     is(exe) {
+      should_execute := true.B
     }
     is(write) {
+      should_execute := false.B
     }
   }
 }
