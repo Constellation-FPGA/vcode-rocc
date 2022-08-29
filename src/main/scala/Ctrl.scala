@@ -29,6 +29,9 @@ class ControlUnit(implicit p: Parameters) extends Module {
   switch(execute_state) {
     is(idle) {
       response_ready := false.B
+      when(io.ctrl_sigs.legal && io.ctrl_sigs.is_mem_op) {
+        execute_state := fetchingData
+      }
     }
     is(fetchingData) {
       busy := true.B
