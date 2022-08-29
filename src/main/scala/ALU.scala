@@ -26,10 +26,15 @@ class ALU(implicit p: Parameters) extends CoreModule()(p) {
     // The two register content values passed over the RoCCCommand are xLen wide
     val in1 = Input(UInt(xLen.W))
     val in2 = Input(UInt(xLen.W))
-    val out = Output(UInt(xLen.W))
+    val out = Output(Valid(UInt(xLen.W)))
     val cout = Output(UInt(xLen.W))
   })
 
+  if(p(VCodePrintfEnable)) {
+    printf("In1: 0x%x\tIn2: 0x%x\n", io.in1, io.in2)
+  }
+
   // ADD/SUB
-  io.out := io.in1 + io.in2
+  io.out.bits := io.in1 + io.in2
+  io.out.valid := true.B
 }
