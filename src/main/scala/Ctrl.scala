@@ -13,6 +13,7 @@ class ControlUnit(implicit p: Parameters) extends Module {
     val busy = Output(Bool())
     // TODO: Rework these booleans to an Enum which can be "exported"
     val should_fetch = Output(Bool())
+    val num_to_fetch = Output(UInt())
     val should_execute = Output(Bool())
     val response_ready = Output(Bool())
   })
@@ -23,7 +24,10 @@ class ControlUnit(implicit p: Parameters) extends Module {
 
   val busy = RegInit(false.B); io.busy := busy
   val should_fetch = RegInit(false.B); io.should_fetch := should_fetch
+  val num_to_fetch = RegInit(0.U); io.num_to_fetch := num_to_fetch
+
   val should_execute = RegInit(false.B); io.should_execute := should_execute
+
   val response_ready = RegInit(false.B); io.response_ready := response_ready
 
   switch(execute_state) {
@@ -39,6 +43,7 @@ class ControlUnit(implicit p: Parameters) extends Module {
     is(fetchingData) {
       busy := true.B
       should_fetch := true.B
+      num_to_fetch := io.ctrl_sigs.num_mem_fetches
       if(p(VCodePrintfEnable)) {
         printf("In fetchingData state\n")
       }

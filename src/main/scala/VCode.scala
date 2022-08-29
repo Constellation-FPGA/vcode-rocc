@@ -110,6 +110,7 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
   ctrl_unit.io.cmd := rocc_cmd
   ctrl_unit.io.ctrl_sigs := ctrl_sigs
   data_fetcher.io.should_fetch := ctrl_unit.io.should_fetch
+  data_fetcher.io.num_to_fetch := ctrl_unit.io.num_to_fetch
   alu.io.execute := ctrl_unit.io.should_execute
   dmem_data := 0.U // FIXME: This is where write-back should happen
   // RoCC must assert RoCCCoreIO.busy line high when memory actions happening

@@ -44,23 +44,15 @@ class DCacheFetcher(implicit p: Parameters) extends CoreModule()(p)
     val resp = Flipped(Valid(new HellaCacheResp))
   })
 
+  val idle :: fetching :: Nil = Enum(2)
+  val state = RegInit(idle)
   val vals = Mem(2, UInt(p(XLen).W)) // Only need max of 2 memory slots for now
 
-  when(io.should_fetch) {
-  }
-  when(io.req_ready) {
-    io.req_tag   := 0.U // Tag is 7 bits
-    io.req_cmd   := M_XRD // Performing read
-    io.req_addr := io.cmd.rs1 // Address to read
-    // FIXME
-    // data_ctrl.io.req_size  := MemorySizeConstants.MT64 // Xfer size
-    io.req_valid := true.B
-    io.busy := true.B
-  }
-
-  when(io.resp_valid) {
-    io.data1 := io.resp_data // FIXME: For now, we assume tag is correct
-    io.busy := false.B
+  switch(state) {
+    is(idle) {
+    }
+    is(fetching) {
+    }
   }
 
   /** Internal buffer to organize and synchronize the two operands' data. */
