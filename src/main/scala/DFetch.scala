@@ -88,3 +88,16 @@ class DMemFetcher(implicit p: Parameters) extends CoreModule()(p)
     with MemoryOpConstants {
   val io = IO(new Bundle {})
 }
+
+object NumOperatorOperands {
+  /** The size of the bit pattern for number of operands for operators. */
+  val SZ_MEM_OPS = 2.W
+  /** Unknown number of operands */
+  def MEM_OPS_X = BitPat("b??")
+  /** No operands. Intended for accelerator control instructions. */
+  def MEM_OPS_ZERO = BitPat("b00")
+  /** One operands to fetch from memory. */
+  def MEM_OPS_ONE = BitPat("b01")
+  /** Two operands to fetch from memory. */
+  def MEM_OPS_TWO = BitPat("b10")
+}
