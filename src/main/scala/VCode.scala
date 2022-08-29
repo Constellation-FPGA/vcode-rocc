@@ -79,7 +79,6 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
    **************/
   val data_ctrl = Module(new DCacheFetcher)
   data_ctrl.io.cmd := rocc_cmd // Inform Cache fetcher the command given
-  val dmem_data = Wire(Bits(p(XLen).W))
   /** Connect a HellaCacheReq decoupled ready/valid queue to the data control
     * module. */
   def data_fetcher(req: DecoupledIO[HellaCacheReq]) {
@@ -97,6 +96,8 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
   data_ctrl.io.resp_valid <> rocc_io.mem.resp.valid
   data_ctrl.io.resp_tag   <> rocc_io.mem.resp.bits.tag
   data_ctrl.io.resp_data  := rocc_io.mem.resp.bits.data
+
+  val dmem_data = Wire(Bits(p(XLen).W)) // Data to SEND to memory
 
   val data1 = Wire(Bits(p(XLen).W))
   val data2 = Wire(Bits(p(XLen).W))
