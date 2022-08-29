@@ -3,5 +3,5 @@ package vcoderocc
 import chisel3.util._
 
 object Instructions {
-  def PLUS_INT = BitPat("b0000000")
+  def PLUS_INT = BitPat("b0000001")
 }
