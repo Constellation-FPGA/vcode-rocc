@@ -120,6 +120,8 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
     data1 := data_fetcher.io.fetched_data.bits.data1
     data2 := data_fetcher.io.fetched_data.bits.data2
   }
+  val response_ready = Wire(Bool())
+  response_ready := ctrl_unit.io.response_ready
 
   /***************
    * RESPOND
@@ -132,7 +134,7 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
   // Send response to main processor
   /* TODO: Response can only be sent once all memory transactions and arithmetic
    * operations have completed. */
-  when(response_required && io.resp.ready) {
+  when(response_required && io.resp.ready && response_ready) {
     if(p(VCodePrintfEnable)) {
       printf("Main processor ready for response? %d\n", io.resp.ready)
     }

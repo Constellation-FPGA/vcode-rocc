@@ -14,6 +14,7 @@ class ControlUnit(implicit p: Parameters) extends Module {
     // TODO: Rework these booleans to an Enum which can be "exported"
     val should_fetch = Output(Bool())
     val should_execute = Output(Bool())
+    val response_ready = Output(Bool())
   })
 
   // 4 states. Nil is End-of-list and not counted.
@@ -23,9 +24,11 @@ class ControlUnit(implicit p: Parameters) extends Module {
   val busy = RegInit(false.B); io.busy := busy
   val should_fetch = RegInit(false.B); io.should_fetch := should_fetch
   val should_execute = RegInit(false.B); io.should_execute := should_execute
+  val response_ready = RegInit(false.B); io.response_ready := response_ready
 
   switch(execute_state) {
     is(idle) {
+      response_ready := false.B
     }
     is(fetchingData) {
       busy := true.B
@@ -37,6 +40,7 @@ class ControlUnit(implicit p: Parameters) extends Module {
     }
     is(write) {
       should_execute := false.B
+      response_ready := true.B
     }
   }
 }
