@@ -83,8 +83,8 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
 
   val dmem_data = Wire(Bits(p(XLen).W)) // Data to SEND to memory
 
-  val data1 = Wire(Bits(p(XLen).W))
-  val data2 = Wire(Bits(p(XLen).W))
+  val data1 = RegInit(0.U(p(XLen).W))
+  val data2 = RegInit(0.U(p(XLen).W))
 
   /***************
    * EXECUTE
@@ -112,18 +112,14 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
   data_fetcher.io.should_fetch := ctrl_unit.io.should_fetch
   alu.io.execute := ctrl_unit.io.should_execute
   dmem_data := 0.U // FIXME: This is where write-back should happen
-
   // RoCC must assert RoCCCoreIO.busy line high when memory actions happening
   rocc_io.busy := ctrl_unit.io.busy
-
-  // when(!busy) {
-  //   data1 := data_ctrl.io.data1
-  //   // data2 := data_ctrl.io.data2
-  // }
-  data1 := data_ctrl.io.data1
   // data1 := rocc_cmd.rs1
-  data2 := rocc_cmd.rs2
-
+  // data2 := rocc_cmd.rs2
+  when(data_fetcher.io.fetched_data.valid) {
+    data1 := data_fetcher.io.fetched_data.bits.data1
+    data2 := data_fetcher.io.fetched_data.bits.data2
+  }
 
   /***************
    * RESPOND
