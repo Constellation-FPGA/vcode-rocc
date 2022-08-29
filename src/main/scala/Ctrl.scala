@@ -31,19 +31,31 @@ class ControlUnit(implicit p: Parameters) extends Module {
       response_ready := false.B
       when(io.ctrl_sigs.legal && io.ctrl_sigs.is_mem_op) {
         execute_state := fetchingData
+        if(p(VCodePrintfEnable)) {
+          printf("Moving from idle to fetchingData state\n")
+        }
       }
     }
     is(fetchingData) {
       busy := true.B
       should_fetch := true.B
+      if(p(VCodePrintfEnable)) {
+        printf("In fetchingData state\n")
+      }
     }
     is(exe) {
       should_fetch := false.B
       should_execute := true.B
+      if(p(VCodePrintfEnable)) {
+        printf("In execution state\n")
+      }
     }
     is(write) {
       should_execute := false.B
       response_ready := true.B
+      if(p(VCodePrintfEnable)) {
+        printf("Execution done. Returning result\n")
+      }
     }
   }
 }
