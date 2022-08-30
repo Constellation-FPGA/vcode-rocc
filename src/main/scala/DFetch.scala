@@ -50,6 +50,12 @@ class DCacheFetcher(implicit p: Parameters) extends CoreModule()(p)
 
   switch(state) {
     is(idle) {
+      when(io.should_fetch) {
+        state := fetching
+        if(p(VCodePrintfEnable)) {
+          printf("Starting to fetch data\n")
+        }
+      }
     }
     is(fetching) {
     }
