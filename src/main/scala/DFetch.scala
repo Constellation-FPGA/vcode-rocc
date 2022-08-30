@@ -50,6 +50,7 @@ class DCacheFetcher(implicit p: Parameters) extends CoreModule()(p)
     val num_to_fetch = Input(UInt())
     val req = Decoupled(new HellaCacheReq)
     val resp = Flipped(Valid(new HellaCacheResp))
+    val fetching_completed = Output(Bool())
   })
 
   val idle :: fetching :: Nil = Enum(2)
@@ -58,9 +59,12 @@ class DCacheFetcher(implicit p: Parameters) extends CoreModule()(p)
 
   val vals = Mem(2, UInt(p(XLen).W)) // Only need max of 2 memory slots for now
 
+  val fetching_completed = RegInit(false.B); io.fetching_completed := fetching_completed
+
   switch(state) {
     is(idle) {
       io.addrs.ready := true.B // TODO: Dequeue at most once
+      fetching_completed := false.B
       when(io.should_fetch) {
         state := fetching
         if(p(VCodePrintfEnable)) {
@@ -76,6 +80,7 @@ class DCacheFetcher(implicit p: Parameters) extends CoreModule()(p)
           printf("Fetched all the data. Fetcher returns to idle. Do next thing\n")
         }
         state := idle
+        fetching_completed := true.B
       } .otherwise {
         // We still have a request to make. We may still have outstanding responses too.
         state := fetching

@@ -116,6 +116,7 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
   ctrl_unit.io.ctrl_sigs := ctrl_sigs
 
   // Data-fetching control signals
+  ctrl_unit.io.fetching_completed := data_fetcher.io.fetching_completed
   when(data_fetcher.io.addrs.ready) {
     // Queue addrs and set valid bit
     data_fetcher.io.addrs.enq(addrs)
