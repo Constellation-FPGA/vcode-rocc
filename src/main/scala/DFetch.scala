@@ -46,6 +46,8 @@ class DCacheFetcher(implicit p: Parameters) extends CoreModule()(p)
 
   val idle :: fetching :: Nil = Enum(2)
   val state = RegInit(idle)
+  var amount_fetched = RegInit(0.U)
+
   val vals = Mem(2, UInt(p(XLen).W)) // Only need max of 2 memory slots for now
 
   switch(state) {
@@ -58,6 +60,19 @@ class DCacheFetcher(implicit p: Parameters) extends CoreModule()(p)
       }
     }
     is(fetching) {
+      when(amount_fetched >= io.num_to_fetch) {
+        // We have fetched everything we needed to fetch. We are done.
+        if(p(VCodePrintfEnable)) {
+          printf("Fetched all the data. Fetcher returns to idle. Do next thing\n")
+        }
+        state := idle
+      } .otherwise {
+        // We still have a request to make. We may still have outstanding responses too.
+        state := fetching
+        when(io.resp.valid) {
+          amount_fetched += 1.U
+        }
+      }
     }
   }
 
