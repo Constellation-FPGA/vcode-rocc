@@ -16,6 +16,7 @@ class ControlUnit(implicit p: Parameters) extends Module {
     val num_to_fetch = Output(UInt())
     val fetching_completed = Input(Bool())
     val should_execute = Output(Bool())
+    val execution_completed = Input(Bool())
     val response_ready = Output(Bool())
   })
 
@@ -57,6 +58,9 @@ class ControlUnit(implicit p: Parameters) extends Module {
       should_execute := true.B
       if(p(VCodePrintfEnable)) {
         printf("In execution state\n")
+      }
+      when(io.execution_completed) {
+        execute_state := write
       }
     }
     is(write) {
