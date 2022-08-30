@@ -39,6 +39,11 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
   val rocc_inst = rocc_cmd.inst // The customX instruction in instruction stream
   cmd.ready := true.B // Always ready to accept a command
 
+  val rs1 = Wire(Bits(p(XLen).W)); rs1 := rocc_cmd.rs1
+  val rs2 = Wire(Bits(p(XLen).W)); rs2 := rocc_cmd.rs2
+  val addrs = Wire(new AddressBundle(p(XLen)))
+  addrs.addr1 := rs1; addrs.addr2 := rs2
+
   /* Create the decode table at the top-level of the implementation
    * If additional instructions are added as separate classes in Instructions.scala
    * they can be added above BinOpDecode class. */
@@ -115,8 +120,7 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
   dmem_data := 0.U // FIXME: This is where write-back should happen
   // RoCC must assert RoCCCoreIO.busy line high when memory actions happening
   rocc_io.busy := ctrl_unit.io.busy
-  // data1 := rocc_cmd.rs1
-  // data2 := rocc_cmd.rs2
+
   when(data_fetcher.io.fetched_data.valid) {
     data1 := data_fetcher.io.fetched_data.bits.data1
     data2 := data_fetcher.io.fetched_data.bits.data2
