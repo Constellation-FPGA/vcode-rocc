@@ -16,6 +16,12 @@ import freechips.rocketchip.rocket.{HellaCacheReq, HellaCacheResp}
  * LazyRoCC.tlNode connects to the L1-L2 crossbar connecting this tile to the
  * larger system. */
 
+// FIXME: Use another structure? Vec perhaps?
+class AddressBundle(addrWidth: Int) extends Bundle {
+  val addr1 = Bits(addrWidth.W)
+  val addr2 = Bits(addrWidth.W)
+}
+
 /** Module connecting VCode accelerator to main processor's non-blocking L1 data
   * cache.
   *
