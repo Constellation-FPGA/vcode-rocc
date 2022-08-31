@@ -41,6 +41,13 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
     cmd.nodeq // Prevent data in queue from being dequeued
   }
 
+  /***************
+   * CONTROL UNIT
+   * Control unit connects ALU & Data fetcher together, properly sequencing them
+   **************/
+  val ctrl_unit = Module(new ControlUnit())
+  ctrl_unit.io.cmd := rocc_cmd
+
   cmd.ready := true.B // TODO: Always ready to accept a command?
 
   val rs1 = Wire(Bits(p(XLen).W)); rs1 := rocc_cmd.rs1
@@ -60,6 +67,7 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
    **************/
   // Decode instruction, yielding control signals
   val ctrl_sigs = Wire(new CtrlSigs()).decode(rocc_inst.funct, decode_table)
+  ctrl_unit.io.ctrl_sigs := ctrl_sigs
 
   // If invalid instruction, raise exception
   val exception = cmd.fire && !ctrl_sigs.legal
@@ -112,13 +120,8 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
   alu_cout := alu.io.cout
 
   /***************
-   * CONTROL UNIT
-   * Control unit connects ALU & Data fetcher together, properly sequencing them
+   * Connect more control unit signals
    **************/
-  val ctrl_unit = Module(new ControlUnit())
-  ctrl_unit.io.cmd := rocc_cmd
-  ctrl_unit.io.ctrl_sigs := ctrl_sigs
-
   // Data-fetching control signals
   ctrl_unit.io.fetching_completed := data_fetcher.io.fetching_completed
   when(data_fetcher.io.addrs.ready) {
