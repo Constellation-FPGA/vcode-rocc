@@ -38,7 +38,6 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
   val rocc_cmd = cmd.bits // The entire RoCC Command provided to the accelerator
   val rocc_inst = rocc_cmd.inst // The customX instruction in instruction stream
   when(cmd.fire) {
-    cmd.nodeq // Prevent data in queue from being dequeued
   }
 
   /***************
@@ -48,7 +47,10 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
   val ctrl_unit = Module(new ControlUnit())
   ctrl_unit.io.cmd := rocc_cmd
 
-  cmd.ready := true.B // TODO: Always ready to accept a command?
+  // Accelerator control unit controls when we are ready to accept the next
+  // instruction from the RoCC command queue. Cannot accept another command
+  // unless accelerator is ready/idle
+  cmd.ready := ctrl_unit.io.accel_ready
 
   val rs1 = Wire(Bits(p(XLen).W)); rs1 := rocc_cmd.rs1
   val rs2 = Wire(Bits(p(XLen).W)); rs2 := rocc_cmd.rs2

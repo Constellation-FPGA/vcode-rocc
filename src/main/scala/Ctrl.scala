@@ -11,6 +11,7 @@ class ControlUnit(implicit p: Parameters) extends Module {
     val cmd = Input(new RoCCCommand())
     val ctrl_sigs = Input(new CtrlSigs())
     val busy = Output(Bool())
+    val accel_ready = Output(Bool())
     // TODO: Rework these booleans to an Enum which can be "exported"
     val should_fetch = Output(Bool())
     val num_to_fetch = Output(UInt())
@@ -32,6 +33,9 @@ class ControlUnit(implicit p: Parameters) extends Module {
   val should_execute = RegInit(false.B); io.should_execute := should_execute
 
   val response_ready = RegInit(false.B); io.response_ready := response_ready
+
+  // The accelerator is ready to execute if it is in the idle state
+  io.accel_ready := execute_state === idle
 
   switch(execute_state) {
     is(idle) {
