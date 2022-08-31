@@ -41,7 +41,7 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
     cmd.nodeq // Prevent data in queue from being dequeued
   }
 
-  cmd.ready := true.B // Always ready to accept a command
+  cmd.ready := true.B // TODO: Always ready to accept a command?
 
   val rs1 = Wire(Bits(p(XLen).W)); rs1 := rocc_cmd.rs1
   val rs2 = Wire(Bits(p(XLen).W)); rs2 := rocc_cmd.rs2
