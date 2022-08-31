@@ -18,6 +18,7 @@ class ControlUnit(implicit p: Parameters) extends Module {
     val should_execute = Output(Bool())
     val execution_completed = Input(Bool())
     val response_ready = Output(Bool())
+    val response_completed = Input(Bool())
   })
 
   // 4 states. Nil is End-of-list and not counted.
@@ -68,6 +69,9 @@ class ControlUnit(implicit p: Parameters) extends Module {
       response_ready := true.B
       if(p(VCodePrintfEnable)) {
         printf("Execution done. Returning result\n")
+      }
+      when(io.response_completed) {
+        execute_state := idle
       }
     }
   }

@@ -130,8 +130,14 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
   alu.io.execute := ctrl_unit.io.should_execute
   ctrl_unit.io.execution_completed := alu.io.out.valid
   dmem_data := 0.U // FIXME: This is where write-back should happen
+
+  // Result-returning control signals
+  val response_completed = RegInit(false.B)
+  response_completed := ctrl_unit.io.response_completed
+
   // RoCC must assert RoCCCoreIO.busy line high when memory actions happening
   rocc_io.busy := ctrl_unit.io.busy
+  ctrl_unit.io.response_completed := io.resp.valid
 
   when(data_fetcher.io.fetched_data.valid) {
     data1 := data_fetcher.io.fetched_data.bits.data1
@@ -156,6 +162,7 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
       printf("Main processor ready for response? %d\n", io.resp.ready)
     }
     io.resp.enq(response) // Sends response & sets valid bit
+    response_completed := true.B
     if(p(VCodePrintfEnable)) {
       printf("VCode accelerator made response bits valid? %d\n", io.resp.valid)
     }
