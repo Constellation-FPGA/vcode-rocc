@@ -62,7 +62,7 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
   val ctrl_sigs = Wire(new CtrlSigs()).decode(rocc_inst.funct, decode_table)
 
   // If invalid instruction, raise exception
-  val exception = cmd.valid && !ctrl_sigs.legal
+  val exception = cmd.fire && !ctrl_sigs.legal
   io.interrupt := exception
   when(exception) {
     if(p(VCodePrintfEnable)) {
@@ -72,7 +72,7 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
 
   /* The valid bit is raised to true by the main processor when the command is
    * sent to the DecoupledIO Queue. */
-  when(cmd.valid) {
+  when(cmd.fire) {
     // TODO: Find a nice way to condense these conditional prints
     if(p(VCodePrintfEnable)) {
       printf("Got funct7 = 0x%x\trs1.val=0x%x\trs2.val=0x%x\n",
