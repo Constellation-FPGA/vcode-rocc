@@ -37,6 +37,10 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
   val cmd = Queue(rocc_io.cmd)
   val rocc_cmd = cmd.bits // The entire RoCC Command provided to the accelerator
   val rocc_inst = rocc_cmd.inst // The customX instruction in instruction stream
+  when(cmd.fire) {
+    cmd.nodeq // Prevent data in queue from being dequeued
+  }
+
   cmd.ready := true.B // Always ready to accept a command
 
   val rs1 = Wire(Bits(p(XLen).W)); rs1 := rocc_cmd.rs1
@@ -162,6 +166,7 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
       printf("Main processor ready for response? %d\n", io.resp.ready)
     }
     io.resp.enq(response) // Sends response & sets valid bit
+    cmd.deq // Dequeue this instruction from the queue
     response_completed := true.B
     if(p(VCodePrintfEnable)) {
       printf("VCode accelerator made response bits valid? %d\n", io.resp.valid)
