@@ -76,6 +76,9 @@ class ControlUnit(implicit p: Parameters) extends Module {
       }
       when(io.response_completed) {
         execute_state := idle
+        if(p(VCodePrintfEnable)) {
+          printf("Response sent. Returning to idle state\n")
+        }
       }
     }
   }
