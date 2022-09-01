@@ -167,7 +167,7 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
    * RESPOND
    **************/
   // Check if the accelerator needs to respond
-  val response_required = cmd.valid && ctrl_sigs.legal && rocc_inst.xd
+  val response_required = ctrl_sigs.legal && rocc_inst.xd
   val response = Reg(new RoCCResponse)
   response.rd := rocc_inst.rd
   response.data := alu_out
