@@ -35,9 +35,14 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
   // io is the RoCCCoreIO
   val rocc_io = io
   val cmd = Queue(rocc_io.cmd)
-  val rocc_cmd = cmd.bits // The entire RoCC Command provided to the accelerator
+  // TODO: Make rocc_cmd & rocc_cmd_valid use bundle/class
+  val rocc_cmd = Reg(new RoCCCommand())
+  val rocc_cmd_valid = RegInit(false.B)
   val rocc_inst = rocc_cmd.inst // The customX instruction in instruction stream
   when(cmd.fire) {
+    // cmd.fire is 1 for only 1 clock cycle!
+    rocc_cmd := cmd.bits // The entire RoCC Command provided to the accelerator
+    rocc_cmd_valid := true.B
   }
 
   /***************
@@ -82,7 +87,7 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
 
   /* The valid bit is raised to true by the main processor when the command is
    * sent to the DecoupledIO Queue. */
-  when(cmd.fire) {
+  when(rocc_cmd_valid) {
     // TODO: Find a nice way to condense these conditional prints
     if(p(VCodePrintfEnable)) {
       printf("Got funct7 = 0x%x\trs1.val=0x%x\trs2.val=0x%x\n",
@@ -172,7 +177,7 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
     }
     io.resp.enq(response) // Sends response & sets valid bit
     cmd.deq // Dequeue this instruction from the queue
-    response_completed := true.B
+    rocc_cmd_valid := false.B // Now done, so this instruction is no longer valid
     if(p(VCodePrintfEnable)) {
       printf("VCode accelerator made response bits valid? %d\n", io.resp.valid)
     }
