@@ -136,6 +136,8 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
    * Connect more control unit signals
    **************/
   // Data-fetching control signals
+  // RoCC must assert RoCCCoreIO.busy line high when memory actions happening
+  rocc_io.busy := ctrl_unit.io.busy
   ctrl_unit.io.fetching_completed := data_fetcher.io.fetching_completed
   when(data_fetcher.io.addrs.ready) {
     // Queue addrs and set valid bit
@@ -150,10 +152,6 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
   alu.io.execute := ctrl_unit.io.should_execute
   ctrl_unit.io.execution_completed := alu.io.out.valid
   dmem_data := 0.U // FIXME: This is where write-back should happen
-
-  // RoCC must assert RoCCCoreIO.busy line high when memory actions happening
-  rocc_io.busy := ctrl_unit.io.busy
-  ctrl_unit.io.response_completed := io.resp.valid
 
   when(data_fetcher.io.fetched_data.valid) {
     data1 := data_fetcher.io.fetched_data.bits.data1
