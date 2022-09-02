@@ -39,6 +39,8 @@ class DCacheFetcher(implicit p: Parameters) extends CoreModule()(p)
   /* For now, we only support "raw" loading and storing.
    * Only using M_XRD and M_XWR */
   val io = IO(new Bundle {
+    /** The addresses to fetch. */
+    val addrs = Flipped(Decoupled(new AddressBundle(p(XLen))))
     // Actual Data outputs
     val fetched_data = Output(Valid(new Bundle {
       val data1 = Bits(p(XLen).W)
@@ -58,6 +60,7 @@ class DCacheFetcher(implicit p: Parameters) extends CoreModule()(p)
 
   switch(state) {
     is(idle) {
+      io.addrs.ready := true.B // TODO: Dequeue at most once
       when(io.should_fetch) {
         state := fetching
         if(p(VCodePrintfEnable)) {
@@ -66,6 +69,7 @@ class DCacheFetcher(implicit p: Parameters) extends CoreModule()(p)
       }
     }
     is(fetching) {
+      io.addrs.nodeq() // Set ready to false
       when(amount_fetched >= io.num_to_fetch) {
         // We have fetched everything we needed to fetch. We are done.
         if(p(VCodePrintfEnable)) {

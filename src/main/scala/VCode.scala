@@ -114,6 +114,14 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
   val ctrl_unit = Module(new ControlUnit())
   ctrl_unit.io.cmd := rocc_cmd
   ctrl_unit.io.ctrl_sigs := ctrl_sigs
+
+  // Data-fetching control signals
+  when(data_fetcher.io.addrs.ready) {
+    // Queue addrs and set valid bit
+    data_fetcher.io.addrs.enq(addrs)
+  } .otherwise {
+    data_fetcher.io.addrs.noenq()
+  }
   data_fetcher.io.should_fetch := ctrl_unit.io.should_fetch
   data_fetcher.io.num_to_fetch := ctrl_unit.io.num_to_fetch
   alu.io.execute := ctrl_unit.io.should_execute
