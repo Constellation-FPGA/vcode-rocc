@@ -8,7 +8,10 @@ import freechips.rocketchip.config._
 
 class ControlUnit(implicit p: Parameters) extends Module {
   val io = IO(new Bundle {
-    val cmd = Input(new RoCCCommand())
+    val cmd = Input(new Bundle {
+      val cmd = new RoCCCommand()
+      val valid = Bool()
+    })
     val ctrl_sigs = Input(new CtrlSigs())
     val busy = Output(Bool())
     val accel_ready = Output(Bool())
@@ -40,7 +43,7 @@ class ControlUnit(implicit p: Parameters) extends Module {
   switch(execute_state) {
     is(idle) {
       response_ready := false.B
-      when(io.ctrl_sigs.legal && io.ctrl_sigs.is_mem_op) {
+      when(io.cmd.valid && io.ctrl_sigs.legal && io.ctrl_sigs.is_mem_op) {
         execute_state := fetchingData
         if(p(VCodePrintfEnable)) {
           printf("Moving from idle to fetchingData state\n")
