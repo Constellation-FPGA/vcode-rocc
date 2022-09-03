@@ -76,9 +76,10 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
   val ctrl_sigs = Wire(new CtrlSigs()).decode(rocc_inst.funct, decode_table)
   ctrl_unit.io.ctrl_sigs := ctrl_sigs
 
+  // TODO: Exception-raising module?
   // If invalid instruction, raise exception
-  val exception = cmd.fire && !ctrl_sigs.legal
-  io.interrupt := exception
+  val exception = rocc_cmd_valid && !ctrl_sigs.legal
+  rocc_io.interrupt := exception
   when(exception) {
     if(p(VCodePrintfEnable)) {
       printf("Raising exception to processor through interrupt!\nILLEGAL INSTRUCTION!\n");
