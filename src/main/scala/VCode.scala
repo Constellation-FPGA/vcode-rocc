@@ -40,12 +40,10 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
   val rocc_cmd_valid = RegInit(false.B)
   val rocc_inst = rocc_cmd.inst // The customX instruction in instruction stream
   // Register to control when to raise io.resp.valid flag back to main processor
-  val response_valid = RegInit(false.B); io.resp.valid := response_valid
   when(cmd.fire) {
     // cmd.fire is 1 for only 1 clock cycle!
     rocc_cmd := cmd.bits // The entire RoCC Command provided to the accelerator
     rocc_cmd_valid := true.B
-    response_valid := false.B // Reset response validity for next instruction
   }
 
   /***************
@@ -179,7 +177,6 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
     }
     io.resp.enq(response) // Sends response & sets valid bit
     io.resp.bits := response
-    response_valid := true.B
     rocc_cmd_valid := false.B // Now done, so this instruction is no longer valid
     if(p(VCodePrintfEnable)) {
       printf("VCode accelerator made response bits valid? %d\n", io.resp.valid)
