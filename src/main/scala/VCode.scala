@@ -83,6 +83,7 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
     if(p(VCodePrintfEnable)) {
       printf("Raising exception to processor through interrupt!\nILLEGAL INSTRUCTION!\n");
     }
+    rocc_cmd_valid := false.B // The provided command was invalid!
   }
 
   /* The valid bit is raised to true by the main processor when the command is
