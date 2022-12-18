@@ -37,13 +37,17 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
   val cmd = Queue(rocc_io.cmd)
   // TODO: Make rocc_cmd & rocc_cmd_valid use bundle/class
   val rocc_cmd = Reg(new RoCCCommand())
-  val rocc_cmd_valid = RegInit(false.B)
+  // val rocc_cmd = cmd.bits // The entire RoCC Command provided to the accelerator
+val rocc_cmd_valid = RegInit(false.B)
   val rocc_inst = rocc_cmd.inst // The customX instruction in instruction stream
+  // val rocc_inst = Reg(new RoCCInstruction)
   // Register to control when to raise io.resp.valid flag back to main processor
+  
   when(cmd.fire) {
     // cmd.fire is 1 for only 1 clock cycle!
     rocc_cmd := cmd.bits // The entire RoCC Command provided to the accelerator
-    rocc_cmd_valid := true.B
+  rocc_cmd_valid := true.B
+    // rocc_inst :=cmd.bits.inst
   }
 
   /***************
@@ -75,18 +79,19 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
    * DECODE
    **************/
   // Decode instruction, yielding control signals
-  val ctrl_sigs = Wire(new CtrlSigs()).decode(rocc_inst.funct, decode_table)
+  val ctrl_sigs = Wire(new CtrlSigs()).decode(rocc_cmd.inst.funct, decode_table)
   ctrl_unit.io.ctrl_sigs := ctrl_sigs
 
   // TODO: Exception-raising module?
   // If invalid instruction, raise exception
   val exception = rocc_cmd_valid && !ctrl_sigs.legal
-  rocc_io.interrupt := exception
+  // val exception = cmd.fire && !ctrl_sigs.legal
+  rocc_io.interrupt := false.B
   when(exception) {
     if(p(VCodePrintfEnable)) {
-      printf("Raising exception to processor through interrupt!\nILLEGAL INSTRUCTION!\n");
+      printf("Raising exception to processor through interrupt!\nILLEGAL INSTRUCTION!cmd.fire=%d\n",cmd.fire);
     }
-    rocc_cmd_valid := false.B // The provided command was invalid!
+  // rocc_cmd_valid := false.B // The provided command was invalid!
   }
 
   /* The valid bit is raised to true by the main processor when the command is
@@ -94,8 +99,8 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
   when(rocc_cmd_valid) {
     // TODO: Find a nice way to condense these conditional prints
     if(p(VCodePrintfEnable)) {
-      printf("Got funct7 = 0x%x\trs1.val=0x%x\trs2.val=0x%x\n",
-        rocc_inst.funct, rocc_cmd.rs1, rocc_cmd.rs2)
+      printf("Got funct7 = 0x%x\trs1.val=0x%x\trs2.val=0x%x\txd.val=0x%x\n",
+        rocc_cmd.inst.funct, rocc_cmd.rs1, rocc_cmd.rs2, rocc_cmd.inst.xd)
       printf("The instruction legal: %d\n", ctrl_sigs.legal)
     }
   }
@@ -134,8 +139,7 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
    * Connect more control unit signals
    **************/
   // Data-fetching control signals
-  // RoCC must assert RoCCCoreIO.busy line high when memory actions happening
-  rocc_io.busy := ctrl_unit.io.busy
+
   ctrl_unit.io.fetching_completed := data_fetcher.io.fetching_completed
   when(data_fetcher.io.addrs.ready) {
     // Queue addrs and set valid bit
@@ -151,33 +155,45 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
   ctrl_unit.io.execution_completed := alu.io.out.valid
   dmem_data := 0.U // FIXME: This is where write-back should happen
 
-  when(data_fetcher.io.fetched_data.valid) {
+  // Result-returning control signals
+
+  // RoCC must assert RoCCCoreIO.busy line high when memory actions happening
+  rocc_io.busy := ctrl_unit.io.busy
+  // rocc_io.busy := false.B
+  ctrl_unit.io.response_completed := io.resp.valid
+
+    when(data_fetcher.io.fetched_data.valid) {
     data1 := data_fetcher.io.fetched_data.bits.data1
     data2 := data_fetcher.io.fetched_data.bits.data2
   }
-
-  // Result-returning control signals
-  val response_ready = Wire(Bool()); response_ready := ctrl_unit.io.response_ready
-  ctrl_unit.io.response_completed := io.resp.valid
+  val response_ready = Wire(Bool())
+  response_ready := ctrl_unit.io.response_ready
 
   /***************
    * RESPOND
    **************/
   // Check if the accelerator needs to respond
-  val response_required = ctrl_sigs.legal && rocc_inst.xd
+  val response_required = rocc_cmd_valid && ctrl_sigs.legal && rocc_cmd.inst.xd
   val response = Reg(new RoCCResponse)
-  response.rd := rocc_inst.rd
+  response.rd := rocc_cmd.inst.rd
   response.data := alu_out
   // Send response to main processor
   /* TODO: Response can only be sent once all memory transactions and arithmetic
    * operations have completed. */
+   printf("whether to retire the instruction: response_required: %d,io.resp.ready:  %d, response_ready: %d\n",response_required , io.resp.ready , response_ready)
+    io.resp.valid := response_required && io.resp.ready && response_ready
+  if(p(VCodePrintfEnable)) {
+      printf("general VCode accelerator made response bits valid? %d\n", io.resp.valid)
+  }
+
   when(response_required && io.resp.ready && response_ready) {
     if(p(VCodePrintfEnable)) {
       printf("Main processor ready for response? %d\n", io.resp.ready)
     }
     io.resp.enq(response) // Sends response & sets valid bit
-    io.resp.bits := response
-    rocc_cmd_valid := false.B // Now done, so this instruction is no longer valid
+    cmd.deq // Dequeue this instruction from the queue
+    // io.resp.bits := response
+  rocc_cmd_valid := false.B // Now done, so this instruction is no longer valid
     if(p(VCodePrintfEnable)) {
       printf("VCode accelerator made response bits valid? %d\n", io.resp.valid)
     }

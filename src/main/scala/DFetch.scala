@@ -81,12 +81,20 @@ class DCacheFetcher(implicit p: Parameters) extends CoreModule()(p)
         }
         state := idle
         fetching_completed := true.B
+        amount_fetched := 0.U
       } .otherwise {
         // We still have a request to make. We may still have outstanding responses too.
         state := fetching
-        when(io.resp.valid) {
-          amount_fetched += 1.U
+        when(true.B){
+          // amount_fetched += 1.U
+          amount_fetched := io.num_to_fetch
         }
+        if(p(VCodePrintfEnable)) {
+          printf("still fetching data, num_to_fetch:%d amount_fetched:%d \n",io.num_to_fetch,amount_fetched)
+        }
+        // when(io.resp.valid) {
+
+
       }
     }
   }
