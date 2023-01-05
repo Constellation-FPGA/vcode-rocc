@@ -108,7 +108,7 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
   /***************
    * EXECUTE
    **************/
-  val alu = Module(new ALU)
+  val alu = Module(new ALU(p(XLen)))
   val alu_out = Reg(UInt())
   val alu_cout = Wire(UInt())
   // Hook up the ALU to VCode signals

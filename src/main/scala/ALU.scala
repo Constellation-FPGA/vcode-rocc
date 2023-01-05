@@ -20,7 +20,7 @@ object ALU {
 /** Implementation of an ALU.
   * @param p Implicit parameter passed by the build system.
   */
-class ALU(implicit p: Parameters) extends CoreModule()(p) {
+class ALU(val xLen: Int) extends Module {
   import ALU._ // Import ALU object, so we do not have to fully-qualify names
   val io = IO(new Bundle {
     val fn = Input(Bits(SZ_ALU_FN.W))
