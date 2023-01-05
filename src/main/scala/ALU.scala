@@ -27,20 +27,14 @@ class ALU(val xLen: Int) extends Module {
     // The two register content values passed over the RoCCCommand are xLen wide
     val in1 = Input(UInt(xLen.W))
     val in2 = Input(UInt(xLen.W))
-    val out = Output(Valid(UInt(xLen.W)))
+    val out = Output(UInt(xLen.W))
     val cout = Output(UInt(xLen.W))
-    val execute = Input(Bool())
   })
 
-  io.out.valid := false.B
-
-  val data_out = RegInit(0.U(xLen.W))
-  // ADD/SUB
-  data_out := io.in1 + io.in2
-
-  /* Update the register with the result of the ALU's computation */
-  when(io.execute) {
-    io.out.bits := data_out
-    io.out.valid := true.B
-  }
+  /* NOTE: Chisel's + operator does NOT keep the carry-out bit!
+   * If we are interested in capturing that, we need to move to +& and then
+   * bit-slice to get the (xLen+1)th bit (which will be carry-out).
+   * NOTE: Chisel's +% operator is the same as the + operator! */
+  io.out := io.in1 + io.in2
+  io.cout := 0.U
 }
