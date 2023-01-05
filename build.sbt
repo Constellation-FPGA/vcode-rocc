@@ -12,3 +12,5 @@ lazy val chiselSettings = Seq(
   libraryDependencies ++= Seq("edu.berkeley.cs" %% "chisel3" % chiselVersion),
   addCompilerPlugin("edu.berkeley.cs" % "chisel3-plugin" % chiselVersion cross CrossVersion.full)
 )
+
+libraryDependencies += "edu.berkeley.cs" %% "chiseltest" % "0.5.2"
