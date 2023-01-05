@@ -1,9 +1,11 @@
 package vcoderocc
 
+import org.scalatest._
 import chisel3._
 import chiseltest._
 import org.scalatest.flatspec.AnyFlatSpec
 import chisel3.experimental.BundleLiterals._
+import org.scalatest.matchers.should.Matchers
 
 /** Example of tests that are "shared by multiple fixture objects"
   * More information on https://www.scalatest.org/user_guide/sharing_tests
@@ -18,7 +20,7 @@ trait ALUBehavior {
 
 }
 
-class ALUTest extends AnyFlatSpec with ChiselScalatestTester {
+class ALUTest extends AnyFlatSpec with ChiselScalatestTester with Matchers {
   "Test description" in {
     test(new ALU()) { dut =>
       dut.io.fn := FN_ADD
