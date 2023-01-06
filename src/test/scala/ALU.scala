@@ -41,6 +41,16 @@ class ALUTest extends AnyFlatSpec with ChiselScalatestTester with Matchers with 
   behavior of "ALU"
   val xLen = 64
 
-  it should behave like testAddition(32, 14, xLen)
+  val testData: List[(BigInt, BigInt)] = List[(BigInt, BigInt)](
+    (0, 0),
+    (32, 14),
+    ((BigInt(1)<<63), 1),
+    /* We are limited by the JVM, because it does not support unsigned integral
+     * values, so testing the maximum 64-bit number + 1 is not trivial. */
+    (BigInt(0x7FFFFFFFFFFFFFFFL), 1),
+  )
 
+  testData.foreach { data =>
+    it should behave like testAddition(data._1, data._2, xLen)
+  }
 }
