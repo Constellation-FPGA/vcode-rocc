@@ -16,16 +16,31 @@ trait ALUBehavior {
   this: AnyFlatSpec with ChiselScalatestTester =>
 
   // Int is 32-bit, breaking shifting by 64. Use BigInt instead.
+  // NOTE: Scala << rotates! 16-bit number: 1 << 16 == 1!
   def mask(s: Int): BigInt = (BigInt(1) << s) - 1
 
-}
+  def testAddition(a: BigInt, b: BigInt, s: Int): Unit = {
+    val result = (a + b) & mask(s)
+    it should s"$a + $b == $result" in {
+      test(new ALU(s)) { c =>
+        c.io.fn.poke(ALU.FN_ADD.value)
+        c.io.in1.poke(a.U(s.W))
+        c.io.in2.poke(b.U(s.W))
+        // c.io.execute.poke(true.B)
+        c.clock.step()
 
-class ALUTest extends AnyFlatSpec with ChiselScalatestTester with Matchers {
-  "Test description" in {
-    test(new ALU()) { dut =>
-      dut.io.fn := FN_ADD
-      dut.io.in1 := 32.U
-      dut.io.in2 := 14.U
+        // c.io.out.valid.expect(true.B)
+        c.io.out.expect(result.U(s.W))
+        c.io.cout.expect(0.U)
+      }
     }
   }
+}
+
+class ALUTest extends AnyFlatSpec with ChiselScalatestTester with Matchers with ALUBehavior {
+  behavior of "ALU"
+  val xLen = 64
+
+  it should behave like testAddition(32, 14, xLen)
+
 }
