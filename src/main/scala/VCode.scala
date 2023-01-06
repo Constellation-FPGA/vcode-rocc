@@ -56,18 +56,15 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
   val addrs = Wire(new AddressBundle(p(XLen)))
   addrs.addr1 := rs1; addrs.addr2 := rs2
 
-  /* Create the decode table at the top-level of the implementation
-   * If additional instructions are added as separate classes in Instructions.scala
-   * they can be added above BinOpDecode class. */
-  val decode_table = {
-    Seq(new BinOpDecode)
-  } flatMap(_.decode_table)
-
   /***************
    * DECODE
+   * Decode instruction, yielding control signals
    **************/
-  // Decode instruction, yielding control signals
-  val ctrl_sigs = Wire(new CtrlSigs()).decode(rocc_cmd.inst.funct, decode_table)
+  val decoder = Module(new Decoder)
+  val ctrl_sigs = Wire(new CtrlSigs())
+  decoder.io.rocc_inst := rocc_cmd.inst
+  ctrl_sigs := decoder.io.ctrl_sigs
+
   ctrl_unit.io.ctrl_sigs := ctrl_sigs
 
   // TODO: Exception-raising module?
