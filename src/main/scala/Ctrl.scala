@@ -2,15 +2,10 @@ package vcoderocc
 
 import chisel3._
 import chisel3.util._
-import freechips.rocketchip.rocket.HellaCacheIO
-import freechips.rocketchip.tile.{XLen, RoCCCommand, RoCCResponse}
-import freechips.rocketchip.config._
+import freechips.rocketchip.config.Parameters
 
 class ControlUnit(implicit p: Parameters) extends Module {
   val io = IO(new Bundle {
-    val cmd = Input(new Bundle {
-      val cmd = new RoCCCommand()
-    })
     val ctrl_sigs = Input(new CtrlSigs())
     val busy = Output(Bool())
     val accel_ready = Output(Bool())
@@ -41,7 +36,7 @@ class ControlUnit(implicit p: Parameters) extends Module {
   switch(execute_state) {
     is(idle) {
       response_ready := false.B
-      when(io.cmd.valid && io.ctrl_sigs.legal && io.ctrl_sigs.is_mem_op) {
+      when(io.ctrl_sigs.legal && io.ctrl_sigs.is_mem_op) {
         execute_state := fetchingData
         if(p(VCodePrintfEnable)) {
           printf("Moving from idle to fetchingData state\n")
