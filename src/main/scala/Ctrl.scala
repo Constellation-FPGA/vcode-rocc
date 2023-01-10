@@ -10,7 +10,6 @@ class ControlUnit(implicit p: Parameters) extends Module {
   val io = IO(new Bundle {
     val cmd = Input(new Bundle {
       val cmd = new RoCCCommand()
-      val valid = Bool()
     })
     val ctrl_sigs = Input(new CtrlSigs())
     val busy = Output(Bool())
