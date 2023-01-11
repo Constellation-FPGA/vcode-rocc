@@ -1,0 +1,59 @@
+#+TITLE: Running Module Unit Tests
+#+AUTHOR: Karl Hallsby
+
+* Running Tests
+The VCODE accelerator was designed to be integrated with Chipyard, which means it must be run from there.
+#+begin_src sh
+$ cd chipyard
+$ sbt
+> project vcoderocc
+> test
+#+end_src
+
+You can also go to the ~sims/verilator~ directory.
+#+begin_src sh
+$ cd chipyard
+$ source env.sh
+$ cd sims/verilator
+$ make launch-sbt
+> project vcoderocc
+> test
+#+end_src
+
+** Running a Single Test Suite
+To run a single test suite (class), use the ~testOnly~ SBT command.
+#+begin_src sh
+$ sbt
+> project vcoderocc
+> testOnly vcoderocc.ALUTest
+# Only the tests for the ALU should happen.
+#+end_src
+
+* Additional Chisel Output
+Sometimes you want additional information to be printed by the tester.
+Depending on the information trying to be gathered, you may need to add an annotation to the test that additional *Chisel* output should be printed.
+
+The snippet below will remove the chisel3 stack trace suppression (ie. ~at ... ())~.
+#+begin_src scala
+// Top of file
+import chisel3.stage.PrintFullStackTraceAnnotation
+
+// ...
+
+    // Inside your test spec
+    test(new MyModule).withAnnotations(Seq(PrintFullStackTraceAnnotation))
+#+end_src
+
+* Additional Scala Output
+If you are not receiving full Scala stack traces, then you may need to enable full stack trace printing from ScalaTest.
+This is done by passing the ~F~ flag to SBT.
+#+begin_src sh
+$ sbt
+> testOnly <spec/class name> -- -oF
+# Any arguments after -- pass to ScalaTest directly instead of being interpreted by SBT.
+# -oS will switch back to short stack traces
+#+end_src
+
+** Other Flags
+ScalaTest has a large variety fo flags that you may want to manipuate.
+The full list is at [[https://www.scalatest.org/user_guide/using_scalatest_with_sbt][ScalaTest's User Guide]] under the "Using Reporters" section.
