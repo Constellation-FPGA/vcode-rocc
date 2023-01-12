@@ -29,8 +29,7 @@ trait ALUBehavior {
         c.io.execute.poke(true.B)
         c.clock.step()
 
-        c.io.out.valid.expect(true.B)
-        c.io.out.bits.expect(result.U(s.W))
+        c.io.out.expect(result.U(s.W))
         c.io.cout.expect(0.U)
       }
     }

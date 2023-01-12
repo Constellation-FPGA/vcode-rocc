@@ -112,9 +112,7 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
   // FIXME: Only use rs1/rs2 if xs1/xs2 =1, respectively.
   alu.io.in1 := data1
   alu.io.in2 := data2
-  when(alu.io.out.valid) {
-    alu_out := alu.io.out.bits
-  }
+  alu_out := alu.io.out
   alu_cout := alu.io.cout
 
   /***************
@@ -134,7 +132,7 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
 
   // Execution control signals.
   alu.io.execute := ctrl_unit.io.should_execute
-  ctrl_unit.io.execution_completed := alu.io.out.valid
+  // ctrl_unit.io.execution_completed := alu.io.out.valid
   dmem_data := 0.U // FIXME: This is where write-back should happen
 
   // Result-returning control signals
