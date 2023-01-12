@@ -170,25 +170,3 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
     }
   }
 }
-
-/** Mixin to build a chip that includes a VCode accelerator.
-  */
-class WithVCodeAccel extends Config((site, here, up) => {
-  case BuildRoCC => List (
-    (p: Parameters) => {
-      val vcodeAccel = LazyModule(new VCodeAccel(OpcodeSet.custom0)(p))
-      vcodeAccel
-    })
-})
-
-/** Design-level configuration option to toggle the synthesis of print statements
-  * in the synthesized hardware design.
-  */
-case object VCodePrintfEnable extends Field[Boolean](false)
-
-/** Mixin to enable print statements from the synthesized design.
-  * This mixin should only be used AFTER the WithVCodeAccel mixin.
-  */
-class WithVCodePrintf extends Config((site, here, up) => {
-  case VCodePrintfEnable => true
-})

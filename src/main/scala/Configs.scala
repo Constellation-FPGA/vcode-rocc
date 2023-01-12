@@ -1,8 +1,32 @@
 package vcoderocc
 
-import freechips.rocketchip.tile.{TileKey, TileParams, RocketTileParams}
+import freechips.rocketchip.diplomacy.LazyModule
+import freechips.rocketchip.tile.{BuildRoCC, TileKey, TileParams, RocketTileParams, OpcodeSet}
 import freechips.rocketchip.subsystem.{RocketTilesKey, RocketSubsystem}
-import freechips.rocketchip.config.Config
+import freechips.rocketchip.config.{Config, Field, Parameters}
+
+/** Mixin to build a chip that includes a VCode accelerator.
+  */
+class WithVCodeAccel extends Config((site, here, up) => {
+  case BuildRoCC => List (
+    (p: Parameters) => {
+      val vcodeAccel = LazyModule(new VCodeAccel(OpcodeSet.custom0)(p))
+      vcodeAccel
+    })
+})
+
+/** Design-level configuration option to toggle the synthesis of print statements
+  * in the synthesized hardware design.
+  */
+case object VCodePrintfEnable extends Field[Boolean](false)
+
+/** Mixin to enable print statements from the synthesized design.
+  * This mixin should only be used AFTER the WithVCodeAccel mixin.
+  */
+class WithVCodePrintf extends Config((site, here, up) => {
+  case VCodePrintfEnable => true
+})
+
 
 /** Adds a TileKey configuration, making the simplified testing design a part of
   * the TileLink network, allowing for the processor and accelerator to communicate
