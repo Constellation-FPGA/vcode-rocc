@@ -16,7 +16,7 @@ RISCV_PREFIX := riscv64-unknown-elf
 CC :=  $(RISCV_PREFIX)-gcc
 OBJDUMP := $(RISCV_PREFIX)-objdump
 
-RISCV_GCC_OPTS ?= -DPREALLOCATE=1 -static -std=gnu99 -fno-common -fno-builtin-printf -Wall -fvisibility=hidden -nostdlib -nostartfiles
+RISCV_GCC_OPTS ?= -DPREALLOCATE=1 -static -std=gnu99 -fno-common -fno-builtin-printf -Wall -fvisibility=hidden -nostartfiles
 
 TEST_SRCS :=
 include src/modules.mk
@@ -34,7 +34,7 @@ CFLAGS := -g -D__riscv_xlen=$(XLEN) -mcmodel=medany
 CFLAGS += $(INCLUDE_FLAGS)
 
 SIM_LDSCRIPT := $(abspath utils/link.ld)
-LDFLAGS := -static -nostdlib -nostartfiles -lgcc -T$(SIM_LDSCRIPT)
+LDFLAGS := -static -lc -lgcc -T$(SIM_LDSCRIPT)
 include utils/Makefile
 UTIL_OBJS := $(addprefix $(BUILD_DIR)/,$(UTIL_OBJS))
 OBJS += $(UTIL_OBJS)
