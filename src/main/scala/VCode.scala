@@ -9,6 +9,8 @@ import freechips.rocketchip.rocket._
 import freechips.rocketchip.tilelink._
 import vcoderocc.constants._
 
+import freechips.rocketchip.util.EnhancedChisel3Assign
+
 /** The outer wrapping class for the VCODE accelerator.
   *
   * @constructor Create a new VCode accelerator interface using one of the
@@ -93,8 +95,8 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
    * operating on the data.
    **************/
   val data_fetcher = Module(new DCacheFetcher)
-  rocc_io.mem.req <> data_fetcher.io.req // Connect Request queue
-  data_fetcher.io.resp <> rocc_io.mem.resp  // Connect response queue
+  rocc_io.mem.req :<> data_fetcher.io.req // Connect Request queue
+  data_fetcher.io.resp :<> rocc_io.mem.resp  // Connect response queue
 
   val dmem_data = Wire(Bits(p(XLen).W)) // Data to SEND to memory
 
