@@ -42,10 +42,7 @@ class DCacheFetcher(implicit p: Parameters) extends CoreModule()(p)
     /** The addresses to fetch. */
     val addrs = Flipped(Decoupled(new AddressBundle(p(XLen))))
     // Actual Data outputs
-    val fetched_data = Output(Valid(new Bundle {
-      val data1 = Bits(p(XLen).W)
-      val data2 = Bits(p(XLen).W)
-    }))
+    val fetched_data = Output(Valid(Vec(2, Bits(p(XLen).W))))
     val should_fetch = Input(Bool())
     val num_to_fetch = Input(UInt())
     val req = Decoupled(new HellaCacheReq)
@@ -85,9 +82,8 @@ class DCacheFetcher(implicit p: Parameters) extends CoreModule()(p)
       } .otherwise {
         // We still have a request to make. We may still have outstanding responses too.
         state := fetching
-        when(true.B){
-          // amount_fetched += 1.U
-          amount_fetched := io.num_to_fetch
+        when(io.resp.valid && io.resp.bits.has_data){
+          amount_fetched += 1.U
         }
         if(p(VCodePrintfEnable)) {
           printf("still fetching data, num_to_fetch:%d amount_fetched:%d \n",io.num_to_fetch,amount_fetched)

@@ -142,8 +142,8 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
   ctrl_unit.io.response_completed := io.resp.valid
 
   when(data_fetcher.io.fetched_data.valid) {
-    data1 := data_fetcher.io.fetched_data.bits.data1
-    data2 := data_fetcher.io.fetched_data.bits.data2
+    data1 := data_fetcher.io.fetched_data.bits(0)
+    data2 := data_fetcher.io.fetched_data.bits(1)
   }
   val response_ready = Wire(Bool())
   response_ready := ctrl_unit.io.response_ready
