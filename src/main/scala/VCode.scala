@@ -105,13 +105,17 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
    * EXECUTE
    **************/
   val alu = Module(new ALU(p(XLen)))
-  val alu_out = Wire(UInt());  alu_out := alu.io.out
-  val alu_cout = Wire(UInt()); alu_cout := alu.io.cout
+  val alu_out = Reg(UInt())
+  val alu_cout = Wire(UInt())
   // Hook up the ALU to VCode signals
   alu.io.fn := ctrl_sigs.alu_fn
   // FIXME: Only use rs1/rs2 if xs1/xs2 =1, respectively.
   alu.io.in1 := data1
   alu.io.in2 := data2
+  when(alu.io.out.valid) {
+    alu_out := alu.io.out.bits
+  }
+  alu_cout := alu.io.cout
 
   /***************
    * Connect more control unit signals
@@ -129,8 +133,8 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
   data_fetcher.io.num_to_fetch := ctrl_unit.io.num_to_fetch
 
   // Execution control signals.
-  // alu.io.execute := ctrl_unit.io.should_execute
-  // ctrl_unit.io.execution_completed := alu.io.out.valid
+  alu.io.execute := ctrl_unit.io.should_execute
+  ctrl_unit.io.execution_completed := alu.io.out.valid
   dmem_data := 0.U // FIXME: This is where write-back should happen
 
   // Result-returning control signals

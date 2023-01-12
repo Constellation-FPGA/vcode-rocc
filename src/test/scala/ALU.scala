@@ -26,11 +26,11 @@ trait ALUBehavior {
         c.io.fn.poke(ALU.FN_ADD.value)
         c.io.in1.poke(a.U(s.W))
         c.io.in2.poke(b.U(s.W))
-        // c.io.execute.poke(true.B)
+        c.io.execute.poke(true.B)
         c.clock.step()
 
-        // c.io.out.valid.expect(true.B)
-        c.io.out.expect(result.U(s.W))
+        c.io.out.valid.expect(true.B)
+        c.io.out.bits.expect(result.U(s.W))
         c.io.cout.expect(0.U)
       }
     }
