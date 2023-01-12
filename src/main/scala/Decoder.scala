@@ -14,9 +14,7 @@ class Decoder(implicit p: Parameters) extends Module {
   /* Create the decode table at the top-level of the implementation
    * If additional instructions are added as separate classes in Instructions.scala
    * they can be added above BinOpDecode class. */
-  val decode_table = {
-    Seq(new BinOpDecode)
-  } flatMap(_.decode_table)
+  val decode_table = (new DecodeTable()).table
 
   /***************
    * DECODE

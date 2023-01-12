@@ -80,3 +80,31 @@ class BinOpDecode(implicit val p: Parameters) extends DecodeConstants {
   val decode_table: Array[(BitPat, List[BitPat])] = Array(
     PLUS_INT-> List(Y, MEM_OPS_TWO, FN_ADD, Y))
 }
+
+/** A class holding a decode table for all possible RoCC instructions that are
+  * supported by the accelerator, and a small helper to find the control signals
+  * of a provided RoCC instruction's funct7 code. */
+class DecodeTable(implicit val p: Parameters) {
+  /** The decode table for all types of operators. */
+  def table = {
+    Seq(new BinOpDecode)
+  } flatMap(_.decode_table)
+
+  /** Given an operation/funct7 code, find the control signals for that
+    * particular RoCC instruction. */
+  def findCtrlSigs(op: BitPat): CtrlSigs = {
+    val ctrlSigs = new CtrlSigs
+    var sigs: List[BitPat] = ctrlSigs.default_decode_ctrl_sigs
+    // Try to find matching operation -> signal mapping in decode table
+    for (opSigs <- table) {
+      val operation = opSigs._1
+      val signals = opSigs._2
+      if(op.equals(operation)) {
+        sigs = signals
+      }
+    }
+
+    // Construct the CtrlSigs object
+    return CtrlSigs.convert(sigs)
+  }
+}
