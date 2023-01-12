@@ -2,6 +2,7 @@ package vcoderocc
 
 import chisel3._
 import chisel3.util._
+import chisel3.experimental.BundleLiterals._
 import freechips.rocketchip.config.Parameters
 import freechips.rocketchip.tile.HasCoreParameters
 import Instructions._
@@ -28,6 +29,7 @@ class CtrlSigs extends Bundle { // TODO: Rename to BinOpCtrlSigs?
   val alu_fn = Bits(SZ_ALU_FN.W)
   val is_mem_op = Bool()
   val num_mem_fetches = Bits(SZ_MEM_OPS)
+
   /** List of default control signal values
     * @return List of default control signal values. */
   def default_decode_ctrl_sigs: List[BitPat] =
@@ -51,6 +53,23 @@ class CtrlSigs extends Bundle { // TODO: Rename to BinOpCtrlSigs?
     this
   }
 }
+
+object CtrlSigs {
+  /** Convert a signal pattern (List/Seq/Array) of BitPat representing the output
+    * from the decode table, and convert them to name-addressable control
+    * signals. */
+  def convert(signalPattern: Iterable[BitPat]): CtrlSigs = {
+    val Seq(legal, num_mem_fetches, alu_fn, is_mem_op) = signalPattern.map(BitPat.bitPatToUInt(_));
+    // Everything in the Seq above comes out as UInt, so we need to convert a little bit
+    (new CtrlSigs()).Lit(
+      _.legal -> legal.asBool,
+      _.num_mem_fetches -> num_mem_fetches,
+      _.alu_fn -> alu_fn,
+      _.is_mem_op -> is_mem_op.asBool
+    )
+  }
+}
+
 
 /** Class holding a table that implements the DecodeConstants table that mapping
   * a binary operation's instruction bit pattern to control signals.
