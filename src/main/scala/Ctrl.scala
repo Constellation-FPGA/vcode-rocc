@@ -2,6 +2,7 @@ package vcoderocc
 
 import chisel3._
 import chisel3.util._
+import chisel3.experimental.ChiselEnum
 import freechips.rocketchip.config.Parameters
 
 class ControlUnit(implicit p: Parameters) extends Module {
@@ -19,9 +20,10 @@ class ControlUnit(implicit p: Parameters) extends Module {
     val response_completed = Input(Bool())
   })
 
-  // 4 states. Nil is End-of-list and not counted.
-  val idle :: fetchingData :: exe :: write :: Nil = Enum(4)
-  val execute_state = RegInit(idle) // Reset to idle state
+  object State extends ChiselEnum {
+    val idle, fetchingData, exe, write = Value
+  }
+  val execute_state = RegInit(State.idle) // Reset to idle state
 
   val busy = RegInit(false.B); io.busy := busy
   val should_fetch = RegInit(false.B); io.should_fetch := should_fetch
@@ -32,19 +34,19 @@ class ControlUnit(implicit p: Parameters) extends Module {
   val response_ready = RegInit(false.B); io.response_ready := response_ready
 
   // The accelerator is ready to execute if it is in the idle state
-  io.accel_ready := execute_state === idle
+  io.accel_ready := execute_state === State.idle
 
   switch(execute_state) {
-    is(idle) {
+    is(State.idle) {
       response_ready := false.B
       when(io.ctrl_sigs.legal && io.ctrl_sigs.is_mem_op) {
-        execute_state := fetchingData
+        execute_state := State.fetchingData
         if(p(VCodePrintfEnable)) {
           printf("Moving from idle to fetchingData state\n")
         }
       }
     }
-    is(fetchingData) {
+    is(State.fetchingData) {
       busy := true.B
       should_fetch := true.B
       num_to_fetch := io.ctrl_sigs.num_mem_fetches
@@ -52,27 +54,27 @@ class ControlUnit(implicit p: Parameters) extends Module {
         printf("In fetchingData state\n")
       }
       when(io.fetching_completed) {
-        execute_state := exe
+        execute_state := State.exe
       }
     }
-    is(exe) {
+    is(State.exe) {
       should_fetch := false.B
       should_execute := true.B
       if(p(VCodePrintfEnable)) {
         printf("In execution state\n")
       }
       when(io.execution_completed) {
-        execute_state := write
+        execute_state := State.write
       }
     }
-    is(write) {
+    is(State.write) {
       should_execute := false.B
       response_ready := true.B
       if(p(VCodePrintfEnable)) {
         printf("Execution done. Returning result\n")
       }
       when(io.response_completed) {
-        execute_state := idle
+        execute_state := State.idle
         if(p(VCodePrintfEnable)) {
           printf("Response sent. Returning to idle state\n")
         }

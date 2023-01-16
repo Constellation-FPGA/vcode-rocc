@@ -2,6 +2,7 @@ package vcoderocc
 
 import chisel3._
 import chisel3.util._
+import chisel3.experimental.ChiselEnum
 import freechips.rocketchip.config.Parameters
 import freechips.rocketchip.tile.{XLen, CoreModule, RoCCCommand}
 import freechips.rocketchip.rocket.constants.MemoryOpConstants
@@ -45,13 +46,16 @@ class DCacheFetcher(implicit p: Parameters) extends CoreModule()(p)
     val fetched_data = Output(Valid(Vec(2, Bits(p(XLen).W))))
     val should_fetch = Input(Bool())
     val num_to_fetch = Input(UInt())
-    val req = Decoupled(new HellaCacheReq)
-    val resp = Flipped(Valid(new HellaCacheResp))
+    val req = Output(Decoupled(new HellaCacheReq))
+    val resp = Input(Valid(new HellaCacheResp))
     val fetching_completed = Output(Bool())
   })
 
-  val idle :: fetching :: Nil = Enum(2)
-  val state = RegInit(idle)
+  object State extends ChiselEnum {
+    val idle, fetching, Nil = Value
+  }
+  val state = RegInit(State.idle)
+
   var amount_fetched = RegInit(0.U)
 
   val vals = Mem(2, UInt(p(XLen).W)) // Only need max of 2 memory slots for now
@@ -59,38 +63,38 @@ class DCacheFetcher(implicit p: Parameters) extends CoreModule()(p)
   val fetching_completed = RegInit(false.B); io.fetching_completed := fetching_completed
 
   switch(state) {
-    is(idle) {
+    is(State.idle) {
       io.addrs.ready := true.B // TODO: Dequeue at most once
       fetching_completed := false.B
       when(io.should_fetch) {
-        state := fetching
+        state := State.fetching
         if(p(VCodePrintfEnable)) {
           printf("Starting to fetch data\n")
         }
       }
     }
-    is(fetching) {
+    is(State.fetching) {
       io.addrs.nodeq() // Set ready to false
       when(amount_fetched >= io.num_to_fetch) {
         // We have fetched everything we needed to fetch. We are done.
         if(p(VCodePrintfEnable)) {
           printf("Fetched all the data. Fetcher returns to idle. Do next thing\n")
         }
-        state := idle
+        state := State.idle
         fetching_completed := true.B
         amount_fetched := 0.U
       } .otherwise {
         // We still have a request to make. We may still have outstanding responses too.
-        state := fetching
+        state := State.fetching
         when(io.resp.valid && io.resp.bits.has_data){
           amount_fetched += 1.U
+          io.fetched_data.bits(amount_fetched) := io.resp.bits.data_raw
         }
-        if(p(VCodePrintfEnable)) {
-          printf("still fetching data, num_to_fetch:%d amount_fetched:%d \n",io.num_to_fetch,amount_fetched)
-        }
-        // when(io.resp.valid) {
-
-
+        // if(p(VCodePrintfEnable)) {
+        //   printf("still fetching data, num_to_fetch:%d amount_fetched:%d \n",
+        //     io.num_to_fetch,
+        //     amount_fetched)
+        // }
       }
     }
   }
