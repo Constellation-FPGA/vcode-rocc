@@ -135,6 +135,7 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
   // Execution control signals.
   alu.io.execute := ctrl_unit.io.should_execute
   // ctrl_unit.io.execution_completed := alu.io.out.valid
+  ctrl_unit.io.execution_completed := true.B
   dmem_data := 0.U // FIXME: This is where write-back should happen
 
   // Result-returning control signals
