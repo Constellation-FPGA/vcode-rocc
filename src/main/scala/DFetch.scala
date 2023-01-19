@@ -42,6 +42,7 @@ class DCacheFetcher(implicit p: Parameters) extends CoreModule()(p)
   val io = IO(new Bundle {
     /** The addresses to fetch. */
     val addrs = Flipped(Decoupled(new AddressBundle(p(XLen))))
+    val mstatus = Input(new MStatus);
     // Actual Data outputs
     val fetched_data = Output(Valid(Vec(2, Bits(p(XLen).W))))
     val should_fetch = Input(Bool())
