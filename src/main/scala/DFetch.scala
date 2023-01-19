@@ -58,6 +58,7 @@ class DCacheFetcher(implicit p: Parameters) extends CoreModule()(p)
   val state = RegInit(State.idle)
 
   var amount_fetched = RegInit(0.U)
+  var reqs_sent = RegInit(0.U)
 
   val vals = Mem(2, UInt(p(XLen).W)) // Only need max of 2 memory slots for now
 
@@ -91,6 +92,19 @@ class DCacheFetcher(implicit p: Parameters) extends CoreModule()(p)
           amount_fetched += 1.U
           io.fetched_data.bits(amount_fetched) := io.resp.bits.data_raw
         }
+        // TODO: Submit requests
+        io.req.valid := true.B
+        io.req.bits.addr := io.addrs.bits.addr1
+        io.req.bits.tag := reqs_sent
+        io.req.bits.cmd := M_XRD
+        io.req.bits.size := log2Ceil(8).U // Load 8 bytes
+        io.req.bits.signed := false.B
+        io.req.bits.data := 0.U // Not storing anything
+        io.req.bits.phys := false.B
+        io.req.bits.dprv := io.mstatus.dprv
+        io.req.bits.dv := io.mstatus.dv
+        reqs_sent += 1.U
+
         // if(p(VCodePrintfEnable)) {
         //   printf("still fetching data, num_to_fetch:%d amount_fetched:%d \n",
         //     io.num_to_fetch,
