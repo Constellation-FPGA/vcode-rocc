@@ -95,6 +95,7 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
    * operating on the data.
    **************/
   val data_fetcher = Module(new DCacheFetcher)
+  data_fetcher.io.ctrl_sigs := ctrl_sigs
   data_fetcher.io.mstatus := rocc_cmd.status
   rocc_io.mem.req :<> data_fetcher.io.req // Connect Request queue
   data_fetcher.io.resp :<> rocc_io.mem.resp  // Connect response queue

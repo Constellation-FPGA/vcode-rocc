@@ -40,6 +40,7 @@ class DCacheFetcher(implicit p: Parameters) extends CoreModule()(p)
   /* For now, we only support "raw" loading and storing.
    * Only using M_XRD and M_XWR */
   val io = IO(new Bundle {
+    val ctrl_sigs = Input(new CtrlSigs)
     /** The addresses to fetch. */
     val addrs = Flipped(Decoupled(new AddressBundle(p(XLen))))
     val mstatus = Input(new MStatus);
@@ -93,7 +94,7 @@ class DCacheFetcher(implicit p: Parameters) extends CoreModule()(p)
           io.fetched_data.bits(amount_fetched) := io.resp.bits.data_raw
         }
         // TODO: Submit requests
-        io.req.valid := true.B
+        io.req.valid := io.ctrl_sigs.legal && io.ctrl_sigs.is_mem_op & io.should_fetch && io.addrs.valid
         io.req.bits.addr := io.addrs.bits.addr1
         io.req.bits.tag := reqs_sent
         io.req.bits.cmd := M_XRD
