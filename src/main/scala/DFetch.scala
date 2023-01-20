@@ -58,8 +58,8 @@ class DCacheFetcher(implicit p: Parameters) extends CoreModule()(p)
   }
   val state = RegInit(State.idle)
 
-  var amount_fetched = RegInit(0.U)
-  var reqs_sent = RegInit(0.U)
+  val amount_fetched = RegInit(0.U)
+  val reqs_sent = RegInit(0.U)
 
   val vals = Mem(2, UInt(p(XLen).W)) // Only need max of 2 memory slots for now
 
