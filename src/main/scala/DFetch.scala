@@ -95,7 +95,7 @@ class DCacheFetcher(implicit p: Parameters) extends CoreModule()(p)
         }
 
         when(io.resp.valid && io.resp.bits.has_data){
-          amount_fetched += 1.U
+          amount_fetched := amount_fetched + 1.U
           io.fetched_data.bits(amount_fetched) := io.resp.bits.data_raw
         }
         // TODO: Submit requests
@@ -110,7 +110,10 @@ class DCacheFetcher(implicit p: Parameters) extends CoreModule()(p)
         io.req.bits.dprv := io.mstatus.dprv
         io.req.bits.dv := io.mstatus.dv
         reqs_sent += 1.U
+        when(reqs_sent < io.num_to_fetch) {
 
+          reqs_sent := reqs_sent + 1.U
+        }
       }
     }
   }
