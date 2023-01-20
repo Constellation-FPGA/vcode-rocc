@@ -98,7 +98,10 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
   val rs1 = Wire(Bits(p(XLen).W)); rs1 := rocc_cmd.rs1
   val rs2 = Wire(Bits(p(XLen).W)); rs2 := rocc_cmd.rs2
   val addrs = Reg(new AddressBundle(p(XLen)))
-  addrs.addr1 := rs1; addrs.addr2 := rs2
+
+  when(ctrl_sigs.legal && ctrl_sigs.is_mem_op) {
+    addrs.addr1 := rs1; addrs.addr2 := rs2
+  }
 
   ctrl_unit.io.fetching_completed := data_fetcher.io.fetching_completed
   when(data_fetcher.io.addrs.ready) {
