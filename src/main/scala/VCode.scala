@@ -104,16 +104,18 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
   }
 
   ctrl_unit.io.fetching_completed := data_fetcher.io.fetching_completed
+  data_fetcher.io.addrs.bits := addrs
   when(data_fetcher.io.addrs.ready) {
     // Queue addrs and set valid bit
-    data_fetcher.io.addrs.enq(addrs)
+    // data_fetcher.io.addrs.enq(addrs)
+    data_fetcher.io.addrs.valid := true.B
     if(p(VCodePrintfEnable)) {
       printf("VCode\tEnqueued addresses to data fetcher\n")
       printf("\taddr1: 0x%x, addr2: 0x%x\tvalid? %d\n",
         data_fetcher.io.addrs.bits.addr1, data_fetcher.io.addrs.bits.addr2, data_fetcher.io.addrs.valid)
     }
   } .otherwise {
-    data_fetcher.io.addrs.noenq()
+    data_fetcher.io.addrs.valid := ctrl_unit.io.should_fetch
   }
   data_fetcher.io.should_fetch := ctrl_unit.io.should_fetch
   data_fetcher.io.num_to_fetch := ctrl_unit.io.num_to_fetch
