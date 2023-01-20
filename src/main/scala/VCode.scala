@@ -52,11 +52,6 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
   // unless accelerator is ready/idle
   cmd.ready := ctrl_unit.io.accel_ready
 
-  val rs1 = Wire(Bits(p(XLen).W)); rs1 := rocc_cmd.rs1
-  val rs2 = Wire(Bits(p(XLen).W)); rs2 := rocc_cmd.rs2
-  val addrs = Wire(new AddressBundle(p(XLen)))
-  addrs.addr1 := rs1; addrs.addr2 := rs2
-
   /***************
    * DECODE
    * Decode instruction, yielding control signals
@@ -100,6 +95,26 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
   rocc_io.mem.req :<> data_fetcher.io.req // Connect Request queue
   data_fetcher.io.resp :<> rocc_io.mem.resp  // Connect response queue
 
+  val rs1 = Wire(Bits(p(XLen).W)); rs1 := rocc_cmd.rs1
+  val rs2 = Wire(Bits(p(XLen).W)); rs2 := rocc_cmd.rs2
+  val addrs = Reg(new AddressBundle(p(XLen)))
+  addrs.addr1 := rs1; addrs.addr2 := rs2
+
+  ctrl_unit.io.fetching_completed := data_fetcher.io.fetching_completed
+  when(data_fetcher.io.addrs.ready) {
+    // Queue addrs and set valid bit
+    data_fetcher.io.addrs.enq(addrs)
+    if(p(VCodePrintfEnable)) {
+      printf("VCode\tEnqueued addresses to data fetcher\n")
+      printf("\taddr1: 0x%x, addr2: 0x%x\tvalid? %d\n",
+        data_fetcher.io.addrs.bits.addr1, data_fetcher.io.addrs.bits.addr2, data_fetcher.io.addrs.valid)
+    }
+  } .otherwise {
+    data_fetcher.io.addrs.noenq()
+  }
+  data_fetcher.io.should_fetch := ctrl_unit.io.should_fetch
+  data_fetcher.io.num_to_fetch := ctrl_unit.io.num_to_fetch
+
   val dmem_data = Wire(Bits(p(XLen).W)) // Data to SEND to memory
 
   val data1 = RegInit(0.U(p(XLen).W))
@@ -114,25 +129,15 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
   // Hook up the ALU to VCode signals
   alu.io.fn := ctrl_sigs.alu_fn
   // FIXME: Only use rs1/rs2 if xs1/xs2 =1, respectively.
+  when(data_fetcher.io.fetched_data.valid) {
+    data1 := data_fetcher.io.fetched_data.bits(0)
+    data2 := data_fetcher.io.fetched_data.bits(1)
+  }
   alu.io.in1 := data1
   alu.io.in2 := data2
   alu_out := alu.io.out
   alu_cout := alu.io.cout
-
-  /***************
-   * Connect more control unit signals
-   **************/
-  // Data-fetching control signals
-
-  ctrl_unit.io.fetching_completed := data_fetcher.io.fetching_completed
-  when(data_fetcher.io.addrs.ready) {
-    // Queue addrs and set valid bit
-    data_fetcher.io.addrs.enq(addrs)
-  } .otherwise {
-    data_fetcher.io.addrs.noenq()
   }
-  data_fetcher.io.should_fetch := ctrl_unit.io.should_fetch
-  data_fetcher.io.num_to_fetch := ctrl_unit.io.num_to_fetch
 
   // Execution control signals.
   alu.io.execute := ctrl_unit.io.should_execute
@@ -146,10 +151,6 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
   rocc_io.busy := ctrl_unit.io.busy
   ctrl_unit.io.response_completed := io.resp.valid
 
-  when(data_fetcher.io.fetched_data.valid) {
-    data1 := data_fetcher.io.fetched_data.bits(0)
-    data2 := data_fetcher.io.fetched_data.bits(1)
-  }
   val response_ready = Wire(Bool())
   response_ready := ctrl_unit.io.response_ready
 
