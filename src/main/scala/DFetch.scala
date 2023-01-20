@@ -95,6 +95,9 @@ class DCacheFetcher(implicit p: Parameters) extends CoreModule()(p)
         }
 
         when(io.resp.valid && io.resp.bits.has_data){
+          if(p(VCodePrintfEnable)) {
+            printf("DFetch: Got cache response for tag 0x%x!\n", io.resp.bits.tag)
+          }
           amount_fetched := amount_fetched + 1.U
           io.fetched_data.bits(amount_fetched) := io.resp.bits.data_raw
         }
