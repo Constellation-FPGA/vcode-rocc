@@ -67,7 +67,7 @@ class DCacheFetcher(implicit p: Parameters) extends CoreModule()(p)
 
   switch(state) {
     is(State.idle) {
-      io.addrs.ready := true.B // TODO: Dequeue at most once
+      io.addrs.ready := io.should_fetch
       fetching_completed := false.B
       when(io.should_fetch) {
         state := State.fetching
@@ -77,7 +77,7 @@ class DCacheFetcher(implicit p: Parameters) extends CoreModule()(p)
       }
     }
     is(State.fetching) {
-      io.addrs.nodeq() // Set ready to false
+      io.addrs.ready := false.B
       when(amount_fetched >= io.num_to_fetch) {
         // We have fetched everything we needed to fetch. We are done.
         if(p(VCodePrintfEnable)) {
