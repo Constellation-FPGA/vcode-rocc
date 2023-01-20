@@ -99,19 +99,19 @@ class DCacheFetcher(implicit p: Parameters) extends CoreModule()(p)
           io.fetched_data.bits(amount_fetched) := io.resp.bits.data_raw
         }
         // TODO: Submit requests
-        io.req.valid := io.ctrl_sigs.legal && io.ctrl_sigs.is_mem_op & io.should_fetch && io.addrs.valid
-        io.req.bits.addr := io.addrs.bits.addr1
-        io.req.bits.tag := reqs_sent
-        io.req.bits.cmd := M_XRD
-        io.req.bits.size := log2Ceil(8).U // Load 8 bytes
-        io.req.bits.signed := false.B
-        io.req.bits.data := 0.U // Not storing anything
-        io.req.bits.phys := false.B
-        io.req.bits.dprv := io.mstatus.dprv
-        io.req.bits.dv := io.mstatus.dv
-        reqs_sent += 1.U
         when(reqs_sent < io.num_to_fetch) {
+          val should_send_request = io.should_fetch && io.addrs.valid
 
+          io.req.valid := should_send_request
+          io.req.bits.addr := io.addrs.bits.addr1
+          io.req.bits.tag := reqs_sent
+          io.req.bits.cmd := M_XRD
+          io.req.bits.size := log2Ceil(8).U // Load 8 bytes
+          io.req.bits.signed := false.B
+          io.req.bits.data := 0.U // Not storing anything
+          io.req.bits.phys := false.B
+          io.req.bits.dprv := io.mstatus.dprv
+          io.req.bits.dv := io.mstatus.dv
           reqs_sent := reqs_sent + 1.U
         }
       }
