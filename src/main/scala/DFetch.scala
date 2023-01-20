@@ -89,6 +89,11 @@ class DCacheFetcher(implicit p: Parameters) extends CoreModule()(p)
       } .otherwise {
         // We still have a request to make. We may still have outstanding responses too.
         state := State.fetching
+        if(p(VCodePrintfEnable)) {
+          printf("Fetching data, num_to_fetch: %d\tamount_fetched: %d\n",
+            io.num_to_fetch, amount_fetched)
+        }
+
         when(io.resp.valid && io.resp.bits.has_data){
           amount_fetched += 1.U
           io.fetched_data.bits(amount_fetched) := io.resp.bits.data_raw
@@ -106,11 +111,6 @@ class DCacheFetcher(implicit p: Parameters) extends CoreModule()(p)
         io.req.bits.dv := io.mstatus.dv
         reqs_sent += 1.U
 
-        // if(p(VCodePrintfEnable)) {
-        //   printf("still fetching data, num_to_fetch:%d amount_fetched:%d \n",
-        //     io.num_to_fetch,
-        //     amount_fetched)
-        // }
       }
     }
   }
