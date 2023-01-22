@@ -99,7 +99,7 @@ class DCacheFetcher(implicit p: Parameters) extends CoreModule()(p)
             printf("DFetch\tTag 0x%x data: 0x%x\n", io.resp.bits.tag, io.resp.bits.data)
           }
           amount_fetched := amount_fetched + 1.U
-          io.fetched_data.bits(amount_fetched) := io.resp.bits.data_raw
+          io.fetched_data.bits(amount_fetched) := io.resp.bits.data
         }
         // TODO: Submit requests
         when(reqs_sent < io.num_to_fetch) {
