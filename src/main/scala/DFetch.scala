@@ -54,7 +54,7 @@ class DCacheFetcher(implicit p: Parameters) extends CoreModule()(p)
   })
 
   object State extends ChiselEnum {
-    val idle, fetching, Nil = Value
+    val idle, fetching = Value
   }
   val state = RegInit(State.idle)
 
