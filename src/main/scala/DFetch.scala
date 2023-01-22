@@ -68,7 +68,6 @@ class DCacheFetcher(implicit p: Parameters) extends CoreModule()(p)
   switch(state) {
     is(State.idle) {
       io.addrs.ready := io.should_fetch
-      fetching_completed := false.B
       when(io.should_fetch) {
         state := State.fetching
         if(p(VCodePrintfEnable)) {
