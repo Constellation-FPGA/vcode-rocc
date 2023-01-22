@@ -71,7 +71,7 @@ class DCacheFetcher(implicit p: Parameters) extends CoreModule()(p)
       when(io.should_fetch) {
         state := State.fetching
         if(p(VCodePrintfEnable)) {
-          printf("Starting to fetch data\n")
+          printf("DFetch\tStarting to fetch data\n")
         }
       }
     }
@@ -80,7 +80,7 @@ class DCacheFetcher(implicit p: Parameters) extends CoreModule()(p)
       when(amount_fetched >= io.num_to_fetch) {
         // We have fetched everything we needed to fetch. We are done.
         if(p(VCodePrintfEnable)) {
-          printf("Fetched all the data. Fetcher returns to idle. Do next thing\n")
+          printf("DFetch\tFetched all the data. Fetcher returns to idle. Do next thing\n")
         }
         state := State.idle
         fetching_completed := true.B
@@ -95,7 +95,8 @@ class DCacheFetcher(implicit p: Parameters) extends CoreModule()(p)
 
         when(io.resp.valid && io.resp.bits.has_data){
           if(p(VCodePrintfEnable)) {
-            printf("DFetch: Got cache response for tag 0x%x!\n", io.resp.bits.tag)
+            printf("DFetch\tGot cache response for tag 0x%x!\n", io.resp.bits.tag)
+            printf("DFetch\tTag 0x%x data: 0x%x\n", io.resp.bits.tag, io.resp.bits.data)
           }
           amount_fetched := amount_fetched + 1.U
           io.fetched_data.bits(amount_fetched) := io.resp.bits.data_raw
@@ -108,6 +109,13 @@ class DCacheFetcher(implicit p: Parameters) extends CoreModule()(p)
             addr_to_request := io.addrs.bits.addr1
           } .otherwise {
             addr_to_request := io.addrs.bits.addr2
+          }
+          if(p(VCodePrintfEnable)) {
+            printf("DFetch\tshould_fetch: %d\taddrs_valid: %d\n",
+              io.should_fetch, io.addrs.valid)
+            printf("DFetch\tShould submit new request for address 0x%x with tag 0x%x? %d\n",
+              addr_to_request, reqs_sent, should_send_request)
+            printf("DFetch\tdprv: %d\tdv: %d\n", io.mstatus.dprv, io.mstatus.dv)
           }
 
           io.req.valid := should_send_request
