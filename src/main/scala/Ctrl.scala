@@ -55,6 +55,9 @@ class ControlUnit(implicit p: Parameters) extends Module {
       }
       when(io.fetching_completed) {
         execute_state := State.exe
+        if(p(VCodePrintfEnable)) {
+          printf("Ctrl\tMoving from fetchingData to exe state\n")
+        }
       }
     }
     is(State.exe) {
