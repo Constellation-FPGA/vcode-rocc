@@ -104,9 +104,15 @@ class DCacheFetcher(implicit p: Parameters) extends CoreModule()(p)
         // TODO: Submit requests
         when(reqs_sent < io.num_to_fetch) {
           val should_send_request = io.should_fetch && io.addrs.valid
+          val addr_to_request = Wire(Bits(p(XLen).W))
+          when(reqs_sent === 0.U) {
+            addr_to_request := io.addrs.bits.addr1
+          } .otherwise {
+            addr_to_request := io.addrs.bits.addr2
+          }
 
           io.req.valid := should_send_request
-          io.req.bits.addr := io.addrs.bits.addr1
+          io.req.bits.addr := addr_to_request
           io.req.bits.tag := reqs_sent
           io.req.bits.cmd := M_XRD
           io.req.bits.size := log2Ceil(8).U // Load 8 bytes
