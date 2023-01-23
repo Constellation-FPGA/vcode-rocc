@@ -26,7 +26,7 @@ class ControlUnit(implicit p: Parameters) extends Module {
   val execute_state = RegInit(State.idle) // Reset to idle state
 
   val busy = RegInit(false.B); io.busy := busy
-  val should_fetch = RegInit(false.B); io.should_fetch := should_fetch
+  io.should_fetch := (execute_state === State.fetchingData)
   val num_to_fetch = RegInit(0.U); io.num_to_fetch := num_to_fetch
 
   val should_execute = RegInit(false.B); io.should_execute := should_execute
@@ -48,7 +48,6 @@ class ControlUnit(implicit p: Parameters) extends Module {
     }
     is(State.fetchingData) {
       busy := true.B
-      should_fetch := true.B
       num_to_fetch := io.ctrl_sigs.num_mem_fetches
       if(p(VCodePrintfEnable)) {
         printf("In fetchingData state\n")
@@ -61,7 +60,6 @@ class ControlUnit(implicit p: Parameters) extends Module {
       }
     }
     is(State.exe) {
-      should_fetch := false.B
       should_execute := true.B
       if(p(VCodePrintfEnable)) {
         printf("In execution state\n")
