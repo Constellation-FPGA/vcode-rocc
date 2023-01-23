@@ -109,6 +109,7 @@ class DCacheFetcher(implicit p: Parameters) extends CoreModule()(p)
             // If we were waiting for a response on this tag, and we now have
             // that tags response, then we increase the amount we fetch.
             amount_fetched := amount_fetched + 1.U
+            wait_for_resp(io.resp.bits.tag) := false.B
             if(p(VCodePrintfEnable)) {
               printf("DFetch\tMarking tag 0x%x as done\n", io.resp.bits.tag)
               printf("DFetch\tamount_fetched: %d\tdata: 0x%x\n", amount_fetched + 1.U, io.resp.bits.data)
