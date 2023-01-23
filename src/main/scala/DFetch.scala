@@ -63,6 +63,7 @@ class DCacheFetcher(implicit p: Parameters) extends CoreModule()(p)
   val reqs_sent = RegInit(0.U(8.W))
 
   val vals = Mem(2, UInt(p(XLen).W)) // Only need max of 2 memory slots for now
+  val wait_for_resp = RegInit(VecInit.fill(2)(false.B)) // Only need max of 2 memory slots for now
 
   val fetching_completed = RegInit(false.B); io.fetching_completed := fetching_completed
 
@@ -133,6 +134,7 @@ class DCacheFetcher(implicit p: Parameters) extends CoreModule()(p)
           when(io.req.fire) {
             // When our request is sent, we must increment number of requests made
             reqs_sent := reqs_sent + 1.U
+            wait_for_resp(reqs_sent) := true.B
             if(p(VCodePrintfEnable)) {
               printf("DFetch\tMarked tag 0x%x (request tag 0x%x) as busy\n", tag, io.req.bits.tag)
             }
