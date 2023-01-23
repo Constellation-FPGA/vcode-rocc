@@ -105,7 +105,7 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
 
   ctrl_unit.io.fetching_completed := data_fetcher.io.fetching_completed
   data_fetcher.io.addrs.bits := addrs
-  when(data_fetcher.io.addrs.ready) {
+  when(ctrl_unit.io.should_fetch && data_fetcher.io.addrs.ready) {
     // Queue addrs and set valid bit
     // data_fetcher.io.addrs.enq(addrs)
     data_fetcher.io.addrs.valid := true.B
