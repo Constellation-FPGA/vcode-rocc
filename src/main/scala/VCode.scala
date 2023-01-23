@@ -183,10 +183,8 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
     val response = Wire(new RoCCResponse)
     response.rd := rocc_cmd.inst.rd
     response.data := alu_out
-    io.resp.bits := response
-    io.resp.valid := true.B
+    io.resp.enq(response) // Sends response & sets valid bit
     response_required := false.B
-    // io.resp.enq(response) // Sends response & sets valid bit
 
     cmd.deq // Dequeue this instruction from the queue
 
