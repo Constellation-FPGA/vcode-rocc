@@ -142,13 +142,13 @@ class DCacheFetcher(implicit p: Parameters) extends CoreModule()(p)
             printf("DFetch\tshould_fetch: %d\taddrs_valid: %d\n",
               io.should_fetch, io.addrs.valid)
             printf("DFetch\tShould submit new request for address 0x%x with tag 0x%x? %d\n",
-              addr_to_request, reqs_sent, should_send_request)
+              addr_to_request, tag, should_send_request)
             printf("DFetch\tdprv: %d\tdv: %d\n", io.mstatus.dprv, io.mstatus.dv)
           }
 
           io.req.valid := should_send_request
           io.req.bits.addr := addr_to_request
-          io.req.bits.tag := reqs_sent
+          io.req.bits.tag := tag
           io.req.bits.cmd := M_XRD
           io.req.bits.size := log2Ceil(8).U // Load 8 bytes
           io.req.bits.signed := false.B
