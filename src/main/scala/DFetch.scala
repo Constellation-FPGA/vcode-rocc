@@ -63,7 +63,9 @@ class DCacheFetcher(implicit p: Parameters) extends CoreModule()(p)
   val reqs_sent = RegInit(0.U(8.W))
 
   val vals = Mem(2, UInt(p(XLen).W)) // Only need max of 2 memory slots for now
+
   val wait_for_resp = RegInit(VecInit.fill(2)(false.B)) // Only need max of 2 memory slots for now
+  val all_done = Wire(Bool()); all_done := !(wait_for_resp.reduce(_ || _))
 
   val fetching_completed = RegInit(false.B); io.fetching_completed := fetching_completed
 
@@ -86,7 +88,8 @@ class DCacheFetcher(implicit p: Parameters) extends CoreModule()(p)
           printf("DFetch\tFetched all the data. Fetcher returns to idle. Do next thing\n")
         }
         state := State.idle
-        fetching_completed := true.B
+        fetching_completed := all_done
+        io.fetched_data.valid := all_done
         amount_fetched := 0.U
       } .otherwise {
         // We still have a request to make. We may still have outstanding responses too.
