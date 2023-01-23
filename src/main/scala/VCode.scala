@@ -42,6 +42,15 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
   // Register to control when to raise io.resp.valid flag back to main processor
 
   /***************
+   * DECODE
+   * Decode instruction, yielding control signals
+   **************/
+  val decoder = Module(new Decoder)
+  val ctrl_sigs = Wire(new CtrlSigs())
+  decoder.io.rocc_inst := rocc_cmd.inst
+  ctrl_sigs := decoder.io.ctrl_sigs
+
+  /***************
    * CONTROL UNIT
    * Control unit connects ALU & Data fetcher together, properly sequencing them
    **************/
@@ -51,16 +60,6 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
   // instruction from the RoCC command queue. Cannot accept another command
   // unless accelerator is ready/idle
   cmd.ready := ctrl_unit.io.accel_ready
-
-  /***************
-   * DECODE
-   * Decode instruction, yielding control signals
-   **************/
-  val decoder = Module(new Decoder)
-  val ctrl_sigs = Wire(new CtrlSigs())
-  decoder.io.rocc_inst := rocc_cmd.inst
-  ctrl_sigs := decoder.io.ctrl_sigs
-
   ctrl_unit.io.ctrl_sigs := ctrl_sigs
 
   // TODO: Exception-raising module?
