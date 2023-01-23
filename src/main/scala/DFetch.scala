@@ -130,7 +130,13 @@ class DCacheFetcher(implicit p: Parameters) extends CoreModule()(p)
           io.req.bits.phys := false.B
           io.req.bits.dprv := io.mstatus.dprv
           io.req.bits.dv := io.mstatus.dv
-          reqs_sent := reqs_sent + 1.U
+          when(io.req.fire) {
+            // When our request is sent, we must increment number of requests made
+            reqs_sent := reqs_sent + 1.U
+            if(p(VCodePrintfEnable)) {
+              printf("DFetch\tMarked tag 0x%x (request tag 0x%x) as busy\n", tag, io.req.bits.tag)
+            }
+          }
         }
       }
     }
