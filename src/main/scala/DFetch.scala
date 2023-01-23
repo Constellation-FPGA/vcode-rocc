@@ -99,7 +99,8 @@ class DCacheFetcher(implicit p: Parameters) extends CoreModule()(p)
             io.num_to_fetch, amount_fetched)
         }
 
-        when(io.resp.valid && io.resp.bits.has_data){
+        // We have a response to handle!
+        when(io.resp.valid && io.resp.bits.has_data) {
           if(p(VCodePrintfEnable)) {
             printf("DFetch\tGot cache response for tag 0x%x!\n", io.resp.bits.tag)
             printf("DFetch\tTag 0x%x data: 0x%x\n", io.resp.bits.tag, io.resp.bits.data)
@@ -120,15 +121,20 @@ class DCacheFetcher(implicit p: Parameters) extends CoreModule()(p)
             }
           }
         }
-        // TODO: Submit requests
-        when(reqs_sent < io.num_to_fetch) {
-          val should_send_request = io.should_fetch && io.addrs.valid
+
+        // We should submit a memory request!
+        when(io.should_fetch) {
           val addr_to_request = Wire(Bits(p(XLen).W))
           when(reqs_sent === 0.U) {
             addr_to_request := io.addrs.bits.addr1
           } .otherwise {
             addr_to_request := io.addrs.bits.addr2
           }
+          // log2Up(n) finds # bits needed to represent n states
+          val tag = addr_to_request(log2Up(2)+2, 3) // FIXME: Should parameterize the (2)
+          // Bit slicing is 0-indexed from the right and has [hi-idx, lo-idx) semantics
+          // Skip lowest 3 bits because all data is 8-byte aligned (int64, doubles, etc.)
+          val should_send_request = io.should_fetch && io.addrs.valid && !wait_for_resp(tag)
           if(p(VCodePrintfEnable)) {
             printf("DFetch\tshould_fetch: %d\taddrs_valid: %d\n",
               io.should_fetch, io.addrs.valid)
