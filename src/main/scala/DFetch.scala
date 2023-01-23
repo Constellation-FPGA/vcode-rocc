@@ -104,8 +104,20 @@ class DCacheFetcher(implicit p: Parameters) extends CoreModule()(p)
             printf("DFetch\tGot cache response for tag 0x%x!\n", io.resp.bits.tag)
             printf("DFetch\tTag 0x%x data: 0x%x\n", io.resp.bits.tag, io.resp.bits.data)
           }
-          amount_fetched := amount_fetched + 1.U
           io.fetched_data.bits(amount_fetched) := io.resp.bits.data
+          when(wait_for_resp(io.resp.bits.tag)) {
+            // If we were waiting for a response on this tag, and we now have
+            // that tags response, then we increase the amount we fetch.
+            amount_fetched := amount_fetched + 1.U
+            if(p(VCodePrintfEnable)) {
+              printf("DFetch\tMarking tag 0x%x as done\n", io.resp.bits.tag)
+              printf("DFetch\tamount_fetched: %d\tdata: 0x%x\n", amount_fetched + 1.U, io.resp.bits.data)
+            }
+          } .otherwise {
+            if(p(VCodePrintfEnable)) {
+              printf("DFetch\tAlready got response for tag 0x%x. Doing nothing\n", io.resp.bits.tag)
+            }
+          }
         }
         // TODO: Submit requests
         when(reqs_sent < io.num_to_fetch) {
