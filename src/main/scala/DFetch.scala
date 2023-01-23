@@ -73,7 +73,8 @@ class DCacheFetcher(implicit p: Parameters) extends CoreModule()(p)
     is(State.idle) {
       amount_fetched := 0.U
       io.addrs.ready := io.should_fetch
-      when(io.should_fetch) {
+      fetching_completed := false.B
+      when(io.should_fetch && io.addrs.valid) {
         state := State.fetching
         if(p(VCodePrintfEnable)) {
           printf("DFetch\tStarting to fetch data\n")
@@ -137,7 +138,7 @@ class DCacheFetcher(implicit p: Parameters) extends CoreModule()(p)
           val tag = addr_to_request(log2Up(2)+2, 3) // FIXME: Should parameterize the (2)
           // Bit slicing is 0-indexed from the right and has [hi-idx, lo-idx) semantics
           // Skip lowest 3 bits because all data is 8-byte aligned (int64, doubles, etc.)
-          val should_send_request = io.should_fetch && io.addrs.valid && !wait_for_resp(tag)
+          val should_send_request = io.should_fetch && !wait_for_resp(tag)
           if(p(VCodePrintfEnable)) {
             printf("DFetch\tshould_fetch: %d\taddrs_valid: %d\n",
               io.should_fetch, io.addrs.valid)

@@ -116,7 +116,7 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
         data_fetcher.io.addrs.bits.addr1, data_fetcher.io.addrs.bits.addr2, data_fetcher.io.addrs.valid)
     }
   } .otherwise {
-    data_fetcher.io.addrs.valid := ctrl_unit.io.should_fetch
+    data_fetcher.io.addrs.valid := false.B
   }
   data_fetcher.io.should_fetch := ctrl_unit.io.should_fetch
   data_fetcher.io.num_to_fetch := ctrl_unit.io.num_to_fetch
@@ -141,14 +141,17 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
   }
   alu.io.in1 := data1
   alu.io.in2 := data2
-  alu_out := alu.io.out
-  alu_cout := alu.io.cout
-  }
-
-  // Execution control signals.
   alu.io.execute := ctrl_unit.io.should_execute
-  // ctrl_unit.io.execution_completed := alu.io.out.valid
-  ctrl_unit.io.execution_completed := true.B
+  when(alu.io.out.valid) {
+    alu_out := alu.io.out.bits
+    if(p(VCodePrintfEnable)) {
+      printf("VCode\tALU in1: 0x%x\tin2: 0x%x\tout: 0x%x\nALU finished executing! Output bits now valid!\n",
+      alu.io.in1, alu.io.in2, alu.io.out.bits)
+    }
+  }
+  alu_cout := alu.io.cout
+  ctrl_unit.io.execution_completed := alu.io.out.valid
+
   dmem_data := 0.U // FIXME: This is where write-back should happen
 
   // Result-returning control signals
@@ -161,23 +164,35 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
    * RESPOND
    **************/
   // Check if the accelerator needs to respond
-  val response_required = ctrl_sigs.legal && rocc_cmd.inst.xd
+  val response_required = RegInit(false.B)
+  when(ctrl_sigs.legal && rocc_cmd.inst.xd) {
+    response_required := true.B
+  }
   // Send response to main processor
   /* TODO: Response can only be sent once all memory transactions and arithmetic
    * operations have completed. */
+  // if(p(VCodePrintfEnable)) {
+  //   printf("VCode\tresponse_required: %d\tio.resp.ready: %d\tresponse_ready: %d\n",
+  //     response_required, io.resp.ready, response_ready)
+  // }
   when(response_required && io.resp.ready && response_ready) {
     if(p(VCodePrintfEnable)) {
       printf("Main processor ready for response? %d\n", io.resp.ready)
     }
+
     val response = Wire(new RoCCResponse)
     response.rd := rocc_cmd.inst.rd
     response.data := alu_out
-    io.resp.enq(response) // Sends response & sets valid bit
+    io.resp.bits := response
+    io.resp.valid := true.B
+    response_required := false.B
+    // io.resp.enq(response) // Sends response & sets valid bit
 
     cmd.deq // Dequeue this instruction from the queue
 
     if(p(VCodePrintfEnable)) {
-      printf("VCode accelerator made response bits valid? %d\n", io.resp.valid)
+      printf("VCode accelerator made response with data 0x%x valid? %d\n",
+        io.resp.bits.data, io.resp.valid)
     }
   }
 }
