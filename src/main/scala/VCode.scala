@@ -55,12 +55,14 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
    * Control unit connects ALU & Data fetcher together, properly sequencing them
    **************/
   val ctrl_unit = Module(new ControlUnit())
-
   // Accelerator control unit controls when we are ready to accept the next
   // instruction from the RoCC command queue. Cannot accept another command
   // unless accelerator is ready/idle
   cmd.ready := ctrl_unit.io.accel_ready
+  // RoCC must assert RoCCCoreIO.busy line high when memory actions happening
+  rocc_io.busy := ctrl_unit.io.busy
   ctrl_unit.io.ctrl_sigs := ctrl_sigs
+  ctrl_unit.io.response_completed := rocc_io.resp.valid
 
   // TODO: Exception-raising module?
   // If invalid instruction, raise exception
@@ -151,9 +153,6 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
 
   // Result-returning control signals
 
-  // RoCC must assert RoCCCoreIO.busy line high when memory actions happening
-  rocc_io.busy := ctrl_unit.io.busy
-  ctrl_unit.io.response_completed := io.resp.valid
 
   val response_ready = Wire(Bool())
   response_ready := ctrl_unit.io.response_ready
