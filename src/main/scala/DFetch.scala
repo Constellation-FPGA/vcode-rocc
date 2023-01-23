@@ -67,6 +67,7 @@ class DCacheFetcher(implicit p: Parameters) extends CoreModule()(p)
 
   switch(state) {
     is(State.idle) {
+      amount_fetched := 0.U
       io.addrs.ready := io.should_fetch
       when(io.should_fetch) {
         state := State.fetching
