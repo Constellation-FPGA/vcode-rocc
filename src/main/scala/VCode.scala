@@ -175,14 +175,18 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
   //   printf("VCode\tresponse_required: %d\tio.resp.ready: %d\tresponse_ready: %d\n",
   //     response_required, io.resp.ready, response_ready)
   // }
+
+  /* NOTE: RoCCResponse has an internal register to store the response. Using a
+   * wire here is a non-issue because of it. */
+  val response = Wire(new RoCCResponse)
+  response.rd := rocc_cmd.inst.rd
+  response.data := alu_out
+
   when(response_required && io.resp.ready && response_ready) {
     if(p(VCodePrintfEnable)) {
       printf("Main processor ready for response? %d\n", io.resp.ready)
     }
 
-    val response = Wire(new RoCCResponse)
-    response.rd := rocc_cmd.inst.rd
-    response.data := alu_out
     io.resp.enq(response) // Sends response & sets valid bit
     response_required := false.B
 
