@@ -46,14 +46,14 @@ class ControlUnit(implicit p: Parameters) extends Module {
       when(io.ctrl_sigs.legal && io.ctrl_sigs.is_mem_op) {
         execute_state := State.fetchingData
         if(p(VCodePrintfEnable)) {
-          printf("Moving from idle to fetchingData state\n")
+          printf("Ctrl\tMoving from idle to fetchingData state\n")
         }
       }
     }
     is(State.fetchingData) {
       num_to_fetch := io.ctrl_sigs.num_mem_fetches
       if(p(VCodePrintfEnable)) {
-        printf("In fetchingData state\n")
+        printf("Ctrl\tIn fetchingData state\n")
       }
       when(io.fetching_completed) {
         execute_state := State.exe
@@ -64,20 +64,23 @@ class ControlUnit(implicit p: Parameters) extends Module {
     }
     is(State.exe) {
       if(p(VCodePrintfEnable)) {
-        printf("In execution state\n")
+        printf("Ctrl\tIn execution state\n")
       }
       when(io.execution_completed) {
         execute_state := State.write
+        if(p(VCodePrintfEnable)) {
+          printf("Ctrl\tMoving from exe state to write state\n")
+        }
       }
     }
     is(State.write) {
       if(p(VCodePrintfEnable)) {
-        printf("Execution done. Returning result\n")
+        printf("Ctrl\tExecution done. Returning result\n")
       }
       when(io.response_completed) {
         execute_state := State.idle
         if(p(VCodePrintfEnable)) {
-          printf("Response sent. Returning to idle state\n")
+          printf("Ctrl\tResponse sent. Returning to idle state\n")
         }
       }
     }
