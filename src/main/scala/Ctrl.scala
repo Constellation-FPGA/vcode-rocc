@@ -25,20 +25,24 @@ class ControlUnit(implicit p: Parameters) extends Module {
   }
   val execute_state = RegInit(State.idle) // Reset to idle state
 
-  val busy = RegInit(false.B); io.busy := busy
+  // The accelerator is ready to execute if it is in the idle state
+  io.accel_ready := (execute_state === State.idle)
+
+  // We are busy if we are not idle.
+  io.busy := (execute_state =/= State.idle)
+  // NOTE: RoCC only requires that busy be asserted when memory requests and
+  // responses are being made. Perhaps make this less strict?
+
+  // We should fetch when we are in fetching data state
   io.should_fetch := (execute_state === State.fetchingData)
   val num_to_fetch = RegInit(0.U); io.num_to_fetch := num_to_fetch
 
-  val should_execute = RegInit(false.B); io.should_execute := should_execute
+  io.should_execute := (execute_state === State.exe)
 
-  val response_ready = RegInit(false.B); io.response_ready := response_ready
-
-  // The accelerator is ready to execute if it is in the idle state
-  io.accel_ready := execute_state === State.idle
+  io.response_ready := (execute_state === State.write)
 
   switch(execute_state) {
     is(State.idle) {
-      response_ready := false.B
       when(io.ctrl_sigs.legal && io.ctrl_sigs.is_mem_op) {
         execute_state := State.fetchingData
         if(p(VCodePrintfEnable)) {
@@ -47,7 +51,6 @@ class ControlUnit(implicit p: Parameters) extends Module {
       }
     }
     is(State.fetchingData) {
-      busy := true.B
       num_to_fetch := io.ctrl_sigs.num_mem_fetches
       if(p(VCodePrintfEnable)) {
         printf("In fetchingData state\n")
@@ -60,7 +63,6 @@ class ControlUnit(implicit p: Parameters) extends Module {
       }
     }
     is(State.exe) {
-      should_execute := true.B
       if(p(VCodePrintfEnable)) {
         printf("In execution state\n")
       }
@@ -69,8 +71,6 @@ class ControlUnit(implicit p: Parameters) extends Module {
       }
     }
     is(State.write) {
-      should_execute := false.B
-      response_ready := true.B
       if(p(VCodePrintfEnable)) {
         printf("Execution done. Returning result\n")
       }
