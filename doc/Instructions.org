@@ -40,8 +40,14 @@ If any of the ~x~ bits are set to ~0~, then the register address provided refers
 When a RoCC instruction is informed that it must return data (by having ~xd != 0~), then the coprocessor will send a message back over a separate ~DecoupledIO~ queue.
   1. The register number to write the result to.
      This information was provided with the instruction that originally started the computation, ~rd~.
+     /NOTE/: This *MUST* match the register sent in the instruction sent to the accelerator *at the time of sending the response back*!
+     If you the register *at the time of response* does not match the one sent to the accelerator, it is undefined behavior.
+     The verilator simulator will continue running, as the main processor is still waiting for a valid response.
   2. The contents to save *into* ~rd~.
   3. Some ready/valid synchronization bits.
+
+All of this information *must* be asserted at the time of returning a value to the main processor.
+For example, if you send a response when back to the main processor, but the ~rd~ bits do not match the ones sent to the accelerator, the simulator will hang.
 
 *** Blocking & Nonblocking Operations
 Instructions issued to the coprocessor can either block or not block the main core.
