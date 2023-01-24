@@ -1,0 +1,26 @@
+#+TITLE: Waveform Debugging
+#+AUTHOR: Karl Hallsby
+
+* Generating Waveforms
+The command:
+#+begin_src sh
+$ make CONFIG=<config> BINARY=<path/to/binary> run-binary-debug
+#+end_src
+
+As an example,
+#+begin_src sh
+$ make CONFIG=VCodeRocketPrintfConfig BINARY="$HOME/Repos/constellation-fpga/vcode-rocc/test/bin/rocc_add.riscv" run-binary-debug
+#+end_src
+
+* RoCC Accelerator Location in Module Hierarchy
+Finding the exact location of the your accelerator within the module hierarchy is not easy.
+But, this should give you an idea of where to look.
+#+begin_center
+~TOP.TestHarness.chiptop.system.tile_prci_domain.tile_reset_domain.tile.<accelName>~
+#+end_center
+
+* Finding Signal/Wire Names
+You will have to go to the generated Verilog file to find the actual names used for the signals.
+#+begin_center
+~chipyard/sims/verilator/generated-src/<fully.qualified.JavaNameForConfig>/<fully.qualified.JavaNameForConfig>.top.v~
+#+end_center
