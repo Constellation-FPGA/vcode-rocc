@@ -39,10 +39,12 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
   val cmd = Queue(rocc_io.cmd)
   val rocc_cmd = cmd.bits // The entire RoCC Command provided to the accelerator
   val rocc_inst = rocc_cmd.inst // The customX instruction in instruction stream
-  // Register to control when to raise io.resp.valid flag back to main processor
+
   val returnReg = RegInit(0.U(5.W)) // FIXME: Parameterize?
+  val status = Reg(new freechips.rocketchip.rocket.MStatus)
   when(cmd.fire) {
     returnReg := rocc_cmd.inst.rd
+    status := rocc_cmd.status
   }
 
   /***************
@@ -96,7 +98,7 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
    **************/
   val data_fetcher = Module(new DCacheFetcher)
   data_fetcher.io.ctrl_sigs := ctrl_sigs
-  data_fetcher.io.mstatus := rocc_cmd.status
+  data_fetcher.io.mstatus := status
   rocc_io.mem.req :<> data_fetcher.io.req // Connect Request queue
   data_fetcher.io.resp :<> rocc_io.mem.resp  // Connect response queue
 
