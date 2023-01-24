@@ -66,7 +66,7 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
   // RoCC must assert RoCCCoreIO.busy line high when memory actions happening
   rocc_io.busy := ctrl_unit.io.busy
   ctrl_unit.io.ctrl_sigs := ctrl_sigs
-  ctrl_unit.io.response_completed := rocc_io.resp.valid
+  ctrl_unit.io.response_completed := rocc_io.resp.fire
 
   // TODO: Exception-raising module?
   // If invalid instruction, raise exception
