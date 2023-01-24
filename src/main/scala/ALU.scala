@@ -27,16 +27,23 @@ class ALU(val xLen: Int) extends Module {
     // The two register content values passed over the RoCCCommand are xLen wide
     val in1 = Input(UInt(xLen.W))
     val in2 = Input(UInt(xLen.W))
-    val out = Output(UInt(xLen.W))
+    val out = Output(Valid(UInt(xLen.W)))
     val cout = Output(UInt(xLen.W))
     val execute = Input(Bool())
   })
 
   io.cout := 0.U
+  io.out.valid := false.B
 
   val data_out = RegInit(0.U(xLen.W))
   // ADD/SUB
   data_out := io.in1 + io.in2
 
-  io.out := data_out
+  io.out.bits := data_out
+
+  when(io.execute) {
+    // Written this way so that variable-latency operations can signal properly
+    // Addition can be done in one cycle though, so it is a moto point here.
+    io.out.valid := true.B
+  }
 }
