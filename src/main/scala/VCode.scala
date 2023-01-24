@@ -180,6 +180,7 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
   io.resp.valid := response_required && response_ready
   when(rocc_io.resp.fire) {
     response_required := false.B
+    returnReg := 0.U
   }
 
   when(response_required && io.resp.ready && response_ready) {
