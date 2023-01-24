@@ -40,6 +40,10 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
   val rocc_cmd = cmd.bits // The entire RoCC Command provided to the accelerator
   val rocc_inst = rocc_cmd.inst // The customX instruction in instruction stream
   // Register to control when to raise io.resp.valid flag back to main processor
+  val returnReg = RegInit(0.U(5.W)) // FIXME: Parameterize?
+  when(cmd.fire) {
+    returnReg := rocc_cmd.inst.rd
+  }
 
   /***************
    * DECODE
@@ -179,16 +183,18 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
   /* NOTE: RoCCResponse has an internal register to store the response. Using a
    * wire here is a non-issue because of it. */
   val response = Wire(new RoCCResponse)
-  response.rd := rocc_cmd.inst.rd
+  response.rd := returnReg
   response.data := alu_out
+  io.resp.bits := response
+  io.resp.valid := response_required && response_ready
+  when(rocc_io.resp.fire) {
+    response_required := false.B
+  }
 
   when(response_required && io.resp.ready && response_ready) {
     if(p(VCodePrintfEnable)) {
       printf("Main processor ready for response? %d\n", io.resp.ready)
     }
-
-    io.resp.enq(response) // Sends response & sets valid bit
-    response_required := false.B
 
     cmd.deq // Dequeue this instruction from the queue
 
