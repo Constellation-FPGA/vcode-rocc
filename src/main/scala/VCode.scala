@@ -158,9 +158,6 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
 
   dmem_data := 0.U // FIXME: This is where write-back should happen
 
-  // Result-returning control signals
-
-
   val response_ready = Wire(Bool())
   response_ready := ctrl_unit.io.response_ready
 
@@ -172,14 +169,8 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
   when(ctrl_sigs.legal && rocc_cmd.inst.xd) {
     response_required := true.B
   }
-  // Send response to main processor
-  /* TODO: Response can only be sent once all memory transactions and arithmetic
-   * operations have completed. */
-  // if(p(VCodePrintfEnable)) {
-  //   printf("VCode\tresponse_required: %d\tio.resp.ready: %d\tresponse_ready: %d\n",
-  //     response_required, io.resp.ready, response_ready)
-  // }
 
+  // Send response to main processor
   /* NOTE: RoCCResponse has an internal register to store the response. Using a
    * wire here is a non-issue because of it. */
   val response = Wire(new RoCCResponse)
