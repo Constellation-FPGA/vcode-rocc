@@ -10,6 +10,7 @@ pkgs.mkShell {
     scala    # Compiler
     scalafmt # Linter
     metals   # LSP Server
+    gtkwave  # A waveform viewer for VCD files
 
     # keep this line if you use bash
     bashInteractive
