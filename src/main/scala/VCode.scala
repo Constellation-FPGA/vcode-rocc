@@ -42,11 +42,10 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
   val rocc_inst = rocc_cmd.inst // The customX instruction in instruction stream
 
   val returnReg = rocc_cmd.inst.rd
-  val status = Reg(new freechips.rocketchip.rocket.MStatus)
+  val status = rocc_cmd.status
   when(cmd.fire) {
     rocc_cmd := cmd.bits // The entire RoCC Command provided to the accelerator
     cmd_valid := true.B
-    status := io.cmd.bits.status
   }
 
   /***************
