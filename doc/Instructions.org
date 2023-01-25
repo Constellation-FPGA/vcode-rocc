@@ -57,6 +57,9 @@ How this is decided depends on the values provided in the instruction.
 
 *** Additional Communications
 The RoCC accelerator can interrupt the main processor.
+Interrupts behave much the same way as sending a response back to the main processor.
+~rd~ needs to be set to the value sent by the command and ~valid~ needs to be asserted *at the same time* as the ~interrupt~ line is high!
+
 The RoCC accelerator can inform the main processor it is busy by setting the ~busy~ line high.
 
 * VCODE Instruction Encoding
