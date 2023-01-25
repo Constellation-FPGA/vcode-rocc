@@ -24,3 +24,7 @@ You will have to go to the generated Verilog file to find the actual names used 
 #+begin_center
 ~chipyard/sims/verilator/generated-src/<fully.qualified.JavaNameForConfig>/<fully.qualified.JavaNameForConfig>.top.v~
 #+end_center
+
+** Enum Values
+The ~ChiselEnum~ type will elaborate into unsigned integers for Verilog.
+However, these are type-checked by the Scala/Chisel compiler, so you cannot assign a ~UInt~ to a ~ChiselEnum~ by mistake.

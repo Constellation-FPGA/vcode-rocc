@@ -22,6 +22,8 @@ class ControlUnit(implicit p: Parameters) extends Module {
   })
 
   object State extends ChiselEnum {
+    /* Internally (in Verilog) represented as integers. First item in list has
+     * value 0, i.e. idle = 0x0. */
     val idle, fetchingData, exe, write = Value
   }
   val execute_state = RegInit(State.idle) // Reset to idle state
