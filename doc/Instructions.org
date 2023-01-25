@@ -61,6 +61,7 @@ Interrupts behave much the same way as sending a response back to the main proce
 ~rd~ needs to be set to the value sent by the command and ~valid~ needs to be asserted *at the same time* as the ~interrupt~ line is high!
 
 The RoCC accelerator can inform the main processor it is busy by setting the ~busy~ line high.
+The ~busy~ line is intended to inform the main processor when the accelerator has outstanding memory operations.
 
 * VCODE Instruction Encoding
 In all of the encodings below, I will always specify the ~funct7~ field.
