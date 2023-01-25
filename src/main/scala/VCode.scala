@@ -39,9 +39,9 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
   val cmd = rocc_io.cmd
   val rocc_cmd = Reg(new RoCCCommand)
   val cmd_valid = RegInit(false.B)
-  val rocc_inst = rocc_cmd.inst // The customX instruction in instruction stream
 
-  val returnReg = rocc_cmd.inst.rd
+  val rocc_inst = rocc_cmd.inst // The customX instruction in instruction stream
+  val returnReg = rocc_inst.rd
   val status = rocc_cmd.status
   when(cmd.fire) {
     rocc_cmd := cmd.bits // The entire RoCC Command provided to the accelerator
