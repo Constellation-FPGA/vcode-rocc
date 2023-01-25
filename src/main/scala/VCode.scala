@@ -185,7 +185,7 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
     returnReg := 0.U
   }
 
-  when(response_required && io.resp.ready && response_ready) {
+  when(response_required && response_ready) {
     if(p(VCodePrintfEnable)) {
       printf("Main processor ready for response? %d\n", io.resp.ready)
     }
