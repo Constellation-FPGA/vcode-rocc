@@ -8,6 +8,7 @@ import freechips.rocketchip.config.Parameters
 class ControlUnit(implicit p: Parameters) extends Module {
   val io = IO(new Bundle {
     val ctrl_sigs = Input(new CtrlSigs())
+    val cmd_valid = Input(Bool())
     val busy = Output(Bool())
     val accel_ready = Output(Bool())
     // TODO: Rework these booleans to an Enum which can be "exported"
@@ -43,7 +44,7 @@ class ControlUnit(implicit p: Parameters) extends Module {
 
   switch(execute_state) {
     is(State.idle) {
-      when(io.ctrl_sigs.legal && io.ctrl_sigs.is_mem_op) {
+      when(io.cmd_valid && io.ctrl_sigs.legal && io.ctrl_sigs.is_mem_op) {
         execute_state := State.fetchingData
         if(p(VCodePrintfEnable)) {
           printf("Ctrl\tMoving from idle to fetchingData state\n")

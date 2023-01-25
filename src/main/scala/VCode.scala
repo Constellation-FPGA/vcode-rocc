@@ -36,15 +36,17 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
   // io is "implicit" because we inherit from LazyRoCCModuleImp.
   // io is the RoCCCoreIO
   val rocc_io = io
-  val cmd = Queue(rocc_io.cmd)
-  val rocc_cmd = cmd.bits // The entire RoCC Command provided to the accelerator
+  val cmd = rocc_io.cmd
+  val rocc_cmd = Reg(new RoCCCommand)
+  val cmd_valid = RegInit(false.B)
   val rocc_inst = rocc_cmd.inst // The customX instruction in instruction stream
 
-  val returnReg = RegInit(0.U(5.W)) // FIXME: Parameterize?
+  val returnReg = rocc_cmd.inst.rd
   val status = Reg(new freechips.rocketchip.rocket.MStatus)
   when(cmd.fire) {
-    returnReg := rocc_cmd.inst.rd
-    status := rocc_cmd.status
+    rocc_cmd := cmd.bits // The entire RoCC Command provided to the accelerator
+    cmd_valid := true.B
+    status := io.cmd.bits.status
   }
 
   /***************
@@ -65,6 +67,7 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
   // instruction from the RoCC command queue. Cannot accept another command
   // unless accelerator is ready/idle
   cmd.ready := ctrl_unit.io.accel_ready
+  ctrl_unit.io.cmd_valid := cmd_valid
   // RoCC must assert RoCCCoreIO.busy line high when memory actions happening
   rocc_io.busy := ctrl_unit.io.busy
   ctrl_unit.io.ctrl_sigs := ctrl_sigs
@@ -72,12 +75,15 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
 
   // TODO: Exception-raising module?
   // If invalid instruction, raise exception
-  val exception = cmd.valid && !ctrl_sigs.legal
+  val exception = cmd_valid && !ctrl_sigs.legal
   rocc_io.interrupt := exception
   when(exception) {
     if(p(VCodePrintfEnable)) {
-      printf("Raising exception to processor through interrupt!\nILLEGAL INSTRUCTION!cmd.fire=%d\n",cmd.fire);
+      printf("Raising exception to processor through interrupt!\nILLEGAL INSTRUCTION!\n")
     }
+    rocc_cmd := DontCare
+    cmd_valid := false.B
+    status := DontCare
   }
 
   /* The valid bit is raised to true by the main processor when the command is
@@ -168,7 +174,7 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
    **************/
   // Check if the accelerator needs to respond
   val response_required = RegInit(false.B)
-  when(ctrl_sigs.legal && rocc_cmd.inst.xd) {
+  when(cmd_valid && ctrl_sigs.legal && rocc_cmd.inst.xd) {
     response_required := true.B
   }
 
@@ -179,18 +185,16 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
   response.rd := returnReg
   response.data := alu_out
   io.resp.bits := response
-  io.resp.valid := response_required && response_ready
+  io.resp.valid := response_required && response_ready || exception
   when(rocc_io.resp.fire) {
     response_required := false.B
-    returnReg := 0.U
+    cmd_valid := false.B
   }
 
   when(response_required && response_ready) {
     if(p(VCodePrintfEnable)) {
       printf("Main processor ready for response? %d\n", io.resp.ready)
     }
-
-    cmd.deq // Dequeue this instruction from the queue
 
     if(p(VCodePrintfEnable)) {
       printf("VCode accelerator made response with data 0x%x valid? %d\n",
