@@ -76,6 +76,11 @@ Namely, these are instructions that have *no VCODE equivalent*.
 |               |                            |                       0 |
 #+TBLFM: $3='(format "%x" (string-to-number $2 2))
 
+#+begin_comment
+To update all of these tables inside Emacs, use ~(org-table-recalculate-buffer-tables)~.
+To update just a single table, use ~(org-table-iterate)~ or the keybinding ~C-u C-u C-c *~.
+#+end_comment
+
 ** Binary Operations
 The binary operations require pointers to the two vectors be passed, and the instruction determines the operation to perform.
 | VCODE Operation | Chisel Symbol | ~funct7~ Encoding (Binary) | ~funct7~ Encoding (Hex) |
