@@ -21,6 +21,7 @@ class ControlUnitTest extends AnyFlatSpec with ChiselScalatestTester {
 
       dut.io.busy.expect(false.B)
       dut.io.ctrl_sigs.poke(ctrl_sigs)
+      dut.io.cmd_valid.poke(true.B)
       dut.clock.step()
       dut.io.busy.expect(false.B)
       dut.clock.step()
