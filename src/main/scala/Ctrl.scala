@@ -38,7 +38,7 @@ class ControlUnit(implicit p: Parameters) extends Module {
 
   // We should fetch when we are in fetching data state
   io.should_fetch := (execute_state === State.fetchingData)
-  val num_to_fetch = RegInit(0.U); io.num_to_fetch := num_to_fetch
+  io.num_to_fetch := Mux(execute_state === State.fetchingData, io.ctrl_sigs.num_mem_fetches, 0.U)
 
   io.should_execute := (execute_state === State.exe)
 
@@ -54,7 +54,6 @@ class ControlUnit(implicit p: Parameters) extends Module {
       }
     }
     is(State.fetchingData) {
-      num_to_fetch := io.ctrl_sigs.num_mem_fetches
       if(p(VCodePrintfEnable)) {
         printf("Ctrl\tIn fetchingData state\n")
       }
