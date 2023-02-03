@@ -57,15 +57,20 @@ class CtrlSigs extends Bundle { // TODO: Rename to BinOpCtrlSigs?
 object CtrlSigs {
   /** Convert a signal pattern (List/Seq/Array) of BitPat representing the output
     * from the decode table, and convert them to name-addressable control
-    * signals. */
+    * signals.
+    *
+    * Do NOT use this in designs to elaborate and synthesize! This is intended
+    * for only unit tests! */
   def convert(signalPattern: Iterable[BitPat]): CtrlSigs = {
-    val Seq(legal, num_mem_fetches, alu_fn, is_mem_op) = signalPattern.map(BitPat.bitPatToUInt(_));
-    // Everything in the Seq above comes out as UInt, so we need to convert a little bit
+    // This map destructures the signalPattern and assigns the elements to each
+    // name in this sequence.
+    val Seq(legal, num_mem_fetches, alu_fn, is_mem_op) = signalPattern.map{ case (x: BitPat) => x }
+
     (new CtrlSigs()).Lit(
-      _.legal -> legal.asBool,
-      _.num_mem_fetches -> num_mem_fetches,
-      _.alu_fn -> alu_fn,
-      _.is_mem_op -> is_mem_op.asBool
+      _.legal -> BitPat.bitPatToUInt(legal).asBool,
+      _.num_mem_fetches -> BitPat.bitPatToUInt(num_mem_fetches),
+      _.alu_fn -> alu_fn.value.U, // NOTE: BitPat of unknowns BitPat("b???") will be converted to 0s by this!
+      _.is_mem_op -> BitPat.bitPatToUInt(is_mem_op).asBool
     )
   }
 }
