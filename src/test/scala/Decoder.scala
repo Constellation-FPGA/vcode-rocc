@@ -33,6 +33,8 @@ class DecoderTest extends AnyFlatSpec with ChiselScalatestTester {
       vcoderocc.RoCCInstructionFactory.buildRoCCInstruction(PLUS_INT, 0, 0, 0,
         true, true, true, RoCCInstructionFactory.ROCC_CUSTOM_OPCODE_0)),
     (SET_NUM_OPERANDS, vcoderocc.RoCCInstructionFactory.buildRoCCInstruction(SET_NUM_OPERANDS, 0, 0, 0,
+      true, false, false, RoCCInstructionFactory.ROCC_CUSTOM_OPCODE_0)),
+    (SET_DEST_ADDR, vcoderocc.RoCCInstructionFactory.buildRoCCInstruction(SET_DEST_ADDR, 0, 0, 0,
         true, false, false, RoCCInstructionFactory.ROCC_CUSTOM_OPCODE_0)),
   )
 
