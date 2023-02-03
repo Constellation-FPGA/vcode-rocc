@@ -74,6 +74,7 @@ Namely, these are instructions that have *no VCODE equivalent*.
 | Chisel Symbol      | ~funct7~ Encoding (Binary) | ~funct7~ Encoding (Hex) |
 |--------------------+----------------------------+-------------------------|
 | ~SET_NUM_OPERANDS~ |                    1000000 |                      40 |
+| ~SET_DEST_ADDR~    |                    1000001 |                      41 |
 #+TBLFM: $3='(format "%x" (string-to-number $2 2))
 
 #+begin_comment

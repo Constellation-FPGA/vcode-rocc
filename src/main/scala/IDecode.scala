@@ -22,7 +22,7 @@ trait DecodeConstants extends HasCoreParameters { // TODO: Not sure if extends n
 /** Control signals in the processor.
   * These are set during decoding.
   */
-class CtrlSigs extends Bundle { // TODO: Rename to BinOpCtrlSigs?
+class CtrlSigs extends Bundle {
   /* All control signals used in this coprocessor
    * See rocket-chip's rocket/IDecode.scala#IntCtrlSigs#default */
   val legal = Bool() // Example control signal.
@@ -95,7 +95,8 @@ class BinOpDecode(implicit val p: Parameters) extends DecodeConstants {
   */
 class CtrlOpDecode(implicit val p: Parameters) extends DecodeConstants {
   val decode_table: Array[(BitPat, List[BitPat])] = Array(
-    SET_NUM_OPERANDS -> List(Y, MEM_OPS_ZERO, FN_X, N))
+    SET_NUM_OPERANDS -> List(Y, MEM_OPS_ZERO, FN_X, N),
+    SET_DEST_ADDR -> List(Y, MEM_OPS_ZERO, FN_X, N))
 }
 
 /** A class holding a decode table for all possible RoCC instructions that are
