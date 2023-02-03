@@ -87,7 +87,7 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
 
   /* The valid bit is raised to true by the main processor when the command is
    * sent to the DecoupledIO Queue. */
-  when(cmd.fire) {
+  when(cmd_valid) {
     // TODO: Find a nice way to condense these conditional prints
     if(p(VCodePrintfEnable)) {
       printf("Got funct7 = 0x%x\trs1.val=0x%x\trs2.val=0x%x\txd.val=0x%x\n",
