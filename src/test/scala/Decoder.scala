@@ -11,22 +11,30 @@ import org.scalatest.matchers.should.Matchers
 import vcoderocc.Instructions._
 
 import freechips.rocketchip.config.Parameters
+import freechips.rocketchip.tile.RoCCInstruction
 
 class DecoderTest extends AnyFlatSpec with ChiselScalatestTester {
   implicit val p: Parameters = new vcoderocc.VCodeTestConfig
 
-  behavior of "Decoder"
-  it should s"Decode ${PLUS_INT}" in {
-    test(new Decoder) { dut =>
-      // val inst_to_test = PLUS_INT.toString().U
-      val rocc_inst = vcoderocc.RoCCInstructionFactory.buildRoCCInstruction(
-        PLUS_INT, 0, 0, 0, true, true, true,
-        RoCCInstructionFactory.ROCC_CUSTOM_OPCODE_0)
+  def testDecode(inst: BitPat, rocc_inst: RoCCInstruction): Unit = {
+    it should s"Decode ${inst}" in {
+      test(new Decoder) { dut =>
+        val expected_sigs = (new DecodeTable).findCtrlSigs(inst)
+        dut.io.rocc_inst.poke(rocc_inst)
 
-      val expected_sigs = (new DecodeTable).findCtrlSigs(PLUS_INT)
-
-      dut.io.rocc_inst.poke(rocc_inst)
-      dut.io.ctrl_sigs.expect(expected_sigs)
+        dut.io.ctrl_sigs.expect(expected_sigs)
+      }
     }
+  }
+
+  behavior of "Decoder"
+  val testData: List[(BitPat, RoCCInstruction)] = List[(BitPat, RoCCInstruction)](
+    (PLUS_INT,
+      vcoderocc.RoCCInstructionFactory.buildRoCCInstruction(PLUS_INT, 0, 0, 0,
+        true, true, true, RoCCInstructionFactory.ROCC_CUSTOM_OPCODE_0)),
+  )
+
+  testData.foreach { datum =>
+    it should behave like testDecode(datum._1, datum._2)
   }
 }
