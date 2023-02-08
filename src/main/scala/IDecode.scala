@@ -86,13 +86,26 @@ class BinOpDecode(implicit val p: Parameters) extends DecodeConstants {
     PLUS_INT-> List(Y, MEM_OPS_TWO, FN_ADD, Y))
 }
 
+/** Decode table for accelerator control instructions.
+  * These tend to be non-blocking instructions that have no memory operands and
+  * may or may not use the ALU.
+  *
+  * @param p Implicit parameter of key-value pairs that can globally alter the
+  * parameters of the design during elaboration.
+  */
+class CtrlOpDecode(implicit val p: Parameters) extends DecodeConstants {
+  val decode_table: Array[(BitPat, List[BitPat])] = Array(
+    SET_NUM_OPERANDS -> List(Y, MEM_OPS_ZERO, FN_X, N))
+}
+
 /** A class holding a decode table for all possible RoCC instructions that are
   * supported by the accelerator, and a small helper to find the control signals
   * of a provided RoCC instruction's funct7 code. */
 class DecodeTable(implicit val p: Parameters) {
   /** The decode table for all types of operators. */
   def table = {
-    Seq(new BinOpDecode)
+    Seq(new BinOpDecode) ++
+    Seq(new CtrlOpDecode)
   } flatMap(_.decode_table)
 
   /** Given an operation/funct7 code, find the control signals for that
