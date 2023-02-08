@@ -96,6 +96,15 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
     }
   }
 
+  val numOperands = RegInit(0.U(p(XLen).W))
+  when(cmd_valid && rocc_cmd.inst.funct === Instructions.SET_NUM_OPERANDS && rocc_cmd.inst.xs1) {
+    numOperands := rocc_cmd.rs1
+    if(p(VCodePrintfEnable)) {
+      printf("VCode\tSet numOperands to 0x%x\n", rocc_cmd.rs1)
+    }
+    cmd_valid := false.B
+  }
+
   /***************
    * DATA FETCH
    * Most instructions pass pointers to vectors, so we need to fetch that before
