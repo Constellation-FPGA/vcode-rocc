@@ -58,7 +58,7 @@ class DCacheFetcher(implicit p: Parameters) extends CoreModule()(p)
   })
 
   object State extends ChiselEnum {
-    val idle, fetching = Value
+    val idle, running = Value
   }
   val state = RegInit(State.idle)
 
@@ -79,13 +79,13 @@ class DCacheFetcher(implicit p: Parameters) extends CoreModule()(p)
       io.addrs.ready := io.should_fetch
       fetching_completed := false.B
       when(io.should_fetch && io.addrs.valid) {
-        state := State.fetching
+        state := State.running
         if(p(VCodePrintfEnable)) {
           printf("DFetch\tStarting to fetch data\n")
         }
       }
     }
-    is(State.fetching) {
+    is(State.running) {
       io.addrs.ready := false.B
       when(amount_fetched >= io.num_to_fetch) {
         // We have fetched everything we needed to fetch. We are done.
@@ -101,7 +101,7 @@ class DCacheFetcher(implicit p: Parameters) extends CoreModule()(p)
         amount_fetched := 0.U
       } .otherwise {
         // We still have a request to make. We may still have outstanding responses too.
-        state := State.fetching
+        state := State.running
         if(p(VCodePrintfEnable)) {
           printf("Fetching data, num_to_fetch: %d\tamount_fetched: %d\n",
             io.num_to_fetch, amount_fetched)
