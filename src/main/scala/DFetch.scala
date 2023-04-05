@@ -23,6 +23,10 @@ class AddressBundle(addrWidth: Int) extends Bundle {
   val addr2 = Bits(addrWidth.W)
 }
 
+object MemoryOperation extends ChiselEnum {
+  val read, write = Value
+}
+
 /** Module connecting VCode accelerator to main processor's non-blocking L1 data
   * cache.
   *
