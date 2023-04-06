@@ -52,9 +52,10 @@ class DCacheFetcher(implicit p: Parameters) extends CoreModule()(p)
     val fetched_data = Output(Valid(Vec(2, Bits(p(XLen).W))))
     val should_fetch = Input(Bool())
     val num_to_fetch = Input(UInt())
+    /** Has the requested operation been completed? */
+    val op_completed = Output(Bool())
     val req = Decoupled(new HellaCacheReq)
     val resp = Input(Valid(new HellaCacheResp))
-    val fetching_completed = Output(Bool())
   })
 
   object State extends ChiselEnum {
@@ -71,13 +72,13 @@ class DCacheFetcher(implicit p: Parameters) extends CoreModule()(p)
   val wait_for_resp = RegInit(VecInit.fill(2)(false.B)) // Only need max of 2 memory slots for now
   val all_done = Wire(Bool()); all_done := !(wait_for_resp.reduce(_ || _))
 
-  val fetching_completed = RegInit(false.B); io.fetching_completed := fetching_completed
+  val op_completed = RegInit(false.B); io.op_completed := op_completed
 
   switch(state) {
     is(State.idle) {
       amount_fetched := 0.U
       io.addrs.ready := io.should_fetch
-      fetching_completed := false.B
+      op_completed := false.B
       when(io.should_fetch && io.addrs.valid) {
         state := State.running
         if(p(VCodePrintfEnable)) {
@@ -96,7 +97,7 @@ class DCacheFetcher(implicit p: Parameters) extends CoreModule()(p)
         }
         state := State.idle
         io.fetched_data.bits(0.U) := vals(0.U); io.fetched_data.bits(1.U) := vals(1.U)
-        fetching_completed := all_done
+        op_completed := all_done
         io.fetched_data.valid := all_done
         amount_fetched := 0.U
       } .otherwise {

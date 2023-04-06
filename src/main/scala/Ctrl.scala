@@ -14,7 +14,7 @@ class ControlUnit(implicit p: Parameters) extends Module {
     // TODO: Rework these booleans to an Enum which can be "exported"
     val should_fetch = Output(Bool())
     val num_to_fetch = Output(UInt())
-    val fetching_completed = Input(Bool())
+    val mem_op_completed = Input(Bool())
     val should_execute = Output(Bool())
     val execution_completed = Input(Bool())
     val response_ready = Output(Bool())
@@ -57,7 +57,7 @@ class ControlUnit(implicit p: Parameters) extends Module {
       if(p(VCodePrintfEnable)) {
         printf("Ctrl\tIn fetchingData state\n")
       }
-      when(io.fetching_completed) {
+      when(io.mem_op_completed) {
         execute_state := State.exe
         if(p(VCodePrintfEnable)) {
           printf("Ctrl\tMoving from fetchingData to exe state\n")
