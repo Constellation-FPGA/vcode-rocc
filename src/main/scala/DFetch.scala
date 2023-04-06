@@ -17,12 +17,6 @@ import freechips.rocketchip.rocket.{HellaCacheReq, HellaCacheResp}
  * LazyRoCC.tlNode connects to the L1-L2 crossbar connecting this tile to the
  * larger system. */
 
-// FIXME: Use another structure? Vec perhaps?
-class AddressBundle(addrWidth: Int) extends Bundle {
-  val addr1 = Bits(addrWidth.W)
-  val addr2 = Bits(addrWidth.W)
-}
-
 object MemoryOperation extends ChiselEnum {
   val read, write = Value
 }
@@ -45,8 +39,8 @@ class DCacheFetcher(implicit p: Parameters) extends CoreModule()(p)
    * Only using M_XRD and M_XWR */
   val io = IO(new Bundle {
     val ctrl_sigs = Input(new CtrlSigs)
-    /** The addresses to fetch. */
-    val addrs = Flipped(Decoupled(new AddressBundle(p(XLen))))
+    /** The base address from which to operate on (load from/store to). */
+    val baseAddress = Flipped(Decoupled(Bits(p(XLen).W)))
     val mstatus = Input(new MStatus);
     // Actual Data outputs
     val fetched_data = Output(Valid(Vec(2, Bits(p(XLen).W))))
@@ -79,9 +73,9 @@ class DCacheFetcher(implicit p: Parameters) extends CoreModule()(p)
   switch(state) {
     is(State.idle) {
       amount_fetched := 0.U
-      io.addrs.ready := io.start
+      io.baseAddress.ready := io.start
       op_completed := false.B
-      when(io.start && io.addrs.valid) {
+      when(io.start && io.baseAddress.valid) {
         state := State.running
         if(p(VCodePrintfEnable)) {
           printf("DFetch\tStarting to fetch data\n")
@@ -89,7 +83,7 @@ class DCacheFetcher(implicit p: Parameters) extends CoreModule()(p)
       }
     }
     is(State.running) {
-      io.addrs.ready := false.B
+      io.baseAddress.ready := false.B
       when(amount_fetched >= io.amountData) {
         // We have fetched everything we needed to fetch. We are done.
         if(p(VCodePrintfEnable)) {
@@ -137,9 +131,9 @@ class DCacheFetcher(implicit p: Parameters) extends CoreModule()(p)
         when(io.start) {
           val addr_to_request = Wire(Bits(p(XLen).W))
           when(reqs_sent === 0.U) {
-            addr_to_request := io.addrs.bits.addr1
+            addr_to_request := io.baseAddress.bits
           } .otherwise {
-            addr_to_request := io.addrs.bits.addr2
+            addr_to_request := io.baseAddress.bits
           }
           // log2Up(n) finds # bits needed to represent n states
           val tag = addr_to_request(log2Up(2)+2, 3) // FIXME: Should parameterize the (2)
@@ -147,8 +141,8 @@ class DCacheFetcher(implicit p: Parameters) extends CoreModule()(p)
           // Skip lowest 3 bits because all data is 8-byte aligned (int64, doubles, etc.)
           val should_send_request = io.start && !wait_for_resp(tag)
           if(p(VCodePrintfEnable)) {
-            printf("DFetch\tstart: %d\taddrs_valid: %d\n",
-              io.start, io.addrs.valid)
+            printf("DFetch\tstart: %d\tbaseAddress_valid: %d\n",
+              io.start, io.baseAddress.valid)
             printf("DFetch\tShould submit new request for address 0x%x with tag 0x%x? %d\n",
               addr_to_request, tag, should_send_request)
             printf("DFetch\tdprv: %d\tdv: %d\n", io.mstatus.dprv, io.mstatus.dv)
