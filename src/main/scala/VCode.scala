@@ -127,25 +127,21 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
 
   val rs1 = Wire(Bits(p(XLen).W)); rs1 := rocc_cmd.rs1
   val rs2 = Wire(Bits(p(XLen).W)); rs2 := rocc_cmd.rs2
-  val addrs = Reg(new AddressBundle(p(XLen)))
-
-  when(ctrl_sigs.legal && ctrl_sigs.is_mem_op) {
-    addrs.addr1 := rs1; addrs.addr2 := rs2
-  }
 
   ctrl_unit.io.mem_op_completed := data_fetcher.io.op_completed
-  data_fetcher.io.addrs.bits := addrs
+  // data_fetcher.io.baseAddress.bits := rs1
   // FIXME: Should not need to rely on mem_op_completed boolean
-  when(ctrl_unit.io.should_fetch && !ctrl_unit.io.mem_op_completed && data_fetcher.io.addrs.ready) {
+  when(ctrl_unit.io.should_fetch && !ctrl_unit.io.mem_op_completed && data_fetcher.io.baseAddress.ready) {
     // Queue addrs and set valid bit
-    data_fetcher.io.addrs.enq(addrs)
+    data_fetcher.io.baseAddress.enq(rs1)
+    // data_fetcher.io.addrs.enq(addrs)
     if(p(VCodePrintfEnable)) {
       printf("VCode\tEnqueued addresses to data fetcher\n")
-      printf("\taddr1: 0x%x, addr2: 0x%x\tvalid? %d\n",
-        data_fetcher.io.addrs.bits.addr1, data_fetcher.io.addrs.bits.addr2, data_fetcher.io.addrs.valid)
+      printf("\tBase Address: 0x%x\tvalid? %d\n",
+        data_fetcher.io.baseAddress.bits, data_fetcher.io.baseAddress.valid)
     }
   } .otherwise {
-    data_fetcher.io.addrs.valid := false.B
+    data_fetcher.io.baseAddress.noenq()
   }
   data_fetcher.io.start := ctrl_unit.io.should_fetch
   data_fetcher.io.amountData := ctrl_unit.io.num_to_fetch
