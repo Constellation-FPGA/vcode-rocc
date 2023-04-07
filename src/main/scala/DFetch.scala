@@ -50,9 +50,10 @@ class DCacheFetcher(implicit p: Parameters) extends CoreModule()(p)
     val mstatus = Input(new MStatus);
     // Actual Data outputs
     val fetched_data = Output(Valid(Vec(2, Bits(p(XLen).W))))
-    val num_to_fetch = Input(UInt())
     /** Flag to tell DCacheFetcher to start loading/storing from/to memory. */
     val start = Input(Bool())
+    /** The number of elements to fetch. */
+    val amountData = Input(UInt())
     /** Has the requested operation been completed? */
     val op_completed = Output(Bool())
     val req = Decoupled(new HellaCacheReq)
@@ -89,7 +90,7 @@ class DCacheFetcher(implicit p: Parameters) extends CoreModule()(p)
     }
     is(State.running) {
       io.addrs.ready := false.B
-      when(amount_fetched >= io.num_to_fetch) {
+      when(amount_fetched >= io.amountData) {
         // We have fetched everything we needed to fetch. We are done.
         if(p(VCodePrintfEnable)) {
           printf("DFetch\tFetched all the data. Fetcher returns to idle. Do next thing\n")
@@ -105,8 +106,8 @@ class DCacheFetcher(implicit p: Parameters) extends CoreModule()(p)
         // We still have a request to make. We may still have outstanding responses too.
         state := State.running
         if(p(VCodePrintfEnable)) {
-          printf("Fetching data, num_to_fetch: %d\tamount_fetched: %d\n",
-            io.num_to_fetch, amount_fetched)
+          printf("Fetching data, amountData: %d\tamount_fetched: %d\n",
+            io.amountData, amount_fetched)
         }
 
         // We have a response to handle!
