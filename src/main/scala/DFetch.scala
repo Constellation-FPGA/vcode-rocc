@@ -31,9 +31,12 @@ object MemoryOperation extends ChiselEnum {
   * submission, and we need a way to recover the proper ordering. This is
   * particularly important for VCode's pairwise vector operations.
   *
+  * @param bufferEntries Ceiling of the number of elements to batch together
+  *        before returning data to another component. Total size is
+  *        bufferEntries * XLen.
   * @param p Implicit parameter passed by build system of top-level design parameters.
   */
-class DCacheFetcher(implicit p: Parameters) extends CoreModule()(p)
+class DCacheFetcher(val bufferEntries: Int)(implicit p: Parameters) extends CoreModule()(p)
     with MemoryOpConstants {
   /* For now, we only support "raw" loading and storing.
    * Only using M_XRD and M_XWR */
@@ -43,7 +46,8 @@ class DCacheFetcher(implicit p: Parameters) extends CoreModule()(p)
     val baseAddress = Flipped(Decoupled(Bits(p(XLen).W)))
     val mstatus = Input(new MStatus);
     // Actual Data outputs
-    val fetched_data = Output(Valid(Vec(2, Bits(p(XLen).W))))
+    // fetched_data is only of interest if a read was performed
+    val fetched_data = Output(Valid(Vec(bufferEntries, Bits(p(XLen).W))))
     /** Flag to tell DCacheFetcher to start loading/storing from/to memory. */
     val start = Input(Bool())
     /** The number of elements to fetch. */
@@ -63,9 +67,9 @@ class DCacheFetcher(implicit p: Parameters) extends CoreModule()(p)
   val amount_fetched = RegInit(0.U(8.W))
   val reqs_sent = RegInit(0.U(8.W))
 
-  val vals = Mem(2, UInt(p(XLen).W)) // Only need max of 2 memory slots for now
+  val vals = Mem(bufferEntries, UInt(p(XLen).W))
 
-  val wait_for_resp = RegInit(VecInit.fill(2)(false.B)) // Only need max of 2 memory slots for now
+  val wait_for_resp = RegInit(VecInit.fill(bufferEntries)(false.B))
   val all_done = Wire(Bool()); all_done := !(wait_for_resp.reduce(_ || _))
 
   val op_completed = RegInit(false.B); io.op_completed := op_completed
@@ -136,7 +140,7 @@ class DCacheFetcher(implicit p: Parameters) extends CoreModule()(p)
             addr_to_request := io.baseAddress.bits
           }
           // log2Up(n) finds # bits needed to represent n states
-          val tag = addr_to_request(log2Up(2)+2, 3) // FIXME: Should parameterize the (2)
+          val tag = addr_to_request(log2Up(bufferEntries)+2, 3)
           // Bit slicing is 0-indexed from the right and has [hi-idx, lo-idx) semantics
           // Skip lowest 3 bits because all data is 8-byte aligned (int64, doubles, etc.)
           val should_send_request = io.start && !wait_for_resp(tag)
