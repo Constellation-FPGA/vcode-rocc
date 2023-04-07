@@ -50,8 +50,9 @@ class DCacheFetcher(implicit p: Parameters) extends CoreModule()(p)
     val mstatus = Input(new MStatus);
     // Actual Data outputs
     val fetched_data = Output(Valid(Vec(2, Bits(p(XLen).W))))
-    val should_fetch = Input(Bool())
     val num_to_fetch = Input(UInt())
+    /** Flag to tell DCacheFetcher to start loading/storing from/to memory. */
+    val start = Input(Bool())
     /** Has the requested operation been completed? */
     val op_completed = Output(Bool())
     val req = Decoupled(new HellaCacheReq)
@@ -77,9 +78,9 @@ class DCacheFetcher(implicit p: Parameters) extends CoreModule()(p)
   switch(state) {
     is(State.idle) {
       amount_fetched := 0.U
-      io.addrs.ready := io.should_fetch
+      io.addrs.ready := io.start
       op_completed := false.B
-      when(io.should_fetch && io.addrs.valid) {
+      when(io.start && io.addrs.valid) {
         state := State.running
         if(p(VCodePrintfEnable)) {
           printf("DFetch\tStarting to fetch data\n")
@@ -132,7 +133,7 @@ class DCacheFetcher(implicit p: Parameters) extends CoreModule()(p)
         }
 
         // We should submit a memory request!
-        when(io.should_fetch) {
+        when(io.start) {
           val addr_to_request = Wire(Bits(p(XLen).W))
           when(reqs_sent === 0.U) {
             addr_to_request := io.addrs.bits.addr1
@@ -143,10 +144,10 @@ class DCacheFetcher(implicit p: Parameters) extends CoreModule()(p)
           val tag = addr_to_request(log2Up(2)+2, 3) // FIXME: Should parameterize the (2)
           // Bit slicing is 0-indexed from the right and has [hi-idx, lo-idx) semantics
           // Skip lowest 3 bits because all data is 8-byte aligned (int64, doubles, etc.)
-          val should_send_request = io.should_fetch && !wait_for_resp(tag)
+          val should_send_request = io.start && !wait_for_resp(tag)
           if(p(VCodePrintfEnable)) {
-            printf("DFetch\tshould_fetch: %d\taddrs_valid: %d\n",
-              io.should_fetch, io.addrs.valid)
+            printf("DFetch\tstart: %d\taddrs_valid: %d\n",
+              io.start, io.addrs.valid)
             printf("DFetch\tShould submit new request for address 0x%x with tag 0x%x? %d\n",
               addr_to_request, tag, should_send_request)
             printf("DFetch\tdprv: %d\tdv: %d\n", io.mstatus.dprv, io.mstatus.dv)
