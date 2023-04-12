@@ -144,7 +144,7 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
     data_fetcher.io.baseAddress.noenq()
   }
   data_fetcher.io.start := ctrl_unit.io.should_fetch
-  data_fetcher.io.amountData := ctrl_unit.io.num_to_fetch
+  data_fetcher.io.amountData := numOperands
 
   val dmem_data = Wire(Bits(p(XLen).W)) // Data to SEND to memory
 
