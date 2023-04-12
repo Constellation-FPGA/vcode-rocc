@@ -134,11 +134,8 @@ class DCacheFetcher(val bufferEntries: Int)(implicit p: Parameters) extends Core
         // We should submit a memory request!
         when(io.start) {
           val addr_to_request = Wire(Bits(p(XLen).W))
-          when(reqs_sent === 0.U) {
-            addr_to_request := io.baseAddress.bits
-          } .otherwise {
-            addr_to_request := io.baseAddress.bits
-          }
+          addr_to_request := io.baseAddress.bits
+
           // log2Up(n) finds # bits needed to represent n states
           val tag = addr_to_request(log2Up(bufferEntries)+2, 3)
           // Bit slicing is 0-indexed from the right and has [hi-idx, lo-idx) semantics
