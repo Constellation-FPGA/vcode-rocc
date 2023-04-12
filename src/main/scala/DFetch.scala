@@ -165,7 +165,7 @@ class DCacheFetcher(val bufferEntries: Int)(implicit p: Parameters) extends Core
           when(io.req.fire) {
             // When our request is sent, we must increment number of requests made
             reqs_sent := reqs_sent + 1.U
-            wait_for_resp(reqs_sent) := true.B
+            wait_for_resp(tag) := true.B
             if(p(VCodePrintfEnable)) {
               printf("DFetch\tMarked tag 0x%x (request tag 0x%x) as busy\n", tag, io.req.bits.tag)
             }
