@@ -128,12 +128,22 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
   val rs1 = Wire(Bits(p(XLen).W)); rs1 := rocc_cmd.rs1
   val rs2 = Wire(Bits(p(XLen).W)); rs2 := rocc_cmd.rs2
 
-  ctrl_unit.io.mem_op_completed := data_fetcher.io.op_completed
-  // data_fetcher.io.baseAddress.bits := rs1
+  /* NOTE: numFetchRuns MUST be wide enough to represent the maximum number of
+   * memory operands to fetch! */
+  val numFetchRuns = RegInit(0.U(NumOperatorOperands.SZ_MEM_OPS))
+  ctrl_unit.io.mem_op_completed := numFetchRuns === ctrl_unit.io.num_to_fetch
+  when(data_fetcher.io.op_completed) {
+    numFetchRuns := numFetchRuns + 1.U
+    if(p(VCodePrintfEnable)) {
+      printf("VCode\tCompleted %d fetch runs.\n", numFetchRuns)
+    }
+  }
+
+  val addrToFetch = Mux(numFetchRuns === 0.U, rs1, rs2)
   // FIXME: Should not need to rely on mem_op_completed boolean
   when(ctrl_unit.io.should_fetch && !ctrl_unit.io.mem_op_completed && data_fetcher.io.baseAddress.ready) {
     // Queue addrs and set valid bit
-    data_fetcher.io.baseAddress.enq(rs1)
+    data_fetcher.io.baseAddress.enq(addrToFetch)
     // data_fetcher.io.addrs.enq(addrs)
     if(p(VCodePrintfEnable)) {
       printf("VCode\tEnqueued addresses to data fetcher\n")
