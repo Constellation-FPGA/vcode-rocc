@@ -70,7 +70,7 @@ class DCacheFetcher(val bufferEntries: Int)(implicit p: Parameters) extends Core
   val vals = Mem(bufferEntries, UInt(p(XLen).W))
 
   val wait_for_resp = RegInit(VecInit.fill(bufferEntries)(false.B))
-  val all_done = Wire(Bool()); all_done := !(wait_for_resp.reduce(_ || _))
+  val all_done = Wire(Bool()); all_done := amount_fetched >= io.amountData
 
   val op_completed = RegInit(false.B); io.op_completed := op_completed
 
@@ -100,6 +100,7 @@ class DCacheFetcher(val bufferEntries: Int)(implicit p: Parameters) extends Core
         op_completed := all_done
         io.fetched_data.valid := all_done
         amount_fetched := 0.U
+        reqs_sent := 0.U
       } .otherwise {
         // We still have a request to make. We may still have outstanding responses too.
         state := State.running
@@ -134,19 +135,21 @@ class DCacheFetcher(val bufferEntries: Int)(implicit p: Parameters) extends Core
         // We should submit a memory request!
         when(io.start) {
           val addr_to_request = Wire(Bits(p(XLen).W))
-          addr_to_request := io.baseAddress.bits
+          /** Make sure no extra requests are made **/
+          addr_to_request := io.baseAddress.bits + (amount_fetched << 3.U)
 
           // log2Up(n) finds # bits needed to represent n states
-          val tag = addr_to_request(log2Up(bufferEntries)+2, 3)
+          val tag = amount_fetched//addr_to_request(log2Up(bufferEntries)+2, 3)
           // Bit slicing is 0-indexed from the right and has [hi-idx, lo-idx) semantics
           // Skip lowest 3 bits because all data is 8-byte aligned (int64, doubles, etc.)
-          val should_send_request = io.start && !wait_for_resp(tag)
+          val should_send_request = io.start && !wait_for_resp(tag) && reqs_sent < io.amountData
           if(p(VCodePrintfEnable)) {
             printf("DFetch\tstart: %d\tbaseAddress_valid: %d\n",
               io.start, io.baseAddress.valid)
             printf("DFetch\tShould submit new request for address 0x%x with tag 0x%x? %d\n",
               addr_to_request, tag, should_send_request)
             printf("DFetch\tdprv: %d\tdv: %d\n", io.mstatus.dprv, io.mstatus.dv)
+            printf("Requests\t Sent: %d\t Amount Data: %d\n", reqs_sent, io.amountData)
           }
 
           io.req.valid := should_send_request
@@ -159,7 +162,7 @@ class DCacheFetcher(val bufferEntries: Int)(implicit p: Parameters) extends Core
           io.req.bits.phys := false.B
           io.req.bits.dprv := io.mstatus.dprv
           io.req.bits.dv := io.mstatus.dv
-          when(io.req.fire) {
+          when(io.req.fire && !wait_for_resp(tag)) {
             // When our request is sent, we must increment number of requests made
             reqs_sent := reqs_sent + 1.U
             wait_for_resp(tag) := true.B
@@ -209,4 +212,6 @@ object NumOperatorOperands {
   def MEM_OPS_ONE = BitPat("b01")
   /** Two operands to fetch from memory. */
   def MEM_OPS_TWO = BitPat("b10")
+  /** Arbitrary number of operands **/
+  def MEM_OPS_N = BitPat("b11")
 }
