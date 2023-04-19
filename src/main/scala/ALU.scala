@@ -15,7 +15,7 @@ object ALU {
   def FN_X = BitPat.dontCare(SZ_ALU_FN)
   // This funky syntax creates a bit pattern of specified length with that value
   def FN_ADD = BitPat(0.U(SZ_ALU_FN.W))
-  def FN_RED_ADD = BitPat(1.U(SZ_ALU_FN))
+  def FN_RED_ADD = BitPat(1.U(SZ_ALU_FN.W))
 }
 
 /** Implementation of an ALU.
@@ -64,7 +64,7 @@ class ALU(val xLen: Int) extends Module {
       l21 := l11 + l12
       l22 := l13 + l14
       l3 := l21 + l22
-      data_out := data_out + l3
+      data_out := l3
     }
   }
 

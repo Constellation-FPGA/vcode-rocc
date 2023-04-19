@@ -135,7 +135,7 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
   val prev_fetch_res = RegInit(0.U(p(XLen).W))
   when(ctrl_unit.io.num_to_fetch === 3.U){
     printf("Multiple fetch\n")
-    ctrl_unit.io.mem_op_completed := numFetchRuns === ((rs2 >> 3.U) + 1.U)
+    ctrl_unit.io.mem_op_completed := numFetchRuns === (((rs2 - 1.U) >> 3.U) + 1.U)
     data_fetcher.io.amountData := 8.U
   } .otherwise{
     ctrl_unit.io.mem_op_completed := numFetchRuns === ctrl_unit.io.num_to_fetch
@@ -209,6 +209,12 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
       data6 := data_fetcher.io.fetched_data.bits(5)
       data7 := data_fetcher.io.fetched_data.bits(6)
       data8 := data_fetcher.io.fetched_data.bits(7)
+      if(p(VCodePrintfEnable)) {
+        printf("VCode\tFetcher1: 0x%x\tFetcher2: 0x%x\tFetcher3: 0x%x\tFetcher4: 0x%x\tFetcher5: 0x%x\tFetcher6: 0x%x\tFetcher7: 0x%x\tFetcher8: 0x%x\n",
+        data_fetcher.io.fetched_data.bits(0), data_fetcher.io.fetched_data.bits(1), data_fetcher.io.fetched_data.bits(2), data_fetcher.io.fetched_data.bits(3), 
+        data_fetcher.io.fetched_data.bits(4), data_fetcher.io.fetched_data.bits(5), data_fetcher.io.fetched_data.bits(6), data_fetcher.io.fetched_data.bits(7))
+        printf("\tALU Op Code: %d\n", ctrl_sigs.alu_fn)
+      }
     }
   }
   alu.io.in1 := data1

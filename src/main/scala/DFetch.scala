@@ -97,6 +97,9 @@ class DCacheFetcher(val bufferEntries: Int)(implicit p: Parameters) extends Core
         }
         state := State.idle
         io.fetched_data.bits(0.U) := vals(0.U); io.fetched_data.bits(1.U) := vals(1.U)
+        io.fetched_data.bits(2.U) := vals(2.U); io.fetched_data.bits(3.U) := vals(3.U)
+        io.fetched_data.bits(4.U) := vals(4.U); io.fetched_data.bits(5.U) := vals(5.U)
+        io.fetched_data.bits(6.U) := vals(6.U); io.fetched_data.bits(7.U) := vals(7.U)
         op_completed := all_done
         io.fetched_data.valid := all_done
         amount_fetched := 0.U
