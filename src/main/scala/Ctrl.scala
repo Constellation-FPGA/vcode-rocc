@@ -19,6 +19,7 @@ class ControlUnit(implicit p: Parameters) extends Module {
     val execution_completed = Input(Bool())
     val response_ready = Output(Bool())
     val response_completed = Input(Bool())
+    val num_fetch_runs = Input(UInt())
   })
 
   object State extends ChiselEnum {
@@ -38,15 +39,18 @@ class ControlUnit(implicit p: Parameters) extends Module {
 
   // We should fetch when we are in fetching data state
   io.should_fetch := (execute_state === State.fetchingData)
-  io.num_to_fetch := Mux(execute_state === State.fetchingData, io.ctrl_sigs.num_mem_fetches, 0.U)
+  io.num_to_fetch := io.ctrl_sigs.num_mem_fetches
 
   io.should_execute := (execute_state === State.exe)
 
   io.response_ready := (execute_state === State.write)
 
+  val runsDone = RegInit(0.U(64.W))
+
   switch(execute_state) {
     is(State.idle) {
       when(io.cmd_valid && io.ctrl_sigs.legal && io.ctrl_sigs.is_mem_op) {
+        runsDone := 0.U
         execute_state := State.fetchingData
         if(p(VCodePrintfEnable)) {
           printf("Ctrl\tMoving from idle to fetchingData state\n")
@@ -59,6 +63,7 @@ class ControlUnit(implicit p: Parameters) extends Module {
       }
       when(io.mem_op_completed) {
         execute_state := State.exe
+        runsDone := runsDone + 1.U
         if(p(VCodePrintfEnable)) {
           printf("Ctrl\tMoving from fetchingData to exe state\n")
         }
@@ -72,6 +77,14 @@ class ControlUnit(implicit p: Parameters) extends Module {
         execute_state := State.write
         if(p(VCodePrintfEnable)) {
           printf("Ctrl\tMoving from exe state to write state\n")
+          printf("Ctrl\tRuns Done: %d  Runs Req: %d\n", runsDone, io.num_fetch_runs)
+        }
+      }
+      when(runsDone < io.num_fetch_runs) {
+        execute_state := State.fetchingData
+        if(p(VCodePrintfEnable)) {
+          printf("Ctrl\tReturning to fetchingData state\n")
+          printf("Ctrl\tMem Complete %d\n",io.mem_op_completed)
         }
       }
     }

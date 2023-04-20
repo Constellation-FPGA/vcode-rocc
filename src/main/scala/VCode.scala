@@ -84,7 +84,7 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
     cmd_valid := false.B
     status := DontCare
   }
-
+  
   /* The valid bit is raised to true by the main processor when the command is
    * sent to the DecoupledIO Queue. */
   when(cmd_valid) {
@@ -93,6 +93,18 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
       printf("Got funct7 = 0x%x\trs1.val=0x%x\trs2.val=0x%x\txd.val=0x%x\n",
         rocc_cmd.inst.funct, rocc_cmd.rs1, rocc_cmd.rs2, rocc_cmd.inst.xd)
       printf("The instruction legal: %d\n", ctrl_sigs.legal)
+    }
+  }
+
+
+
+  /** Reduction Accum **/
+  val redAccum = RegInit(0.U(p(XLen).W));
+
+  when(cmd_valid && !rocc_io.busy) {
+    // TODO: Find a nice way to condense these conditional prints
+    if(p(VCodePrintfEnable)) {
+      printf("Reseting the reduction accumulator to 0")
     }
   }
 
@@ -133,14 +145,30 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
   val numFetchRuns = RegInit(0.U(NumOperatorOperands.SZ_MEM_OPS))
   val fetchActive = RegInit(false.B)
   val prev_fetch_res = RegInit(0.U(p(XLen).W))
+  val fetchComplete = RegInit(false.B)
+
   when(ctrl_unit.io.num_to_fetch === 3.U){
-    printf("Multiple fetch\n")
-    ctrl_unit.io.mem_op_completed := numFetchRuns === (((rs2 - 1.U) >> 3.U) + 1.U)
-    data_fetcher.io.amountData := 8.U
-  } .otherwise{
+    ctrl_unit.io.mem_op_completed := data_fetcher.io.op_completed
+    ctrl_unit.io.num_fetch_runs := ((rs2 - 1.U) >> 3.U) + 1.U
+    /** Move on after every batch **/
+    when ((rs2 - (numFetchRuns << 3.U)) <= 8.U){
+      data_fetcher.io.amountData := rs2 - (numFetchRuns << 3.U)
+      if(p(VCodePrintfEnable)) {
+        printf("VCode\t Reduced Demand %d.\n", data_fetcher.io.amountData)
+      }
+    }.otherwise{
+      data_fetcher.io.amountData := 8.U
+      if(p(VCodePrintfEnable)) {
+        printf("VCode\t Normal Demand numFetchRuns %d.\n", numFetchRuns)
+      }
+    }
+    /** Fetch 8 Items for simplicity **/
+  } otherwise{
     ctrl_unit.io.mem_op_completed := numFetchRuns === ctrl_unit.io.num_to_fetch
     data_fetcher.io.amountData := 1.U
+    ctrl_unit.io.num_fetch_runs := 1.U
   }
+
   when(data_fetcher.io.op_completed) {
     when(numFetchRuns === 0.U){
       prev_fetch_res := data_fetcher.io.fetched_data.bits(0)
@@ -228,8 +256,20 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
 
 
   alu.io.execute := ctrl_unit.io.should_execute
+  ctrl_unit.io.execution_completed := false.B
   when(alu.io.out.valid) {
-    alu_out := alu.io.out.bits
+    when(ctrl_unit.io.num_to_fetch === 3.U){
+      redAccum := redAccum + alu.io.out.bits
+      alu_out := redAccum + alu.io.out.bits
+      /** Accmulate partial results **/
+      if(p(VCodePrintfEnable)) {
+        printf("VCode\tALU \tout: 0x%x\t Accum: out: 0x%x\nALU Results and Accum!\n",
+        alu.io.out.bits, redAccum)
+      }
+    } .otherwise{
+      alu_out := alu.io.out.bits
+    }
+
     if(p(VCodePrintfEnable)) {
       printf("VCode\tALU in1: 0x%x\tin2: 0x%x\tout: 0x%x\nALU finished executing! Output bits now valid!\n",
       alu.io.in1, alu.io.in2, alu.io.out.bits)
@@ -237,8 +277,9 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
       alu.io.in1, alu.io.in2, alu.io.in3, alu.io.in4, alu.io.in5, alu.io.in6, alu.io.in7, alu.io.in8)
     }
   }
-  alu_cout := alu.io.cout
   ctrl_unit.io.execution_completed := alu.io.out.valid
+  alu_cout := alu.io.cout
+  
 
   dmem_data := 0.U // FIXME: This is where write-back should happen
 
@@ -265,6 +306,7 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
   when(rocc_io.resp.fire) {
     response_required := false.B
     cmd_valid := false.B
+    redAccum := 0.U
   }
 
   when(response_required && response_ready) {

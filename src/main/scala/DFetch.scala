@@ -85,6 +85,14 @@ class DCacheFetcher(val bufferEntries: Int)(implicit p: Parameters) extends Core
           printf("DFetch\tStarting to fetch data\n")
         }
       }
+      vals(0.U) := 0.U
+      vals(1.U) := 0.U
+      vals(2.U) := 0.U
+      vals(3.U) := 0.U
+      vals(4.U) := 0.U
+      vals(5.U) := 0.U
+      vals(6.U) := 0.U
+      vals(7.U) := 0.U
     }
     is(State.running) {
       io.baseAddress.ready := false.B
