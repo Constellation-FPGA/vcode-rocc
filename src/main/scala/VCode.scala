@@ -130,6 +130,12 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
 
   /* NOTE: numFetchRuns MUST be wide enough to represent the maximum number of
    * memory operands to fetch! */
+  /* FIXME: numFetchRuns is a REALLY bad way to do this. The logic to re-run the
+   * the cache interaction module to fetch data should be in the ControlUnit. To
+   * do that, just add another state to the state machine in there (fetchOp1,
+   * fetchOp2, for instance). If you use numFetchRuns as it is now, it needs to
+   * be reset somehow.
+   */
   val numFetchRuns = RegInit(0.U(NumOperatorOperands.SZ_MEM_OPS))
   ctrl_unit.io.mem_op_completed := numFetchRuns === ctrl_unit.io.num_to_fetch
   when(data_fetcher.io.op_completed) {
@@ -137,6 +143,12 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
     if(p(VCodePrintfEnable)) {
       printf("VCode\tCompleted %d fetch runs.\n", numFetchRuns)
     }
+  }
+  /* FIXME: This is a gross, ugly, and bad way to reset. But it works for now.
+   * See the FIXME about numFetchRuns for why this is here and why it should be
+   * removed. */
+  when(!ctrl_unit.io.should_fetch && !ctrl_unit.io.writeback_ready) {
+    numFetchRuns := 0.U
   }
 
   val addrToFetch = Mux(numFetchRuns === 0.U, rs1, rs2)
