@@ -17,6 +17,7 @@ class ControlUnit(implicit p: Parameters) extends Module {
     val mem_op_completed = Input(Bool())
     val should_execute = Output(Bool())
     val execution_completed = Input(Bool())
+    val writeback_ready = Output(Bool())
     val response_ready = Output(Bool())
     val response_completed = Input(Bool())
   })
@@ -24,7 +25,7 @@ class ControlUnit(implicit p: Parameters) extends Module {
   object State extends ChiselEnum {
     /* Internally (in Verilog) represented as integers. First item in list has
      * value 0, i.e. idle = 0x0. */
-    val idle, fetchingData, exe, write = Value
+    val idle, fetchingData, exe, write, respond = Value
   }
   val execute_state = RegInit(State.idle) // Reset to idle state
 
@@ -42,7 +43,9 @@ class ControlUnit(implicit p: Parameters) extends Module {
 
   io.should_execute := (execute_state === State.exe)
 
-  io.response_ready := (execute_state === State.write)
+  io.writeback_ready := (execute_state === State.write)
+
+  io.response_ready := (execute_state === State.respond)
 
   switch(execute_state) {
     is(State.idle) {
@@ -77,7 +80,18 @@ class ControlUnit(implicit p: Parameters) extends Module {
     }
     is(State.write) {
       if(p(VCodePrintfEnable)) {
-        printf("Ctrl\tExecution done. Returning result\n")
+        printf("Ctrl\tExecution done. Writeback results\n")
+      }
+      when(io.mem_op_completed) {
+        execute_state := State.respond
+        if(p(VCodePrintfEnable)) {
+          printf("Ctrl\tWriteback completed. Accelerator must respond to main core\n")
+        }
+      }
+    }
+    is(State.respond) {
+      if(p(VCodePrintfEnable)) {
+        printf("Ctrl\tWriteback done. Accelerator responding\n")
       }
       when(io.response_completed) {
         execute_state := State.idle
