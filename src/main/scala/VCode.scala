@@ -153,17 +153,10 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
     /** Move on after every batch **/
     when ((rs2 - (numFetchRuns << 3.U)) <= 8.U){
       data_fetcher.io.amountData := rs2 - (numFetchRuns << 3.U)
-      if(p(VCodePrintfEnable)) {
-        printf("VCode\t Reduced Demand %d.\n", data_fetcher.io.amountData)
-      }
     }.otherwise{
       data_fetcher.io.amountData := 8.U
-      if(p(VCodePrintfEnable)) {
-        printf("VCode\t Normal Demand numFetchRuns %d.\n", numFetchRuns)
-      }
     }
-    /** Fetch 8 Items for simplicity **/
-  } otherwise{
+  } .otherwise{
     ctrl_unit.io.mem_op_completed := numFetchRuns === ctrl_unit.io.num_to_fetch
     data_fetcher.io.amountData := 1.U
     ctrl_unit.io.num_fetch_runs := 1.U
@@ -241,7 +234,6 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
         printf("VCode\tFetcher1: 0x%x\tFetcher2: 0x%x\tFetcher3: 0x%x\tFetcher4: 0x%x\tFetcher5: 0x%x\tFetcher6: 0x%x\tFetcher7: 0x%x\tFetcher8: 0x%x\n",
         data_fetcher.io.fetched_data.bits(0), data_fetcher.io.fetched_data.bits(1), data_fetcher.io.fetched_data.bits(2), data_fetcher.io.fetched_data.bits(3), 
         data_fetcher.io.fetched_data.bits(4), data_fetcher.io.fetched_data.bits(5), data_fetcher.io.fetched_data.bits(6), data_fetcher.io.fetched_data.bits(7))
-        printf("\tALU Op Code: %d\n", ctrl_sigs.alu_fn)
       }
     }
   }
@@ -307,6 +299,7 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
     response_required := false.B
     cmd_valid := false.B
     redAccum := 0.U
+    numFetchRuns := 0.U
   }
 
   when(response_required && response_ready) {
