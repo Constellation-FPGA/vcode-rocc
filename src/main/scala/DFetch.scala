@@ -49,6 +49,7 @@ class DCacheFetcher(val bufferEntries: Int)(implicit p: Parameters) extends Core
     // Actual Data outputs
     // fetched_data is only of interest if a read was performed
     val fetched_data = Output(Valid(Vec(bufferEntries, Bits(p(XLen).W))))
+    val dataToWrite = Input(Valid(Vec(bufferEntries, Bits(p(XLen).W))))
     /** Flag to tell DCacheFetcher to start loading/storing from/to memory. */
     val start = Input(Bool())
     /** The number of elements to fetch. */
