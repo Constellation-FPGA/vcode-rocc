@@ -74,7 +74,7 @@ class DCacheFetcher(val bufferEntries: Int)(implicit p: Parameters) extends Core
   val wait_for_resp = RegInit(VecInit.fill(bufferEntries)(false.B))
   val all_done = Wire(Bool()); all_done := !(wait_for_resp.reduce(_ || _))
 
-  val op_completed = RegInit(false.B); io.op_completed := op_completed
+  val op_completed = WireInit(false.B); io.op_completed := op_completed
 
   switch(state) {
     is(State.idle) {
