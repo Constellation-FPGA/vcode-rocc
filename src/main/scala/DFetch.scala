@@ -44,7 +44,7 @@ class DCacheFetcher(val bufferEntries: Int)(implicit p: Parameters) extends Core
     val ctrl_sigs = Input(new CtrlSigs)
     /** The base address from which to operate on (load from/store to). */
     val baseAddress = Flipped(Decoupled(Bits(p(XLen).W)))
-    val mstatus = Input(new MStatus);
+    val mstatus = Input(new MStatus)
     // Actual Data outputs
     // fetched_data is only of interest if a read was performed
     val fetched_data = Output(Valid(Vec(bufferEntries, Bits(p(XLen).W))))
