@@ -1,0 +1,9 @@
+#+TITLE: Chisel Notes
+#+AUTHOR: Karl Hallsby
+
+* Unofficial Style Guide
+There exists an [[https://github.com/ccelio/chisel-style-guide][unofficial style guide]] for Chisel.
+Overall, I tend to follow what it says, as it is fairly sensible.
+
+This style guide is updated for Chisel 3!
+This is a particularly important point as there are relatively few projects integrated with Chipyard that use Chisel 3.

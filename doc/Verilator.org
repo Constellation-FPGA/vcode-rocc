@@ -1,0 +1,31 @@
+#+TITLE: Verilator Notes
+#+AUTHOR: Karl Hallsby
+
+* Verilator 5.x
+
+** Timing Controls
+Verilator 5.x introduced timing support to top-level designs.
+This removes the need for maintaining a C++ program to wrap around the Verilog to providing timing.
+See [[https://github.com/ucb-bar/chipyard/issues/1263][Issue #1263]] on GitHub.
+
+If you use Verilator 5.x, and you attempt to compile a Verilator simulator without the timing flag, you will get an error similar to this:
+#+begin_src sh
+%Error-NEEDTIMINGOPT: /home/karl/Repos/constellation-fpga/chipyard/sims/verilator/generated-src/chipyard.TestHarness.VCodeRocketPrintfConfig/SimJTAG.v:54:11: Use --timing or --no-timing to specify how timing controls should be handled
+#+end_src
+
+*** The Fix
+Either the ~--no-timing~ or ~--timing~ flag *must* be added to the ~Makefile~ in ~sims/verilator/Makefile~.
+I (Karl) personally put ~--timing~ into the ~VERILATOR_OPT_FLAGS~ variable, like so:
+#+begin_src makefile
+VERILATOR_OPT_FLAGS ?= \
+	-O3 \
+	--x-assign fast \
+	--x-initial fast \
+	--output-split 10000 \
+	--output-split-cfuncs 100 \
+	--timing # Allow timing constructs at the top-level module
+#+end_src
+
+*** Long-Term Solution
+Chipyard has already updated their simulator toolchain, to handle the new version in [[https://github.com/ucb-bar/chipyard/pull/1398][PR 1398]].
+This change has not yet been merged as of <2023-04-07 Fri>, but should be done after the next release.
