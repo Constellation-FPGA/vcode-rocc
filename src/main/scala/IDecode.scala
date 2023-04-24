@@ -87,7 +87,8 @@ class BinOpDecode(implicit val p: Parameters) extends DecodeConstants {
     PLUS_INT-> List(Y, MEM_OPS_TWO, MEM_OPS_ZERO, FN_ADD, Y),
     PLUS_RED-> List(Y, MEM_OPS_N, MEM_OPS_ZERO, FN_RED_ADD, Y),
     OR_RED-> List(Y, MEM_OPS_N, MEM_OPS_ZERO, FN_RED_OR, Y),
-    AND_RED-> List(Y, MEM_OPS_N, MEM_OPS_ZERO, FN_RED_AND, Y))
+    AND_RED-> List(Y, MEM_OPS_N, MEM_OPS_ZERO, FN_RED_AND, Y),
+    ADD_VEC-> List(Y, MEM_OPS_N, MEM_OPS_N, FN_VEC_ADD, Y))
 }
 
 /** Decode table for accelerator control instructions.

@@ -73,7 +73,8 @@ class DCacheFetcher(val bufferEntries: Int)(implicit p: Parameters) extends Core
   val vals = Mem(bufferEntries, UInt(p(XLen).W))
 
   val wait_for_resp = RegInit(VecInit.fill(bufferEntries)(false.B))
-  val all_done = Wire(Bool()); all_done := amount_fetched >= io.amountData
+  val all_read_done = Wire(Bool()); all_read_done := amount_fetched >= io.amountData
+  val all_write_done = Wire(Bool()); all_write_done := amount_written >= io.amountData
 
   val op_completed = RegInit(false.B); io.op_completed := op_completed
 
@@ -119,8 +120,8 @@ class DCacheFetcher(val bufferEntries: Int)(implicit p: Parameters) extends Core
         io.fetched_data.bits(2.U) := vals(2.U); io.fetched_data.bits(3.U) := vals(3.U)
         io.fetched_data.bits(4.U) := vals(4.U); io.fetched_data.bits(5.U) := vals(5.U)
         io.fetched_data.bits(6.U) := vals(6.U); io.fetched_data.bits(7.U) := vals(7.U)
-        op_completed := all_done
-        io.fetched_data.valid := all_done
+        op_completed := all_read_done
+        io.fetched_data.valid := all_read_done
         amount_fetched := 0.U
         reqs_sent := 0.U
       } .otherwise {
@@ -186,8 +187,8 @@ class DCacheFetcher(val bufferEntries: Int)(implicit p: Parameters) extends Core
       when(amount_written >= io.amountData) {
         // We have written everything we needed to fetch. We are done.
         state := State.idle
-        op_completed := all_done
-        io.fetched_data.valid := all_done
+        op_completed := all_write_done
+        io.fetched_data.valid := all_write_done
         amount_written := 0.U
         reqs_sent := 0.U
       } .otherwise {

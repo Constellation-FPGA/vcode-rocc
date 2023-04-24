@@ -56,23 +56,40 @@ class ControlUnit(implicit p: Parameters) extends Module {
   val runsDone = RegInit(0.U(64.W))
   val runsRequired = Wire(UInt())
 
-  when(io.ctrl_sigs.num_mem_fetches === 3.U){
-    runsRequired := ((io.rs2 - 1.U) >> 3.U) + 1.U
-    when ((io.rs2 - (runsDone << 3.U)) <= 8.U){
-      io.amount_data := io.rs2 - (runsDone << 3.U)
-    }.otherwise{
-      io.amount_data := 8.U
+  when(execute_state === State.fetchingData){
+    /** Logic for read state**/
+    when(io.ctrl_sigs.num_mem_fetches === 3.U){
+      runsRequired := ((io.rs2 - 1.U) >> 3.U) + 1.U
+      when ((io.rs2 - (runsDone << 3.U)) <= 8.U){
+        io.amount_data := io.rs2 - (runsDone << 3.U)
+      }.otherwise{
+        io.amount_data := 8.U
+      }
+    } .otherwise{
+      io.amount_data := 1.U
+      runsRequired := io.ctrl_sigs.num_mem_fetches
     }
-  } .otherwise{
-    io.amount_data := 1.U
-    runsRequired := io.ctrl_sigs.num_mem_fetches
+  }.otherwise{
+    /** Logic for write state**/
+    when(io.ctrl_sigs.num_mem_writes === 3.U){
+      runsRequired := ((io.rs2 - 1.U) >> 3.U) + 1.U
+      when ((io.rs2 - ((runsDone - 1.U) << 3.U)) <= 8.U){
+        io.amount_data := io.rs2 - ((runsDone - 1.U) << 3.U)
+      }.otherwise{
+        io.amount_data := 8.U
+      }
+    } .otherwise{
+      io.amount_data := 1.U
+      runsRequired := io.ctrl_sigs.num_mem_fetches
+    }
   }
+  
 
   val addrToFetchMop2 = Mux(runsDone === 0.U, io.rs1, io.rs2)
   val addrToFetchMopN = io.rs1 + (runsDone << 6.U)
   io.addr_to_fetch := Mux(io.ctrl_sigs.num_mem_fetches === 3.U, addrToFetchMopN, addrToFetchMop2)
 
-  val addrToWrite = io.dest_addr + (runsDone << 6.U)
+  val addrToWrite = io.dest_addr + ((runsDone - 1.U) << 6.U)
   io.addr_to_write := addrToWrite
 
   switch(execute_state) {
@@ -123,15 +140,23 @@ class ControlUnit(implicit p: Parameters) extends Module {
             printf("Ctrl\tMoving from exe state to write state\n")
           }
           // Move to writing stage
+          
         }
       }
     }
     is(State.write){
       when(io.mem_op_completed) {
-        execute_state := State.fetchingData
-        runsDone := runsDone + 1.U
-        if(p(VCodePrintfEnable)) {
-          printf("Ctrl\tMoving from write to fetch state\n")
+        when(runsDone >= runsRequired){
+          execute_state := State.respond
+          if(p(VCodePrintfEnable)) {
+            printf("Ctrl\tMoving from write state to respond state\n")
+          }
+          // Also done with operations
+        }.otherwise{
+          execute_state := State.fetchingData
+          if(p(VCodePrintfEnable)) {
+            printf("Ctrl\tMoving from write to fetch state\n")
+          }
         }
       }      
     }
