@@ -144,7 +144,7 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
   /* NOTE: numFetchRuns MUST be wide enough to represent the maximum number of
    * memory operands to fetch! */
   val numFetchRuns = RegInit(0.U(p(XLen).W))
-  val fetchActive = RegInit(false.B)
+  val memActive = RegInit(false.B)
   val prev_fetch_res = RegInit(0.U(p(XLen).W))
   val fetchComplete = RegInit(false.B)
 
@@ -160,7 +160,8 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
       prev_fetch_res := data_fetcher.io.fetched_data.bits(0)
     }
     numFetchRuns := numFetchRuns + 1.U
-    fetchActive := false.B
+    memActive := false.B
+    
     if(p(VCodePrintfEnable)) {
       printf("VCode\tCompleted %d fetch runs.\n", numFetchRuns)
     }
@@ -168,21 +169,35 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
 
   
   // FIXME: Should not need to rely on mem_op_completed boolean
-  when(ctrl_unit.io.should_fetch && !ctrl_unit.io.mem_op_completed && data_fetcher.io.baseAddress.ready && !fetchActive) {
-    // Queue addrs and set valid bit
-    data_fetcher.io.baseAddress.enq(ctrl_unit.io.addr_to_fetch)
-    fetchActive := true.B
-    // data_fetcher.io.addrs.enq(addrs)
-    if(p(VCodePrintfEnable)) {
-      printf("VCode\tStarting Run %d\n", numFetchRuns)
-      printf("VCode\tEnqueued addresses to data fetcher\n")
-      printf("\tBase Address: 0x%x\tvalid? %d\tAmountData: %d\n",
-        data_fetcher.io.baseAddress.bits, data_fetcher.io.baseAddress.valid, data_fetcher.io.amountData)
+  when(!ctrl_unit.io.mem_op_completed && data_fetcher.io.baseAddress.ready && !memActive) {
+    when(ctrl_unit.io.should_fetch){
+      // Queue addrs and set valid bit
+      data_fetcher.io.baseAddress.enq(ctrl_unit.io.addr_to_fetch)
+      memActive := true.B
+      // data_fetcher.io.addrs.enq(addrs)
+      if(p(VCodePrintfEnable)) {
+        printf("VCode\tStarting Run %d\n", numFetchRuns)
+        printf("VCode\tEnqueued addresses to data fetcher\n")
+        printf("\tBase Address: 0x%x\tvalid? %d\tAmountData: %d\n",
+          data_fetcher.io.baseAddress.bits, data_fetcher.io.baseAddress.valid, data_fetcher.io.amountData)
+      }
+    } .otherwise{
+      // Queue addrs and set valid bit
+      data_fetcher.io.baseAddress.enq(ctrl_unit.io.addr_to_write)
+      memActive := true.B
+      // data_fetcher.io.addrs.enq(addrs)
+      if(p(VCodePrintfEnable)) {
+        printf("VCode\tStarting Run %d\n", numFetchRuns)
+        printf("VCode\tEnqueued addresses to data fetcher\n")
+        printf("\tBase Address: 0x%x\tvalid? %d\tAmountData: %d\n",
+          data_fetcher.io.baseAddress.bits, data_fetcher.io.baseAddress.valid, data_fetcher.io.amountData)
+      }
     }
+    
   } .otherwise {
     data_fetcher.io.baseAddress.noenq()
   }
-  data_fetcher.io.start := ctrl_unit.io.should_fetch
+  data_fetcher.io.start := ctrl_unit.io.should_fetch || ctrl_unit.io.should_write
 
   val dmem_data = Wire(Bits(p(XLen).W)) // Data to SEND to memory
 
@@ -240,41 +255,54 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
 
   alu.io.execute := ctrl_unit.io.should_execute
   ctrl_unit.io.execution_completed := false.B
-  when(alu.io.out.valid) {
+  when(alu.io.out1.valid) {
     when(ctrl_unit.io.num_to_fetch === 3.U){
       switch(ctrl_sigs.alu_fn){
         is(1.U){
-          redAccum0 := redAccum0 + alu.io.out.bits
-          alu_out := redAccum0 + alu.io.out.bits
+          redAccum0 := redAccum0 + alu.io.out1.bits
+          alu_out := redAccum0 + alu.io.out1.bits
           /** Accmulate partial results **/
           if(p(VCodePrintfEnable)) {
             printf("VCode\tALU \tout: 0x%x\t Accum: out: 0x%x\nALU Results and Accum!\n",
-            alu.io.out.bits, redAccum0)
+            alu.io.out1.bits, redAccum0)
           }
         }
         is(2.U){
-          redAccum0 := redAccum0 | alu.io.out.bits
-          alu_out := redAccum0 | alu.io.out.bits
+          redAccum0 := redAccum0 | alu.io.out1.bits
+          alu_out := redAccum0 | alu.io.out1.bits
         }
         is(3.U){
-          redAccum1 := redAccum1 & alu.io.out.bits
-          alu_out := redAccum1 & alu.io.out.bits
+          redAccum1 := redAccum1 & alu.io.out1.bits
+          alu_out := redAccum1 & alu.io.out1.bits
         }
       }
     } .otherwise{
-      alu_out := alu.io.out.bits
+      alu_out := alu.io.out1.bits
     }
 
     if(p(VCodePrintfEnable)) {
       printf("VCode\tALU in1: 0x%x\tin2: 0x%x\tout: 0x%x\nALU finished executing! Output bits now valid!\n",
-      alu.io.in1, alu.io.in2, alu.io.out.bits)
+      alu.io.in1, alu.io.in2, alu.io.out1.bits)
       printf("VCode\tFetcher1: 0x%x\tFetcher2: 0x%x\tFetcher3: 0x%x\tFetcher4: 0x%x\tFetcher5: 0x%x\tFetcher6: 0x%x\tFetcher7: 0x%x\tFetcher8: 0x%x\n",
       alu.io.in1, alu.io.in2, alu.io.in3, alu.io.in4, alu.io.in5, alu.io.in6, alu.io.in7, alu.io.in8)
     }
   }
-  ctrl_unit.io.execution_completed := alu.io.out.valid
+  ctrl_unit.io.execution_completed := alu.io.out1.valid
   alu_cout := alu.io.cout
   
+  /***************
+   * WRITE_BACK
+   **************/
+  data_fetcher.io.write_data(0.U) := alu.io.out1.bits
+  data_fetcher.io.write_data(1.U) := alu.io.out2
+  data_fetcher.io.write_data(2.U) := alu.io.out3
+  data_fetcher.io.write_data(3.U) := alu.io.out4
+  data_fetcher.io.write_data(4.U) := alu.io.out5
+  data_fetcher.io.write_data(5.U) := alu.io.out6
+  data_fetcher.io.write_data(6.U) := alu.io.out7
+  data_fetcher.io.write_data(7.U) := alu.io.out8
+
+  ctrl_unit.io.dest_addr := destAddr;
 
   dmem_data := 0.U // FIXME: This is where write-back should happen
 

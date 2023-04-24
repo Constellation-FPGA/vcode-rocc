@@ -18,6 +18,7 @@ object ALU {
   def FN_RED_ADD = BitPat(1.U(SZ_ALU_FN.W))
   def FN_RED_OR = BitPat(2.U(SZ_ALU_FN.W))
   def FN_RED_AND = BitPat(3.U(SZ_ALU_FN.W))
+  def FN_VEC_ADD = BitPat(4.U(SZ_ALU_FN.W))
 }
 
 /** Implementation of an ALU.
@@ -36,19 +37,34 @@ class ALU(val xLen: Int) extends Module {
     val in6 = Input(UInt(xLen.W))
     val in7 = Input(UInt(xLen.W))
     val in8 = Input(UInt(xLen.W))
-    val out = Output(Valid(UInt(xLen.W)))
+    val out1 = Output(Valid(UInt(xLen.W)))
+    val out2 = Output(UInt(xLen.W))
+    val out3 = Output(UInt(xLen.W))
+    val out4 = Output(UInt(xLen.W))
+    val out5 = Output(UInt(xLen.W))
+    val out6 = Output(UInt(xLen.W))
+    val out7 = Output(UInt(xLen.W))
+    val out8 = Output(UInt(xLen.W))
     val cout = Output(UInt(xLen.W))
     val execute = Input(Bool())
   })
 
   io.cout := 0.U
-  io.out.valid := false.B
+  io.out1.valid := false.B
 
-  val data_out = RegInit(0.U(xLen.W))
+  val data_out1 = RegInit(0.U(xLen.W))
+  val data_out2 = RegInit(0.U(xLen.W))
+  val data_out3 = RegInit(0.U(xLen.W))
+  val data_out4 = RegInit(0.U(xLen.W))
+  val data_out5 = RegInit(0.U(xLen.W))
+  val data_out6 = RegInit(0.U(xLen.W))
+  val data_out7 = RegInit(0.U(xLen.W))
+  val data_out8 = RegInit(0.U(xLen.W))
+
   switch(io.fn){
     is(0.U){
       // ADD/SUB
-      data_out := io.in1 + io.in2
+      data_out1 := io.in1 + io.in2
     }
     is(1.U){
       val l11 = Wire(Bits(xLen.W))
@@ -66,7 +82,7 @@ class ALU(val xLen: Int) extends Module {
       l21 := l11 + l12
       l22 := l13 + l14
       l3 := l21 + l22
-      data_out := l3
+      data_out1 := l3
     }
     is(2.U){
       val l11 = Wire(Bits(xLen.W))
@@ -84,7 +100,7 @@ class ALU(val xLen: Int) extends Module {
       l21 := l11 | l12
       l22 := l13 | l14
       l3 := l21 | l22
-      data_out := l3
+      data_out1 := l3
     }
     is(3.U){
       val l11 = Wire(Bits(xLen.W))
@@ -102,15 +118,49 @@ class ALU(val xLen: Int) extends Module {
       l21 := l11 & l12
       l22 := l13 & l14
       l3 := l21 & l22
-      data_out := l3
+      data_out1 := l3
+    }
+    is(4.U){
+      val l1 = Wire(Bits(xLen.W))
+      val l2 = Wire(Bits(xLen.W))
+      val l3 = Wire(Bits(xLen.W))
+      val l4 = Wire(Bits(xLen.W))
+      val l5 = Wire(Bits(xLen.W))
+      val l6 = Wire(Bits(xLen.W))
+      val l7 = Wire(Bits(xLen.W))
+      val l8 = Wire(Bits(xLen.W))
+
+      l1 := io.in1 + io.in1
+      l2 := io.in2 + io.in2
+      l3 := io.in3 + io.in3
+      l4 := io.in4 + io.in4
+      l5 := io.in5 + io.in5
+      l6 := io.in6 + io.in6
+      l7 := io.in7 + io.in7
+      l8 := io.in8 + io.in8
+      data_out1 := l1
+      data_out2 := l2
+      data_out3 := l3
+      data_out4 := l4
+      data_out5 := l5
+      data_out6 := l6
+      data_out7 := l7
+      data_out8 := l8
     }
   }
 
-  io.out.bits := data_out
+  io.out1.bits := data_out1
+  io.out2 := data_out2
+  io.out3 := data_out3
+  io.out4 := data_out4
+  io.out5 := data_out5
+  io.out6 := data_out6
+  io.out7 := data_out7
+  io.out8 := data_out8
 
   when(io.execute) {
     // Written this way so that variable-latency operations can signal properly
     // Addition can be done in one cycle though, so it is a moto point here.
-    io.out.valid := true.B
+    io.out1.valid := true.B
   }
 }

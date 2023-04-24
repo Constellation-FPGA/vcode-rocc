@@ -21,8 +21,10 @@ class ControlUnit(implicit p: Parameters) extends Module {
     val response_completed = Input(Bool())
     val rs1 = Input(UInt())
     val rs2 = Input(UInt())
+    val dest_addr = Input(UInt())
     val amount_data = Output(UInt())
     val addr_to_fetch = Output(UInt())
+    val addr_to_write = Output(UInt())
     val should_write = Output(Bool())
   })
 
@@ -69,6 +71,9 @@ class ControlUnit(implicit p: Parameters) extends Module {
   val addrToFetchMop2 = Mux(runsDone === 0.U, io.rs1, io.rs2)
   val addrToFetchMopN = io.rs1 + (runsDone << 6.U)
   io.addr_to_fetch := Mux(io.ctrl_sigs.num_mem_fetches === 3.U, addrToFetchMopN, addrToFetchMop2)
+
+  val addrToWrite = io.dest_addr + (runsDone << 6.U)
+  io.addr_to_write := addrToWrite
 
   switch(execute_state) {
     is(State.idle) {

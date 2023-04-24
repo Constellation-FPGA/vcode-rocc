@@ -48,6 +48,7 @@ class DCacheFetcher(val bufferEntries: Int)(implicit p: Parameters) extends Core
     // Actual Data outputs
     // fetched_data is only of interest if a read was performed
     val fetched_data = Output(Valid(Vec(bufferEntries, Bits(p(XLen).W))))
+    val write_data = Input(Vec(bufferEntries, Bits(p(XLen).W)))
     /** Flag to tell DCacheFetcher to start loading/storing from/to memory. */
     val start = Input(Bool())
     /** The number of elements to fetch. */
@@ -66,6 +67,7 @@ class DCacheFetcher(val bufferEntries: Int)(implicit p: Parameters) extends Core
 
   // NOTE: 0.U implies a 1-bit unsigned integer. Need to explicitly state width
   val amount_fetched = RegInit(0.U(8.W))
+  val amount_written = RegInit(0.U(8.W))
   val reqs_sent = RegInit(0.U(8.W))
 
   val vals = Mem(bufferEntries, UInt(p(XLen).W))
@@ -78,6 +80,7 @@ class DCacheFetcher(val bufferEntries: Int)(implicit p: Parameters) extends Core
   switch(state) {
     is(State.idle) {
       amount_fetched := 0.U
+      amount_written := 0.U
       io.baseAddress.ready := io.start
       op_completed := false.B
       when(io.start && io.baseAddress.valid) {
@@ -161,26 +164,12 @@ class DCacheFetcher(val bufferEntries: Int)(implicit p: Parameters) extends Core
           val tag = amount_fetched//addr_to_request(log2Up(bufferEntries)+2, 3)
           // Bit slicing is 0-indexed from the right and has [hi-idx, lo-idx) semantics
           // Skip lowest 3 bits because all data is 8-byte aligned (int64, doubles, etc.)
-          val should_send_request = io.start && !wait_for_resp(tag) && reqs_sent < io.amountData
           if(p(VCodePrintfEnable)) {
             printf("DFetch\tstart: %d\tbaseAddress_valid: %d\n",
               io.start, io.baseAddress.valid)
-            printf("DFetch\tShould submit new request for address 0x%x with tag 0x%x? %d\n",
-              addr_to_request, tag, should_send_request)
             printf("DFetch\tdprv: %d\tdv: %d\n", io.mstatus.dprv, io.mstatus.dv)
             printf("Requests\t Sent: %d\t Amount Data: %d\n", reqs_sent, io.amountData)
           }
-
-          io.req.valid := should_send_request
-          io.req.bits.addr := addr_to_request
-          io.req.bits.tag := tag
-          io.req.bits.cmd := M_XRD
-          io.req.bits.size := log2Ceil(8).U // Load 8 bytes
-          io.req.bits.signed := false.B
-          io.req.bits.data := 0.U // Not storing anything
-          io.req.bits.phys := false.B
-          io.req.bits.dprv := io.mstatus.dprv
-          io.req.bits.dv := io.mstatus.dv
           when(io.req.fire && !wait_for_resp(tag)) {
             // When our request is sent, we must increment number of requests made
             reqs_sent := reqs_sent + 1.U
@@ -193,11 +182,88 @@ class DCacheFetcher(val bufferEntries: Int)(implicit p: Parameters) extends Core
       }
     }
     is(State.writing) {
-      if(p(VCodePrintfEnable)) {
-        printf("DFetch\tTrying to write\n")
+      io.baseAddress.ready := false.B
+      when(amount_written >= io.amountData) {
+        // We have written everything we needed to fetch. We are done.
+        state := State.idle
+        op_completed := all_done
+        io.fetched_data.valid := all_done
+        amount_written := 0.U
+        reqs_sent := 0.U
+      } .otherwise {
+        // We still have a request to make. We may still have outstanding responses too.
+        state := State.writing
+        if(p(VCodePrintfEnable)) {
+          printf("Writing data, amountData: %d\tamount_written: %d\n",
+            io.amountData, amount_written)
+        }
+
+        // We have a response to handle!
+        when(io.resp.valid && state === State.writing) {
+          if(p(VCodePrintfEnable)) {
+            printf("DFetch\tGot cache response for tag 0x%x!\n", io.resp.bits.tag)
+            printf("DFetch\tTag 0x%x\n", io.resp.bits.tag)
+          }
+          when(wait_for_resp(io.resp.bits.tag)) {
+            // If we were waiting for a response on this tag, and we now have
+            // that tags response, then we increase the amount we fetch.
+            amount_written := amount_written + 1.U
+            wait_for_resp(io.resp.bits.tag) := false.B
+            if(p(VCodePrintfEnable)) {
+              printf("DFetch\tMarking tag 0x%x as done\n", io.resp.bits.tag)
+              printf("DFetch\tamount_written: %d\n", amount_fetched + 1.U)
+            }
+          } .otherwise {
+            if(p(VCodePrintfEnable)) {
+              printf("DFetch\tAlready got response for tag 0x%x. Doing nothing\n", io.resp.bits.tag)
+            }
+          }
+        }
+
+        // We should submit a memory request!
+        when(io.start) {
+          //val addr_to_request = Wire(Bits(p(XLen).W))
+          /** Make sure no extra requests are made **/
+          //addr_to_request := io.baseAddress.bits + (amount_written << 3.U)
+
+          // log2Up(n) finds # bits needed to represent n states
+          val tag = amount_written//addr_to_request(log2Up(bufferEntries)+2, 3)
+          // Bit slicing is 0-indexed from the right and has [hi-idx, lo-idx) semantics
+          // Skip lowest 3 bits because all data is 8-byte aligned (int64, doubles, etc.)
+
+          if(p(VCodePrintfEnable)) {
+            printf("DFetch\tstart: %d\tbaseAddress_valid: %d\n",
+              io.start, io.baseAddress.valid)
+            printf("DFetch\tdprv: %d\tdv: %d\n", io.mstatus.dprv, io.mstatus.dv)
+            printf("Requests\t Sent: %d\t Data Written: %d\n", reqs_sent, io.write_data(amount_written))
+          }
+
+          
+          when(io.req.fire && !wait_for_resp(tag)) {
+            // When our request is sent, we must increment number of requests made
+            reqs_sent := reqs_sent + 1.U
+            wait_for_resp(tag) := true.B
+            if(p(VCodePrintfEnable)) {
+              printf("DFetch\tMarked tag 0x%x (request tag 0x%x) as busy\n", tag, io.req.bits.tag)
+            }
+          }
+        } 
       }
     }
   }
+
+  val tag = Mux(state === State.writing, amount_written, amount_fetched)
+  val isRWState = state === State.writing || state === State.reading
+  io.req.valid := isRWState && io.start && !wait_for_resp(tag) && reqs_sent < io.amountData
+  io.req.bits.addr := io.baseAddress.bits + (tag << 3.U)
+  io.req.bits.tag := tag
+  io.req.bits.cmd := Mux(state === State.writing, M_XWR, M_XRD)
+  io.req.bits.size := log2Ceil(8).U // Load 8 bytes
+  io.req.bits.signed := false.B
+  io.req.bits.data := io.write_data(amount_written) // Not storing anything
+  io.req.bits.phys := false.B
+  io.req.bits.dprv := io.mstatus.dprv
+  io.req.bits.dv := io.mstatus.dv
 
   /** Internal buffer to organize and synchronize the two operands' data. */
   // val buffer = new Bundle {
