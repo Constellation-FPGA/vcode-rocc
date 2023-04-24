@@ -19,13 +19,17 @@ class ControlUnit(implicit p: Parameters) extends Module {
     val execution_completed = Input(Bool())
     val response_ready = Output(Bool())
     val response_completed = Input(Bool())
-    val num_fetch_runs = Input(UInt())
+    val rs1 = Input(UInt())
+    val rs2 = Input(UInt())
+    val amount_data = Output(UInt())
+    val addr_to_fetch = Output(UInt())
+    val should_write = Output(Bool())
   })
 
   object State extends ChiselEnum {
     /* Internally (in Verilog) represented as integers. First item in list has
      * value 0, i.e. idle = 0x0. */
-    val idle, fetchingData, exe, write = Value
+    val idle, fetchingData, exe, write, respond = Value
   }
   val execute_state = RegInit(State.idle) // Reset to idle state
 
@@ -43,9 +47,28 @@ class ControlUnit(implicit p: Parameters) extends Module {
 
   io.should_execute := (execute_state === State.exe)
 
-  io.response_ready := (execute_state === State.write)
+  io.should_write := (execute_state === State.write)
+
+  io.response_ready := (execute_state === State.respond)
 
   val runsDone = RegInit(0.U(64.W))
+  val runsRequired = Wire(UInt())
+
+  when(io.ctrl_sigs.num_mem_fetches === 3.U){
+    runsRequired := ((io.rs2 - 1.U) >> 3.U) + 1.U
+    when ((io.rs2 - (runsDone << 3.U)) <= 8.U){
+      io.amount_data := io.rs2 - (runsDone << 3.U)
+    }.otherwise{
+      io.amount_data := 8.U
+    }
+  } .otherwise{
+    io.amount_data := 1.U
+    runsRequired := io.ctrl_sigs.num_mem_fetches
+  }
+
+  val addrToFetchMop2 = Mux(runsDone === 0.U, io.rs1, io.rs2)
+  val addrToFetchMopN = io.rs1 + (runsDone << 6.U)
+  io.addr_to_fetch := Mux(io.ctrl_sigs.num_mem_fetches === 3.U, addrToFetchMopN, addrToFetchMop2)
 
   switch(execute_state) {
     is(State.idle) {
@@ -74,21 +97,40 @@ class ControlUnit(implicit p: Parameters) extends Module {
         printf("Ctrl\tIn execution state\n")
       }
       when(io.execution_completed) {
-        execute_state := State.write
-        if(p(VCodePrintfEnable)) {
-          printf("Ctrl\tMoving from exe state to write state\n")
-          printf("Ctrl\tRuns Done: %d  Runs Req: %d\n", runsDone, io.num_fetch_runs)
-        }
-      }
-      when(runsDone < io.num_fetch_runs) {
-        execute_state := State.fetchingData
-        if(p(VCodePrintfEnable)) {
-          printf("Ctrl\tReturning to fetchingData state\n")
-          printf("Ctrl\tMem Complete %d\n",io.mem_op_completed)
+        when(io.ctrl_sigs.num_mem_writes === 0.U){
+          // No need to write anything
+          when(runsDone >= runsRequired){
+            execute_state := State.respond
+            if(p(VCodePrintfEnable)) {
+              printf("Ctrl\tMoving from exe state to respond state\n")
+            }
+            // Also done with operations
+          }.otherwise{
+            execute_state := State.fetchingData
+            if(p(VCodePrintfEnable)) {
+              printf("Ctrl\tMoving from exe state to fetch state\n")
+            }
+            // Keep fetching
+          }
+        }.otherwise{
+          execute_state := State.write
+          if(p(VCodePrintfEnable)) {
+            printf("Ctrl\tMoving from exe state to write state\n")
+          }
+          // Move to writing stage
         }
       }
     }
-    is(State.write) {
+    is(State.write){
+      when(io.mem_op_completed) {
+        execute_state := State.fetchingData
+        runsDone := runsDone + 1.U
+        if(p(VCodePrintfEnable)) {
+          printf("Ctrl\tMoving from write to fetch state\n")
+        }
+      }      
+    }
+    is(State.respond) {
       if(p(VCodePrintfEnable)) {
         printf("Ctrl\tExecution done. Returning result\n")
       }

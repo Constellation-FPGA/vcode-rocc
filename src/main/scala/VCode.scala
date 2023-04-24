@@ -143,25 +143,17 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
 
   /* NOTE: numFetchRuns MUST be wide enough to represent the maximum number of
    * memory operands to fetch! */
-  val numFetchRuns = RegInit(0.U(NumOperatorOperands.SZ_MEM_OPS))
+  val numFetchRuns = RegInit(0.U(p(XLen).W))
   val fetchActive = RegInit(false.B)
   val prev_fetch_res = RegInit(0.U(p(XLen).W))
   val fetchComplete = RegInit(false.B)
 
-  when(ctrl_unit.io.num_to_fetch === 3.U){
-    ctrl_unit.io.mem_op_completed := data_fetcher.io.op_completed
-    ctrl_unit.io.num_fetch_runs := ((rs2 - 1.U) >> 3.U) + 1.U
-    /** Move on after every batch **/
-    when ((rs2 - (numFetchRuns << 3.U)) <= 8.U){
-      data_fetcher.io.amountData := rs2 - (numFetchRuns << 3.U)
-    }.otherwise{
-      data_fetcher.io.amountData := 8.U
-    }
-  } .otherwise{
-    ctrl_unit.io.mem_op_completed := numFetchRuns === ctrl_unit.io.num_to_fetch
-    data_fetcher.io.amountData := 1.U
-    ctrl_unit.io.num_fetch_runs := 1.U
-  }
+  
+  ctrl_unit.io.mem_op_completed := data_fetcher.io.op_completed
+  ctrl_unit.io.rs1 := rs1
+  ctrl_unit.io.rs2 := rs2 
+  data_fetcher.io.amountData := ctrl_unit.io.amount_data
+  data_fetcher.io.write := ctrl_unit.io.should_write
 
   when(data_fetcher.io.op_completed) {
     when(numFetchRuns === 0.U){
@@ -174,13 +166,11 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
     }
   }
 
-  val addrToFetchMop2 = Mux(numFetchRuns === 0.U, rs1, rs2)
-  val addrToFetchMopN = rs1 + (numFetchRuns << 6.U)
-  val addrToFetch = Mux(ctrl_unit.io.num_to_fetch === 3.U, addrToFetchMopN, addrToFetchMop2)
+  
   // FIXME: Should not need to rely on mem_op_completed boolean
   when(ctrl_unit.io.should_fetch && !ctrl_unit.io.mem_op_completed && data_fetcher.io.baseAddress.ready && !fetchActive) {
     // Queue addrs and set valid bit
-    data_fetcher.io.baseAddress.enq(addrToFetch)
+    data_fetcher.io.baseAddress.enq(ctrl_unit.io.addr_to_fetch)
     fetchActive := true.B
     // data_fetcher.io.addrs.enq(addrs)
     if(p(VCodePrintfEnable)) {

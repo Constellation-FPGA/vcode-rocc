@@ -56,10 +56,11 @@ class DCacheFetcher(val bufferEntries: Int)(implicit p: Parameters) extends Core
     val op_completed = Output(Bool())
     val req = Decoupled(new HellaCacheReq)
     val resp = Input(Valid(new HellaCacheResp))
+    val write = Input(Bool())
   })
 
   object State extends ChiselEnum {
-    val idle, running = Value
+    val idle, reading, writing = Value
   }
   val state = RegInit(State.idle)
 
@@ -80,9 +81,16 @@ class DCacheFetcher(val bufferEntries: Int)(implicit p: Parameters) extends Core
       io.baseAddress.ready := io.start
       op_completed := false.B
       when(io.start && io.baseAddress.valid) {
-        state := State.running
-        if(p(VCodePrintfEnable)) {
-          printf("DFetch\tStarting to fetch data\n")
+        when(io.write){
+          state := State.writing
+          if(p(VCodePrintfEnable)) {
+            printf("DFetch\tStarting to write data\n")
+          }
+        }.otherwise{
+          state := State.reading
+          if(p(VCodePrintfEnable)) {
+            printf("DFetch\tStarting to fetch data\n")
+          }
         }
       }
       vals(0.U) := 0.U
@@ -94,7 +102,7 @@ class DCacheFetcher(val bufferEntries: Int)(implicit p: Parameters) extends Core
       vals(6.U) := 0.U
       vals(7.U) := 0.U
     }
-    is(State.running) {
+    is(State.reading) {
       io.baseAddress.ready := false.B
       when(amount_fetched >= io.amountData) {
         // We have fetched everything we needed to fetch. We are done.
@@ -114,7 +122,7 @@ class DCacheFetcher(val bufferEntries: Int)(implicit p: Parameters) extends Core
         reqs_sent := 0.U
       } .otherwise {
         // We still have a request to make. We may still have outstanding responses too.
-        state := State.running
+        state := State.reading
         if(p(VCodePrintfEnable)) {
           printf("Fetching data, amountData: %d\tamount_fetched: %d\n",
             io.amountData, amount_fetched)
@@ -181,7 +189,12 @@ class DCacheFetcher(val bufferEntries: Int)(implicit p: Parameters) extends Core
               printf("DFetch\tMarked tag 0x%x (request tag 0x%x) as busy\n", tag, io.req.bits.tag)
             }
           }
-        }
+        } 
+      }
+    }
+    is(State.writing) {
+      if(p(VCodePrintfEnable)) {
+        printf("DFetch\tTrying to write\n")
       }
     }
   }

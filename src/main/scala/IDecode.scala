@@ -29,11 +29,12 @@ class CtrlSigs extends Bundle {
   val alu_fn = Bits(SZ_ALU_FN.W)
   val is_mem_op = Bool()
   val num_mem_fetches = Bits(SZ_MEM_OPS)
+  val num_mem_writes = Bits(SZ_MEM_OPS)
 
   /** List of default control signal values
     * @return List of default control signal values. */
   def default_decode_ctrl_sigs: List[BitPat] =
-    List(N, MEM_OPS_X, FN_X, N)
+    List(N, MEM_OPS_X, MEM_OPS_X, FN_X, N)
 
   /** Decodes an instruction to its control signals.
     * @param inst The instruction bit pattern to be decoded.
@@ -45,7 +46,7 @@ class CtrlSigs extends Bundle {
     val decoder = freechips.rocketchip.rocket.DecodeLogic(inst, default_decode_ctrl_sigs, decode_table)
     /* Make sequence ordered how signals are ordered.
      * See rocket-chip's rocket/IDecode.scala#IntCtrlSigs#decode#sigs */
-    val ctrl_sigs = Seq(legal, num_mem_fetches, alu_fn, is_mem_op)
+    val ctrl_sigs = Seq(legal, num_mem_fetches, num_mem_writes, alu_fn, is_mem_op)
     /* Decoder is a minimized truth-table. We partially apply the map here,
      * which allows us to apply an instruction to get its control signals back.
      * We then zip that with the sequence of names for the control signals. */
@@ -83,10 +84,10 @@ object CtrlSigs {
   */
 class BinOpDecode(implicit val p: Parameters) extends DecodeConstants {
   val decode_table: Array[(BitPat, List[BitPat])] = Array(
-    PLUS_INT-> List(Y, MEM_OPS_TWO, FN_ADD, Y),
-    PLUS_RED-> List(Y, MEM_OPS_N, FN_RED_ADD, Y),
-    OR_RED-> List(Y, MEM_OPS_N, FN_RED_OR, Y),
-    AND_RED-> List(Y, MEM_OPS_N, FN_RED_AND, Y))
+    PLUS_INT-> List(Y, MEM_OPS_TWO, MEM_OPS_ZERO, FN_ADD, Y),
+    PLUS_RED-> List(Y, MEM_OPS_N, MEM_OPS_ZERO, FN_RED_ADD, Y),
+    OR_RED-> List(Y, MEM_OPS_N, MEM_OPS_ZERO, FN_RED_OR, Y),
+    AND_RED-> List(Y, MEM_OPS_N, MEM_OPS_ZERO, FN_RED_AND, Y))
 }
 
 /** Decode table for accelerator control instructions.
@@ -98,8 +99,8 @@ class BinOpDecode(implicit val p: Parameters) extends DecodeConstants {
   */
 class CtrlOpDecode(implicit val p: Parameters) extends DecodeConstants {
   val decode_table: Array[(BitPat, List[BitPat])] = Array(
-    SET_NUM_OPERANDS -> List(Y, MEM_OPS_ZERO, FN_X, N),
-    SET_DEST_ADDR -> List(Y, MEM_OPS_ZERO, FN_X, N))
+    SET_NUM_OPERANDS -> List(Y, MEM_OPS_ZERO, MEM_OPS_ZERO, FN_X, N),
+    SET_DEST_ADDR -> List(Y, MEM_OPS_ZERO, MEM_OPS_ZERO, FN_X, N))
 }
 
 /** A class holding a decode table for all possible RoCC instructions that are
