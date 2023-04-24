@@ -99,7 +99,8 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
 
 
   /** Reduction Accum **/
-  val redAccum = RegInit(0.U(p(XLen).W));
+  val redAccum0 = RegInit(0.U(p(XLen).W));
+  val redAccum1 = RegInit(~(0.U(p(XLen).W)));
 
   when(cmd_valid && !rocc_io.busy) {
     // TODO: Find a nice way to condense these conditional prints
@@ -251,12 +252,24 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
   ctrl_unit.io.execution_completed := false.B
   when(alu.io.out.valid) {
     when(ctrl_unit.io.num_to_fetch === 3.U){
-      redAccum := redAccum + alu.io.out.bits
-      alu_out := redAccum + alu.io.out.bits
-      /** Accmulate partial results **/
-      if(p(VCodePrintfEnable)) {
-        printf("VCode\tALU \tout: 0x%x\t Accum: out: 0x%x\nALU Results and Accum!\n",
-        alu.io.out.bits, redAccum)
+      switch(ctrl_sigs.alu_fn){
+        is(1.U){
+          redAccum0 := redAccum0 + alu.io.out.bits
+          alu_out := redAccum0 + alu.io.out.bits
+          /** Accmulate partial results **/
+          if(p(VCodePrintfEnable)) {
+            printf("VCode\tALU \tout: 0x%x\t Accum: out: 0x%x\nALU Results and Accum!\n",
+            alu.io.out.bits, redAccum0)
+          }
+        }
+        is(2.U){
+          redAccum0 := redAccum0 | alu.io.out.bits
+          alu_out := redAccum0 | alu.io.out.bits
+        }
+        is(3.U){
+          redAccum1 := redAccum1 & alu.io.out.bits
+          alu_out := redAccum1 & alu.io.out.bits
+        }
       }
     } .otherwise{
       alu_out := alu.io.out.bits
@@ -298,7 +311,8 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
   when(rocc_io.resp.fire) {
     response_required := false.B
     cmd_valid := false.B
-    redAccum := 0.U
+    redAccum0 := 0.U
+    redAccum1 := ~(0.U)
     numFetchRuns := 0.U
   }
 

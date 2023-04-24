@@ -16,6 +16,8 @@ object ALU {
   // This funky syntax creates a bit pattern of specified length with that value
   def FN_ADD = BitPat(0.U(SZ_ALU_FN.W))
   def FN_RED_ADD = BitPat(1.U(SZ_ALU_FN.W))
+  def FN_RED_OR = BitPat(2.U(SZ_ALU_FN.W))
+  def FN_RED_AND = BitPat(3.U(SZ_ALU_FN.W))
 }
 
 /** Implementation of an ALU.
@@ -64,6 +66,42 @@ class ALU(val xLen: Int) extends Module {
       l21 := l11 + l12
       l22 := l13 + l14
       l3 := l21 + l22
+      data_out := l3
+    }
+    is(2.U){
+      val l11 = Wire(Bits(xLen.W))
+      val l12 = Wire(Bits(xLen.W))
+      val l13 = Wire(Bits(xLen.W))
+      val l14 = Wire(Bits(xLen.W))
+      val l21 = Wire(Bits(xLen.W))
+      val l22 = Wire(Bits(xLen.W))
+      val l3 = Wire(Bits(xLen.W))
+
+      l11 := io.in1 | io.in2
+      l12 := io.in3 | io.in4
+      l13 := io.in5 | io.in6
+      l14 := io.in7 | io.in8
+      l21 := l11 | l12
+      l22 := l13 | l14
+      l3 := l21 | l22
+      data_out := l3
+    }
+    is(3.U){
+      val l11 = Wire(Bits(xLen.W))
+      val l12 = Wire(Bits(xLen.W))
+      val l13 = Wire(Bits(xLen.W))
+      val l14 = Wire(Bits(xLen.W))
+      val l21 = Wire(Bits(xLen.W))
+      val l22 = Wire(Bits(xLen.W))
+      val l3 = Wire(Bits(xLen.W))
+
+      l11 := io.in1 & io.in2
+      l12 := io.in3 & io.in4
+      l13 := io.in5 & io.in6
+      l14 := io.in7 & io.in8
+      l21 := l11 & l12
+      l22 := l13 & l14
+      l3 := l21 & l22
       data_out := l3
     }
   }

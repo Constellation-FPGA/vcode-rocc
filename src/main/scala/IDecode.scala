@@ -84,7 +84,9 @@ object CtrlSigs {
 class BinOpDecode(implicit val p: Parameters) extends DecodeConstants {
   val decode_table: Array[(BitPat, List[BitPat])] = Array(
     PLUS_INT-> List(Y, MEM_OPS_TWO, FN_ADD, Y),
-    PLUS_RED-> List(Y, MEM_OPS_N, FN_RED_ADD, Y))
+    PLUS_RED-> List(Y, MEM_OPS_N, FN_RED_ADD, Y),
+    OR_RED-> List(Y, MEM_OPS_N, FN_RED_OR, Y),
+    AND_RED-> List(Y, MEM_OPS_N, FN_RED_AND, Y))
 }
 
 /** Decode table for accelerator control instructions.
