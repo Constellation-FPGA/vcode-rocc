@@ -45,6 +45,7 @@ class DCacheFetcher(val bufferEntries: Int)(implicit p: Parameters) extends Core
     /** The base address from which to operate on (load from/store to). */
     val baseAddress = Flipped(Decoupled(Bits(p(XLen).W)))
     val mstatus = Input(new MStatus)
+    val opToPerform = Input(MemoryOperation()) // NOTE: The () is important!
     // Actual Data outputs
     // fetched_data is only of interest if a read was performed
     val fetched_data = Output(Valid(Vec(bufferEntries, Bits(p(XLen).W))))
@@ -152,10 +153,21 @@ class DCacheFetcher(val bufferEntries: Int)(implicit p: Parameters) extends Core
           io.req.valid := should_send_request
           io.req.bits.addr := addr_to_request
           io.req.bits.tag := tag
-          io.req.bits.cmd := M_XRD
           io.req.bits.size := log2Ceil(8).U // Load 8 bytes
           io.req.bits.signed := false.B
-          io.req.bits.data := 0.U // Not storing anything
+          switch(io.opToPerform) {
+            is(MemoryOperation.read) {
+              io.req.bits.data := 0.U
+              io.req.bits.cmd := M_XRD
+            }
+            is(MemoryOperation.write) {
+              if(p(VCodePrintfEnable)) {
+                printf("DFetch\tTag 0x%x will WRITE 0x%x\n", tag, io.dataToWrite.bits(0))
+              }
+              io.req.bits.data := io.dataToWrite.bits(0)
+              io.req.bits.cmd := M_XWR
+            }
+          }
           io.req.bits.phys := false.B
           io.req.bits.dprv := io.mstatus.dprv
           io.req.bits.dv := io.mstatus.dv
