@@ -150,10 +150,12 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
 
   
   ctrl_unit.io.mem_op_completed := data_fetcher.io.op_completed
+  ctrl_unit.io.num_operands := numOperands
   ctrl_unit.io.rs1 := rs1
   ctrl_unit.io.rs2 := rs2 
   data_fetcher.io.amountData := ctrl_unit.io.amount_data
   data_fetcher.io.write := ctrl_unit.io.should_write
+  
 
   when(data_fetcher.io.op_completed) {
     when(numFetchRuns === 0.U){
@@ -218,6 +220,7 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
   val alu_cout = Wire(UInt())
   // Hook up the ALU to VCode signals
   alu.io.fn := ctrl_sigs.alu_fn
+  alu.io.vec_first_round := ctrl_unit.io.vec_first_round
   // FIXME: Only use rs1/rs2 if xs1/xs2 =1, respectively.
   when(data_fetcher.io.fetched_data.valid) {
     when (ctrl_unit.io.num_to_fetch === 2.U){

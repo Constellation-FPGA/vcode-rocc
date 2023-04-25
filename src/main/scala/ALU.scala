@@ -47,6 +47,7 @@ class ALU(val xLen: Int) extends Module {
     val out8 = Output(UInt(xLen.W))
     val cout = Output(UInt(xLen.W))
     val execute = Input(Bool())
+    val vec_first_round = Input(Bool())
   })
 
   io.cout := 0.U
@@ -60,6 +61,15 @@ class ALU(val xLen: Int) extends Module {
   val data_out6 = RegInit(0.U(xLen.W))
   val data_out7 = RegInit(0.U(xLen.W))
   val data_out8 = RegInit(0.U(xLen.W))
+
+  val data_in_buffer1 = RegInit(0.U(xLen.W))
+  val data_in_buffer2 = RegInit(0.U(xLen.W))
+  val data_in_buffer3 = RegInit(0.U(xLen.W))
+  val data_in_buffer4 = RegInit(0.U(xLen.W))
+  val data_in_buffer5 = RegInit(0.U(xLen.W))
+  val data_in_buffer6 = RegInit(0.U(xLen.W))
+  val data_in_buffer7 = RegInit(0.U(xLen.W))
+  val data_in_buffer8 = RegInit(0.U(xLen.W))
 
   switch(io.fn){
     is(0.U){
@@ -130,14 +140,25 @@ class ALU(val xLen: Int) extends Module {
       val l7 = Wire(Bits(xLen.W))
       val l8 = Wire(Bits(xLen.W))
 
-      l1 := io.in1 + io.in1
-      l2 := io.in2 + io.in2
-      l3 := io.in3 + io.in3
-      l4 := io.in4 + io.in4
-      l5 := io.in5 + io.in5
-      l6 := io.in6 + io.in6
-      l7 := io.in7 + io.in7
-      l8 := io.in8 + io.in8
+      when(!io.vec_first_round){
+        data_in_buffer1 := io.in1
+        data_in_buffer2 := io.in2
+        data_in_buffer3 := io.in3
+        data_in_buffer4 := io.in4
+        data_in_buffer5 := io.in5
+        data_in_buffer6 := io.in6
+        data_in_buffer7 := io.in7
+        data_in_buffer8 := io.in8
+      }
+
+      l1 := io.in1 + data_in_buffer1
+      l2 := io.in2 + data_in_buffer2
+      l3 := io.in3 + data_in_buffer3
+      l4 := io.in4 + data_in_buffer4
+      l5 := io.in5 + data_in_buffer5
+      l6 := io.in6 + data_in_buffer6
+      l7 := io.in7 + data_in_buffer7
+      l8 := io.in8 + data_in_buffer8
       data_out1 := l1
       data_out2 := l2
       data_out3 := l3

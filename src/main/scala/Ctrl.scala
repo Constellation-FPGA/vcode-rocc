@@ -21,11 +21,13 @@ class ControlUnit(implicit p: Parameters) extends Module {
     val response_completed = Input(Bool())
     val rs1 = Input(UInt())
     val rs2 = Input(UInt())
+    val num_operands = Input(UInt())
     val dest_addr = Input(UInt())
     val amount_data = Output(UInt())
     val addr_to_fetch = Output(UInt())
     val addr_to_write = Output(UInt())
     val should_write = Output(Bool())
+    val vec_first_round = Output(Bool())
   })
 
   object State extends ChiselEnum {
@@ -54,14 +56,23 @@ class ControlUnit(implicit p: Parameters) extends Module {
   io.response_ready := (execute_state === State.respond)
 
   val runsDone = RegInit(0.U(64.W))
-  val runsRequired = Wire(UInt())
+  val sourceSel = RegInit(false.B)
+  io.vec_first_round := sourceSel
+
+  val runsRequired = Wire(UInt(64.W))
+
+  val isVecOp = (io.ctrl_sigs.num_mem_writes === 3.U)
+  val OpCount = Wire(UInt(64.W))
+  OpCount := Mux(isVecOp, io.num_operands, io.rs2)
+  /** For operations that require writing back, we need to use the 
+      operand count set by custom instruction **/
 
   when(execute_state === State.fetchingData){
     /** Logic for read state**/
     when(io.ctrl_sigs.num_mem_fetches === 3.U){
-      runsRequired := ((io.rs2 - 1.U) >> 3.U) + 1.U
-      when ((io.rs2 - (runsDone << 3.U)) <= 8.U){
-        io.amount_data := io.rs2 - (runsDone << 3.U)
+      runsRequired := ((OpCount - 1.U) >> 3.U) + 1.U
+      when ((OpCount - (runsDone << 3.U)) <= 8.U){
+        io.amount_data := OpCount - (runsDone << 3.U)
       }.otherwise{
         io.amount_data := 8.U
       }
@@ -72,9 +83,9 @@ class ControlUnit(implicit p: Parameters) extends Module {
   }.otherwise{
     /** Logic for write state**/
     when(io.ctrl_sigs.num_mem_writes === 3.U){
-      runsRequired := ((io.rs2 - 1.U) >> 3.U) + 1.U
-      when ((io.rs2 - ((runsDone - 1.U) << 3.U)) <= 8.U){
-        io.amount_data := io.rs2 - ((runsDone - 1.U) << 3.U)
+      runsRequired := ((OpCount - 1.U) >> 3.U) + 1.U
+      when ((OpCount - ((runsDone - 1.U) << 3.U)) <= 8.U){
+        io.amount_data := OpCount - ((runsDone - 1.U) << 3.U)
       }.otherwise{
         io.amount_data := 8.U
       }
@@ -87,7 +98,12 @@ class ControlUnit(implicit p: Parameters) extends Module {
 
   val addrToFetchMop2 = Mux(runsDone === 0.U, io.rs1, io.rs2)
   val addrToFetchMopN = io.rs1 + (runsDone << 6.U)
-  io.addr_to_fetch := Mux(io.ctrl_sigs.num_mem_fetches === 3.U, addrToFetchMopN, addrToFetchMop2)
+  val addrNoneVec = Mux(io.ctrl_sigs.num_mem_fetches === 3.U, addrToFetchMopN, addrToFetchMop2)
+  
+  val addrToFetchVec = Mux(sourceSel, io.rs1 + (runsDone << 6.U), io.rs2 + (runsDone << 6.U))
+  
+  io.addr_to_fetch := Mux(isVecOp, addrToFetchVec, addrNoneVec)
+
 
   val addrToWrite = io.dest_addr + ((runsDone - 1.U) << 6.U)
   io.addr_to_write := addrToWrite
@@ -108,7 +124,10 @@ class ControlUnit(implicit p: Parameters) extends Module {
       }
       when(io.mem_op_completed) {
         execute_state := State.exe
-        runsDone := runsDone + 1.U
+        when(!(isVecOp) || sourceSel){
+          runsDone := runsDone + 1.U
+        }
+        // For Vector Operations, the cycle is only completed when the second batch is fetched
         if(p(VCodePrintfEnable)) {
           printf("Ctrl\tMoving from fetchingData to exe state\n")
         }
@@ -135,12 +154,19 @@ class ControlUnit(implicit p: Parameters) extends Module {
             // Keep fetching
           }
         }.otherwise{
-          execute_state := State.write
-          if(p(VCodePrintfEnable)) {
-            printf("Ctrl\tMoving from exe state to write state\n")
+          when(sourceSel){
+            execute_state := State.write
+            if(p(VCodePrintfEnable)) {
+              printf("Ctrl\tMoving from exe state to fetech state to write state\n")
+            }
+          }.otherwise{
+            sourceSel := true.B
+            execute_state := State.fetchingData
+            if(p(VCodePrintfEnable)) {
+              printf("Ctrl\tMoving from exe state to fetech state to fetch second batch\n")
+            }
           }
           // Move to writing stage
-          
         }
       }
     }
@@ -158,6 +184,7 @@ class ControlUnit(implicit p: Parameters) extends Module {
             printf("Ctrl\tMoving from write to fetch state\n")
           }
         }
+        sourceSel := false.B
       }      
     }
     is(State.respond) {
