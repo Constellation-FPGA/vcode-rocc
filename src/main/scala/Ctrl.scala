@@ -67,12 +67,12 @@ class ControlUnit(implicit p: Parameters) extends Module {
   /** For operations that require writing back, we need to use the 
       operand count set by custom instruction **/
 
-  when(execute_state === State.fetchingData){
-    /** Logic for read state**/
-    when(io.ctrl_sigs.num_mem_fetches === 3.U){
+  when(execute_state === State.write){
+    /** Logic for write state**/
+    when(io.ctrl_sigs.num_mem_writes === 3.U){
       runsRequired := ((OpCount - 1.U) >> 3.U) + 1.U
-      when ((OpCount - (runsDone << 3.U)) <= 8.U){
-        io.amount_data := OpCount - (runsDone << 3.U)
+      when ((OpCount - ((runsDone - 1.U) << 3.U)) <= 8.U){
+        io.amount_data := OpCount - ((runsDone - 1.U) << 3.U)
       }.otherwise{
         io.amount_data := 8.U
       }
@@ -81,11 +81,11 @@ class ControlUnit(implicit p: Parameters) extends Module {
       runsRequired := io.ctrl_sigs.num_mem_fetches
     }
   }.otherwise{
-    /** Logic for write state**/
-    when(io.ctrl_sigs.num_mem_writes === 3.U){
+    /** Logic for read state**/
+    when(io.ctrl_sigs.num_mem_fetches === 3.U){
       runsRequired := ((OpCount - 1.U) >> 3.U) + 1.U
-      when ((OpCount - ((runsDone - 1.U) << 3.U)) <= 8.U){
-        io.amount_data := OpCount - ((runsDone - 1.U) << 3.U)
+      when ((OpCount - (runsDone << 3.U)) <= 8.U){
+        io.amount_data := OpCount - (runsDone << 3.U)
       }.otherwise{
         io.amount_data := 8.U
       }

@@ -155,6 +155,7 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
   ctrl_unit.io.rs2 := rs2 
   data_fetcher.io.amountData := ctrl_unit.io.amount_data
   data_fetcher.io.write := ctrl_unit.io.should_write
+  data_fetcher.io.rst_val := Mux(ctrl_sigs.alu_fn === 3.U, ~(0.U(p(XLen).W)), 0.U(p(XLen).W))
   
 
   when(data_fetcher.io.op_completed) {
@@ -277,6 +278,10 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
         is(3.U){
           redAccum1 := redAccum1 & alu.io.out1.bits
           alu_out := redAccum1 & alu.io.out1.bits
+          if(p(VCodePrintfEnable)) {
+            printf("VCode\tALU \tAccum: 0x%x\nALU Out: 0x%x\n",
+            redAccum1, redAccum1 & alu.io.out1.bits)
+          }
         }
       }
     } .otherwise{
@@ -333,7 +338,7 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
     response_required := false.B
     cmd_valid := false.B
     redAccum0 := 0.U
-    redAccum1 := ~(0.U)
+    redAccum1 := ~(0.U(p(XLen).W))
     numFetchRuns := 0.U
   }
 

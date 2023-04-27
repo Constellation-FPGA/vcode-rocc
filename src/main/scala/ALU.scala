@@ -129,6 +129,9 @@ class ALU(val xLen: Int) extends Module {
       l22 := l13 & l14
       l3 := l21 & l22
       data_out1 := l3
+      
+      printf("ALU\tAND21:%x AND22:%x AND3:%x\n", l21, l22, l3)
+      
     }
     is(4.U){
       val l1 = Wire(Bits(xLen.W))

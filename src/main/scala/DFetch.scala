@@ -58,6 +58,7 @@ class DCacheFetcher(val bufferEntries: Int)(implicit p: Parameters) extends Core
     val req = Decoupled(new HellaCacheReq)
     val resp = Input(Valid(new HellaCacheResp))
     val write = Input(Bool())
+    val rst_val = Input(UInt())
   })
 
   object State extends ChiselEnum {
@@ -97,14 +98,14 @@ class DCacheFetcher(val bufferEntries: Int)(implicit p: Parameters) extends Core
           }
         }
       }
-      vals(0.U) := 0.U
-      vals(1.U) := 0.U
-      vals(2.U) := 0.U
-      vals(3.U) := 0.U
-      vals(4.U) := 0.U
-      vals(5.U) := 0.U
-      vals(6.U) := 0.U
-      vals(7.U) := 0.U
+      vals(0.U) := io.rst_val
+      vals(1.U) := io.rst_val
+      vals(2.U) := io.rst_val
+      vals(3.U) := io.rst_val
+      vals(4.U) := io.rst_val
+      vals(5.U) := io.rst_val
+      vals(6.U) := io.rst_val
+      vals(7.U) := io.rst_val
     }
     is(State.reading) {
       io.baseAddress.ready := false.B

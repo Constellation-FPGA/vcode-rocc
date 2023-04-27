@@ -17,7 +17,7 @@ int main() {
         expected = expected | a[i];
     }
 
-    int64_t a2[7] = { 3, 8, 4, 5, 9, -1, -6};
+    int64_t a2[7] = { -1, -2, -4, -8, 4095, -1, -6};
     b2 = 7;
     ROCC_INSTRUCTION_DSS(0, c2, &a2, b2, 4); // Wait for result
     int64_t expected2 = -1;
