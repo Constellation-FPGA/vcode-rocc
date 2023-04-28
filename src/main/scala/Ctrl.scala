@@ -25,7 +25,7 @@ class ControlUnit(implicit p: Parameters) extends Module {
   object State extends ChiselEnum {
     /* Internally (in Verilog) represented as integers. First item in list has
      * value 0, i.e. idle = 0x0. */
-    val idle, fetchingData, exe, write, respond = Value
+    val idle, fetch1, fetch2, exe, write, respond = Value
   }
   val accel_state = RegInit(State.idle) // Reset to idle state
 
@@ -38,8 +38,9 @@ class ControlUnit(implicit p: Parameters) extends Module {
   // responses are being made. Perhaps make this less strict?
 
   // We should fetch when we are in fetching data state
-  io.should_fetch := (accel_state === State.fetchingData)
-  io.num_to_fetch := Mux(accel_state === State.fetchingData, io.ctrl_sigs.num_mem_fetches, 0.U)
+  io.should_fetch := (accel_state === State.fetch1 || accel_state === State.fetch2)
+  io.num_to_fetch := Mux(accel_state === State.fetch1 || accel_state === State.fetch2,
+    io.ctrl_sigs.num_mem_fetches, 0.U)
 
   io.should_execute := (accel_state === State.exe)
 
@@ -50,20 +51,38 @@ class ControlUnit(implicit p: Parameters) extends Module {
   switch(accel_state) {
     is(State.idle) {
       when(io.cmd_valid && io.ctrl_sigs.legal && io.ctrl_sigs.is_mem_op) {
-        accel_state := State.fetchingData
+        accel_state := State.fetch1
         if(p(VCodePrintfEnable)) {
-          printf("Ctrl\tMoving from idle to fetchingData state\n")
+          printf("Ctrl\tMoving from idle to fetch1 state\n")
         }
       }
     }
-    is(State.fetchingData) {
+    is(State.fetch1) {
       if(p(VCodePrintfEnable)) {
-        printf("Ctrl\tIn fetchingData state\n")
+        printf("Ctrl\tIn fetch1 state\n")
+      }
+      when(io.mem_op_completed) {
+        when(io.ctrl_sigs.num_mem_fetches === NumOperatorOperands.MEM_OPS_TWO) {
+          if(p(VCodePrintfEnable)) {
+            printf("Ctrl\tMoving from fetch1 to fetch2 state\n")
+          }
+          accel_state := State.fetch2
+        } .otherwise {
+          if(p(VCodePrintfEnable)) {
+            printf("Ctrl\tMoving from fetch1 to exe state\n")
+          }
+          accel_state := State.exe
+        }
+      }
+    }
+    is(State.fetch2) {
+      if(p(VCodePrintfEnable)) {
+        printf("Ctrl\tIn fetch2 state\n")
       }
       when(io.mem_op_completed) {
         accel_state := State.exe
         if(p(VCodePrintfEnable)) {
-          printf("Ctrl\tMoving from fetchingData to exe state\n")
+          printf("Ctrl\tMoving from fetch2 to exe state\n")
         }
       }
     }
