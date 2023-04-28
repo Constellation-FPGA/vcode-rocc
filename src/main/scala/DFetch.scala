@@ -74,13 +74,12 @@ class DCacheFetcher(val bufferEntries: Int)(implicit p: Parameters) extends Core
   val wait_for_resp = RegInit(VecInit.fill(bufferEntries)(false.B))
   val all_done = Wire(Bool()); all_done := !(wait_for_resp.reduce(_ || _))
 
-  val op_completed = WireInit(false.B); io.op_completed := op_completed
+  io.op_completed := false.B
 
   switch(state) {
     is(State.idle) {
       amount_fetched := 0.U
       io.baseAddress.ready := io.start
-      op_completed := false.B
       when(io.start && io.baseAddress.valid) {
         state := State.running
         if(p(VCodePrintfEnable)) {
@@ -99,8 +98,8 @@ class DCacheFetcher(val bufferEntries: Int)(implicit p: Parameters) extends Core
         }
         state := State.idle
         io.fetched_data.bits(0.U) := vals(0.U); io.fetched_data.bits(1.U) := vals(1.U)
-        op_completed := all_done
         io.fetched_data.valid := all_done
+        io.op_completed := true.B
         amount_fetched := 0.U
       } .otherwise {
         // We still have a request to make. We may still have outstanding responses too.
