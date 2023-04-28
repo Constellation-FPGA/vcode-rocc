@@ -27,30 +27,30 @@ class ControlUnit(implicit p: Parameters) extends Module {
      * value 0, i.e. idle = 0x0. */
     val idle, fetchingData, exe, write, respond = Value
   }
-  val execute_state = RegInit(State.idle) // Reset to idle state
+  val accel_state = RegInit(State.idle) // Reset to idle state
 
   // The accelerator is ready to execute if it is in the idle state
-  io.accel_ready := (execute_state === State.idle)
+  io.accel_ready := (accel_state === State.idle)
 
   // We are busy if we are not idle.
-  io.busy := (execute_state =/= State.idle)
+  io.busy := (accel_state =/= State.idle)
   // NOTE: RoCC only requires that busy be asserted when memory requests and
   // responses are being made. Perhaps make this less strict?
 
   // We should fetch when we are in fetching data state
-  io.should_fetch := (execute_state === State.fetchingData)
-  io.num_to_fetch := Mux(execute_state === State.fetchingData, io.ctrl_sigs.num_mem_fetches, 0.U)
+  io.should_fetch := (accel_state === State.fetchingData)
+  io.num_to_fetch := Mux(accel_state === State.fetchingData, io.ctrl_sigs.num_mem_fetches, 0.U)
 
-  io.should_execute := (execute_state === State.exe)
+  io.should_execute := (accel_state === State.exe)
 
-  io.writeback_ready := (execute_state === State.write)
+  io.writeback_ready := (accel_state === State.write)
 
-  io.response_ready := (execute_state === State.respond)
+  io.response_ready := (accel_state === State.respond)
 
-  switch(execute_state) {
+  switch(accel_state) {
     is(State.idle) {
       when(io.cmd_valid && io.ctrl_sigs.legal && io.ctrl_sigs.is_mem_op) {
-        execute_state := State.fetchingData
+        accel_state := State.fetchingData
         if(p(VCodePrintfEnable)) {
           printf("Ctrl\tMoving from idle to fetchingData state\n")
         }
@@ -61,7 +61,7 @@ class ControlUnit(implicit p: Parameters) extends Module {
         printf("Ctrl\tIn fetchingData state\n")
       }
       when(io.mem_op_completed) {
-        execute_state := State.exe
+        accel_state := State.exe
         if(p(VCodePrintfEnable)) {
           printf("Ctrl\tMoving from fetchingData to exe state\n")
         }
@@ -72,7 +72,7 @@ class ControlUnit(implicit p: Parameters) extends Module {
         printf("Ctrl\tIn execution state\n")
       }
       when(io.execution_completed) {
-        execute_state := State.write
+        accel_state := State.write
         if(p(VCodePrintfEnable)) {
           printf("Ctrl\tMoving from exe state to write state\n")
         }
@@ -83,7 +83,7 @@ class ControlUnit(implicit p: Parameters) extends Module {
         printf("Ctrl\tExecution done. Writeback results\n")
       }
       when(io.mem_op_completed) {
-        execute_state := State.respond
+        accel_state := State.respond
         if(p(VCodePrintfEnable)) {
           printf("Ctrl\tWriteback completed. Accelerator must respond to main core\n")
         }
@@ -94,7 +94,7 @@ class ControlUnit(implicit p: Parameters) extends Module {
         printf("Ctrl\tWriteback done. Accelerator responding\n")
       }
       when(io.response_completed) {
-        execute_state := State.idle
+        accel_state := State.idle
         if(p(VCodePrintfEnable)) {
           printf("Ctrl\tResponse sent. Returning to idle state\n")
         }
