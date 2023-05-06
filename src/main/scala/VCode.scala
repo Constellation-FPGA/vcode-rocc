@@ -39,6 +39,7 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
   val cmd = rocc_io.cmd
   val rocc_cmd = Reg(new RoCCCommand)
   val cmd_valid = RegInit(false.B)
+  val batchSize = 8;
 
   val rocc_inst = rocc_cmd.inst // The customX instruction in instruction stream
   val returnReg = rocc_inst.rd
@@ -61,7 +62,7 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
    * CONTROL UNIT
    * Control unit connects ALU & Data fetcher together, properly sequencing them
    **************/
-  val ctrl_unit = Module(new ControlUnit())
+  val ctrl_unit = Module(new ControlUnit(batchSize))
   // Accelerator control unit controls when we are ready to accept the next
   // instruction from the RoCC command queue. Cannot accept another command
   // unless accelerator is ready/idle
@@ -132,7 +133,7 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
    * Most instructions pass pointers to vectors, so we need to fetch that before
    * operating on the data.
    **************/
-  val data_fetcher = Module(new DCacheFetcher(8))
+  val data_fetcher = Module(new DCacheFetcher(batchSize))
   data_fetcher.io.ctrl_sigs := ctrl_sigs
   data_fetcher.io.mstatus := status
   rocc_io.mem.req :<> data_fetcher.io.req // Connect Request queue
@@ -204,19 +205,12 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
 
   val dmem_data = Wire(Bits(p(XLen).W)) // Data to SEND to memory
 
-  val data1 = RegInit(0.U(p(XLen).W))
-  val data2 = RegInit(0.U(p(XLen).W))
-  val data3 = RegInit(0.U(p(XLen).W))
-  val data4 = RegInit(0.U(p(XLen).W))
-  val data5 = RegInit(0.U(p(XLen).W))
-  val data6 = RegInit(0.U(p(XLen).W))
-  val data7 = RegInit(0.U(p(XLen).W))
-  val data8 = RegInit(0.U(p(XLen).W))
+  val dataArray = RegInit(VecInit(Seq.fill(batchSize)(0.U(p(XLen).W))))
 
   /***************
    * EXECUTE
    **************/
-  val alu = Module(new ALU(p(XLen)))
+  val alu = Module(new ALU(p(XLen), batchSize))
   val alu_out = Reg(UInt())
   val alu_cout = Wire(UInt())
   // Hook up the ALU to VCode signals
@@ -225,21 +219,16 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
   // FIXME: Only use rs1/rs2 if xs1/xs2 =1, respectively.
   when(data_fetcher.io.fetched_data.valid) {
     when (ctrl_unit.io.num_to_fetch === 2.U){
-      data1 := prev_fetch_res
-      data2 := data_fetcher.io.fetched_data.bits(0)  
+      dataArray(0.U) := prev_fetch_res
+      dataArray(1.U) := data_fetcher.io.fetched_data.bits(0)  
       if(p(VCodePrintfEnable)) {
         printf("VCode\tTwo Reads Done\n")
         printf("\tData 1: %d\tData 2: %d\n", prev_fetch_res, data_fetcher.io.fetched_data.bits(0))
       }
     }.otherwise{
-      data1 := data_fetcher.io.fetched_data.bits(0)
-      data2 := data_fetcher.io.fetched_data.bits(1)
-      data3 := data_fetcher.io.fetched_data.bits(2)
-      data4 := data_fetcher.io.fetched_data.bits(3)
-      data5 := data_fetcher.io.fetched_data.bits(4)
-      data6 := data_fetcher.io.fetched_data.bits(5)
-      data7 := data_fetcher.io.fetched_data.bits(6)
-      data8 := data_fetcher.io.fetched_data.bits(7)
+      for (i <- 0 until batchSize){
+        dataArray(i) := data_fetcher.io.fetched_data.bits(i)
+      }
       if(p(VCodePrintfEnable)) {
         printf("VCode\tFetcher1: 0x%x\tFetcher2: 0x%x\tFetcher3: 0x%x\tFetcher4: 0x%x\tFetcher5: 0x%x\tFetcher6: 0x%x\tFetcher7: 0x%x\tFetcher8: 0x%x\n",
         data_fetcher.io.fetched_data.bits(0), data_fetcher.io.fetched_data.bits(1), data_fetcher.io.fetched_data.bits(2), data_fetcher.io.fetched_data.bits(3), 
@@ -247,68 +236,56 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
       }
     }
   }
-  alu.io.in1 := data1
-  alu.io.in2 := data2
-  alu.io.in3 := data3
-  alu.io.in4 := data4
-  alu.io.in5 := data5
-  alu.io.in6 := data6
-  alu.io.in7 := data7
-  alu.io.in8 := data8
+  alu.io.in := dataArray
 
 
   alu.io.execute := ctrl_unit.io.should_execute
   ctrl_unit.io.execution_completed := false.B
-  when(alu.io.out1.valid) {
+  when(alu.io.out(0).valid) {
     when(ctrl_unit.io.num_to_fetch === 3.U){
       switch(ctrl_sigs.alu_fn){
         is(1.U){
-          redAccum0 := redAccum0 + alu.io.out1.bits
-          alu_out := redAccum0 + alu.io.out1.bits
+          redAccum0 := redAccum0 + alu.io.out(0).bits
+          alu_out := redAccum0 + alu.io.out(0).bits
           /** Accmulate partial results **/
           if(p(VCodePrintfEnable)) {
             printf("VCode\tALU \tout: 0x%x\t Accum: out: 0x%x\nALU Results and Accum!\n",
-            alu.io.out1.bits, redAccum0)
+            alu.io.out(0).bits, redAccum0)
           }
         }
         is(2.U){
-          redAccum0 := redAccum0 | alu.io.out1.bits
-          alu_out := redAccum0 | alu.io.out1.bits
+          redAccum0 := redAccum0 | alu.io.out(0).bits
+          alu_out := redAccum0 | alu.io.out(0).bits
         }
         is(3.U){
-          redAccum1 := redAccum1 & alu.io.out1.bits
-          alu_out := redAccum1 & alu.io.out1.bits
+          redAccum1 := redAccum1 & alu.io.out(0).bits
+          alu_out := redAccum1 & alu.io.out(0).bits
           if(p(VCodePrintfEnable)) {
             printf("VCode\tALU \tAccum: 0x%x\nALU Out: 0x%x\n",
-            redAccum1, redAccum1 & alu.io.out1.bits)
+            redAccum1, redAccum1 & alu.io.out(0).bits)
           }
         }
       }
     } .otherwise{
-      alu_out := alu.io.out1.bits
+      alu_out := alu.io.out(0).bits
     }
 
-    if(p(VCodePrintfEnable)) {
-      printf("VCode\tALU in1: 0x%x\tin2: 0x%x\tout: 0x%x\nALU finished executing! Output bits now valid!\n",
-      alu.io.in1, alu.io.in2, alu.io.out1.bits)
-      printf("VCode\tFetcher1: 0x%x\tFetcher2: 0x%x\tFetcher3: 0x%x\tFetcher4: 0x%x\tFetcher5: 0x%x\tFetcher6: 0x%x\tFetcher7: 0x%x\tFetcher8: 0x%x\n",
-      alu.io.in1, alu.io.in2, alu.io.in3, alu.io.in4, alu.io.in5, alu.io.in6, alu.io.in7, alu.io.in8)
-    }
+    // if(p(VCodePrintfEnable)) {
+    //   printf("VCode\tALU in1: 0x%x\tin2: 0x%x\tout: 0x%x\nALU finished executing! Output bits now valid!\n",
+    //   alu.io.in1, alu.io.in2, alu.io.out1.bits)
+    //   printf("VCode\tFetcher1: 0x%x\tFetcher2: 0x%x\tFetcher3: 0x%x\tFetcher4: 0x%x\tFetcher5: 0x%x\tFetcher6: 0x%x\tFetcher7: 0x%x\tFetcher8: 0x%x\n",
+    //   alu.io.in1, alu.io.in2, alu.io.in3, alu.io.in4, alu.io.in5, alu.io.in6, alu.io.in7, alu.io.in8)
+    // }
   }
-  ctrl_unit.io.execution_completed := alu.io.out1.valid
+  ctrl_unit.io.execution_completed := alu.io.out(0).valid
   alu_cout := alu.io.cout
   
   /***************
    * WRITE_BACK
    **************/
-  data_fetcher.io.write_data(0.U) := alu.io.out1.bits
-  data_fetcher.io.write_data(1.U) := alu.io.out2
-  data_fetcher.io.write_data(2.U) := alu.io.out3
-  data_fetcher.io.write_data(3.U) := alu.io.out4
-  data_fetcher.io.write_data(4.U) := alu.io.out5
-  data_fetcher.io.write_data(5.U) := alu.io.out6
-  data_fetcher.io.write_data(6.U) := alu.io.out7
-  data_fetcher.io.write_data(7.U) := alu.io.out8
+  for (i <- 0 until batchSize){
+    data_fetcher.io.write_data(i) := alu.io.out(i).bits
+  }
 
   ctrl_unit.io.dest_addr := destAddr;
 

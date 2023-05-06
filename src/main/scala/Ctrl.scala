@@ -5,7 +5,7 @@ import chisel3.util._
 import chisel3.experimental.ChiselEnum
 import freechips.rocketchip.config.Parameters
 
-class ControlUnit(implicit p: Parameters) extends Module {
+class ControlUnit(val batchSize: Int)(implicit p: Parameters) extends Module {
   val io = IO(new Bundle {
     val ctrl_sigs = Input(new CtrlSigs())
     val cmd_valid = Input(Bool())
@@ -64,15 +64,17 @@ class ControlUnit(implicit p: Parameters) extends Module {
   val isVecOp = (io.ctrl_sigs.num_mem_writes === 3.U)
   val OpCount = Wire(UInt(64.W))
   OpCount := Mux(isVecOp, io.num_operands, io.rs2)
+  val logBatchSize = log2Up(batchSize)
+  val addressShift = logBatchSize + 3
   /** For operations that require writing back, we need to use the 
       operand count set by custom instruction **/
 
   when(execute_state === State.write){
     /** Logic for write state**/
     when(io.ctrl_sigs.num_mem_writes === 3.U){
-      runsRequired := ((OpCount - 1.U) >> 3.U) + 1.U
-      when ((OpCount - ((runsDone - 1.U) << 3.U)) <= 8.U){
-        io.amount_data := OpCount - ((runsDone - 1.U) << 3.U)
+      runsRequired := ((OpCount - 1.U) >> logBatchSize.U) + 1.U
+      when ((OpCount - ((runsDone - 1.U) << logBatchSize.U)) <= batchSize.U){
+        io.amount_data := OpCount - ((runsDone - 1.U) << logBatchSize.U)
       }.otherwise{
         io.amount_data := 8.U
       }
@@ -83,9 +85,9 @@ class ControlUnit(implicit p: Parameters) extends Module {
   }.otherwise{
     /** Logic for read state**/
     when(io.ctrl_sigs.num_mem_fetches === 3.U){
-      runsRequired := ((OpCount - 1.U) >> 3.U) + 1.U
-      when ((OpCount - (runsDone << 3.U)) <= 8.U){
-        io.amount_data := OpCount - (runsDone << 3.U)
+      runsRequired := ((OpCount - 1.U) >> logBatchSize.U) + 1.U
+      when ((OpCount - (runsDone << logBatchSize.U)) <= batchSize.U){
+        io.amount_data := OpCount - (runsDone << logBatchSize.U)
       }.otherwise{
         io.amount_data := 8.U
       }
@@ -97,15 +99,15 @@ class ControlUnit(implicit p: Parameters) extends Module {
   
 
   val addrToFetchMop2 = Mux(runsDone === 0.U, io.rs1, io.rs2)
-  val addrToFetchMopN = io.rs1 + (runsDone << 6.U)
+  val addrToFetchMopN = io.rs1 + (runsDone << addressShift.U)
   val addrNoneVec = Mux(io.ctrl_sigs.num_mem_fetches === 3.U, addrToFetchMopN, addrToFetchMop2)
   
-  val addrToFetchVec = Mux(sourceSel, io.rs1 + (runsDone << 6.U), io.rs2 + (runsDone << 6.U))
+  val addrToFetchVec = Mux(sourceSel, io.rs1 + (runsDone << addressShift.U), io.rs2 + (runsDone << addressShift.U))
   
   io.addr_to_fetch := Mux(isVecOp, addrToFetchVec, addrNoneVec)
 
 
-  val addrToWrite = io.dest_addr + ((runsDone - 1.U) << 6.U)
+  val addrToWrite = io.dest_addr + ((runsDone - 1.U) << addressShift.U)
   io.addr_to_write := addrToWrite
 
   switch(execute_state) {
