@@ -30,11 +30,13 @@ class CtrlSigs extends Bundle {
   val is_mem_op = Bool()
   val num_mem_fetches = Bits(SZ_MEM_OPS)
   val num_mem_writes = Bits(SZ_MEM_OPS)
+  val need_two_vec = Bool() 
+  // For reduction and scan, this should be set to false as they only take 1 vector as input
 
   /** List of default control signal values
     * @return List of default control signal values. */
   def default_decode_ctrl_sigs: List[BitPat] =
-    List(N, MEM_OPS_X, MEM_OPS_X, FN_X, N)
+    List(N, MEM_OPS_X, MEM_OPS_X, FN_X, N, N)
 
   /** Decodes an instruction to its control signals.
     * @param inst The instruction bit pattern to be decoded.
@@ -46,7 +48,7 @@ class CtrlSigs extends Bundle {
     val decoder = freechips.rocketchip.rocket.DecodeLogic(inst, default_decode_ctrl_sigs, decode_table)
     /* Make sequence ordered how signals are ordered.
      * See rocket-chip's rocket/IDecode.scala#IntCtrlSigs#decode#sigs */
-    val ctrl_sigs = Seq(legal, num_mem_fetches, num_mem_writes, alu_fn, is_mem_op)
+    val ctrl_sigs = Seq(legal, num_mem_fetches, num_mem_writes, alu_fn, is_mem_op, need_two_vec)
     /* Decoder is a minimized truth-table. We partially apply the map here,
      * which allows us to apply an instruction to get its control signals back.
      * We then zip that with the sequence of names for the control signals. */
@@ -84,11 +86,12 @@ object CtrlSigs {
   */
 class BinOpDecode(implicit val p: Parameters) extends DecodeConstants {
   val decode_table: Array[(BitPat, List[BitPat])] = Array(
-    PLUS_INT-> List(Y, MEM_OPS_TWO, MEM_OPS_ZERO, FN_ADD, Y),
-    PLUS_RED-> List(Y, MEM_OPS_N, MEM_OPS_ZERO, FN_RED_ADD, Y),
-    OR_RED-> List(Y, MEM_OPS_N, MEM_OPS_ZERO, FN_RED_OR, Y),
-    AND_RED-> List(Y, MEM_OPS_N, MEM_OPS_ZERO, FN_RED_AND, Y),
-    ADD_VEC-> List(Y, MEM_OPS_N, MEM_OPS_N, FN_VEC_ADD, Y))
+    PLUS_INT-> List(Y, MEM_OPS_TWO, MEM_OPS_ZERO, FN_ADD, Y, N),
+    PLUS_RED-> List(Y, MEM_OPS_N, MEM_OPS_ZERO, FN_RED_ADD, Y, N),
+    OR_RED-> List(Y, MEM_OPS_N, MEM_OPS_ZERO, FN_RED_OR, Y, N),
+    AND_RED-> List(Y, MEM_OPS_N, MEM_OPS_ZERO, FN_RED_AND, Y, N),
+    ADD_VEC-> List(Y, MEM_OPS_N, MEM_OPS_N, FN_VEC_ADD, Y, Y),
+    PLUS_SCAN-> List(Y, MEM_OPS_N, MEM_OPS_N, FN_SCAN_ADD, Y, N))
 }
 
 /** Decode table for accelerator control instructions.

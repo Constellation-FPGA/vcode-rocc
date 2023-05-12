@@ -102,6 +102,7 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
   /** Reduction Accum **/
   val redAccum0 = RegInit(0.U(p(XLen).W));
   val redAccum1 = RegInit(~(0.U(p(XLen).W)));
+  val scanAccum0 = RegInit(0.U(p(XLen).W));
 
   when(cmd_valid && !rocc_io.busy) {
     // TODO: Find a nice way to condense these conditional prints
@@ -216,6 +217,7 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
   // Hook up the ALU to VCode signals
   alu.io.fn := ctrl_sigs.alu_fn
   alu.io.vec_first_round := ctrl_unit.io.vec_first_round
+  alu.io.scan_accum := scanAccum0
   // FIXME: Only use rs1/rs2 if xs1/xs2 =1, respectively.
   when(data_fetcher.io.fetched_data.valid) {
     when (ctrl_unit.io.num_to_fetch === 2.U){
@@ -265,6 +267,12 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
             redAccum1, redAccum1 & alu.io.out(0).bits)
           }
         }
+        is(5.U){
+          if(p(VCodePrintfEnable)) {
+            printf("VCode\tALU \tScan Accum: 0x%x\nALU Out: 0x%x\n",
+            scanAccum0, scanAccum0 + alu.io.out(scanAccum0).bits)
+          }
+        }
       }
     } .otherwise{
       alu_out := alu.io.out(0).bits
@@ -279,6 +287,9 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
   }
   ctrl_unit.io.execution_completed := alu.io.out(0).valid
   alu_cout := alu.io.cout
+  when(data_fetcher.io.op_completed){
+    scanAccum0 := alu.io.out(batchSize - 1).bits
+  }
   
   /***************
    * WRITE_BACK
@@ -316,6 +327,7 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
     cmd_valid := false.B
     redAccum0 := 0.U
     redAccum1 := ~(0.U(p(XLen).W))
+    scanAccum0 := 0.U
     numFetchRuns := 0.U
   }
 

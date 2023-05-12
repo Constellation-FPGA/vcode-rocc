@@ -61,9 +61,9 @@ class ControlUnit(val batchSize: Int)(implicit p: Parameters) extends Module {
 
   val runsRequired = Wire(UInt(64.W))
 
-  val isVecOp = (io.ctrl_sigs.num_mem_writes === 3.U)
+  val is2VecOp = io.ctrl_sigs.need_two_vec
   val OpCount = Wire(UInt(64.W))
-  OpCount := Mux(isVecOp, io.num_operands, io.rs2)
+  OpCount := Mux(is2VecOp, io.num_operands, io.rs2)
   val logBatchSize = log2Up(batchSize)
   val addressShift = logBatchSize + 3
   /** For operations that require writing back, we need to use the 
@@ -104,7 +104,7 @@ class ControlUnit(val batchSize: Int)(implicit p: Parameters) extends Module {
   
   val addrToFetchVec = Mux(sourceSel, io.rs1 + (runsDone << addressShift.U), io.rs2 + (runsDone << addressShift.U))
   
-  io.addr_to_fetch := Mux(isVecOp, addrToFetchVec, addrNoneVec)
+  io.addr_to_fetch := Mux(is2VecOp, addrToFetchVec, addrNoneVec)
 
 
   val addrToWrite = io.dest_addr + ((runsDone - 1.U) << addressShift.U)
@@ -126,7 +126,7 @@ class ControlUnit(val batchSize: Int)(implicit p: Parameters) extends Module {
       }
       when(io.mem_op_completed) {
         execute_state := State.exe
-        when(!(isVecOp) || sourceSel){
+        when(!(is2VecOp) || sourceSel){
           runsDone := runsDone + 1.U
         }
         // For Vector Operations, the cycle is only completed when the second batch is fetched
@@ -156,7 +156,7 @@ class ControlUnit(val batchSize: Int)(implicit p: Parameters) extends Module {
             // Keep fetching
           }
         }.otherwise{
-          when(sourceSel){
+          when(sourceSel || !is2VecOp){
             execute_state := State.write
             if(p(VCodePrintfEnable)) {
               printf("Ctrl\tMoving from exe state to fetech state to write state\n")

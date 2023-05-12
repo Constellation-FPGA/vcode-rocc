@@ -19,6 +19,7 @@ object ALU {
   def FN_RED_OR = BitPat(2.U(SZ_ALU_FN.W))
   def FN_RED_AND = BitPat(3.U(SZ_ALU_FN.W))
   def FN_VEC_ADD = BitPat(4.U(SZ_ALU_FN.W))
+  def FN_SCAN_ADD = BitPat(5.U(SZ_ALU_FN.W))
 }
 
 /** Implementation of an ALU.
@@ -34,6 +35,7 @@ class ALU(val xLen: Int, val batchSize: Int) extends Module {
     val cout = Output(UInt(xLen.W))
     val execute = Input(Bool())
     val vec_first_round = Input(Bool())
+    val scan_accum = Input(UInt(xLen.W))
   })
 
   io.cout := 0.U
@@ -42,9 +44,12 @@ class ALU(val xLen: Int, val batchSize: Int) extends Module {
   }
 
   val data_out = RegInit(VecInit(Seq.fill(batchSize)(0.U(xLen.W))))
-
+  val scan_tmp = Wire(Vec(batchSize + 1, UInt(xLen.W)))
   val data_in_buffer = RegInit(VecInit(Seq.fill(batchSize)(0.U(xLen.W))))
 
+  
+  scan_tmp := io.in.scan(0.U)((a: UInt, b: UInt) => (a + b))
+  
   switch(io.fn){
     is(0.U){
       // ADD/SUB
@@ -72,6 +77,11 @@ class ALU(val xLen: Int, val batchSize: Int) extends Module {
         data_out(i) := io.in(i) + data_in_buffer(i)
       }
 
+    }
+    is(5.U){
+      for (i <- 0 until batchSize){
+        data_out(i) := io.scan_accum + scan_tmp(i + 1)
+      }
     }
   }
 

@@ -8,6 +8,7 @@ object Instructions {
   def OR_RED = BitPat("b0000011")
   def AND_RED = BitPat("b0000100")
   def ADD_VEC = BitPat("b0000101")
+  def PLUS_SCAN = BitPat("b0000110")
 
   // Accelerator configuration instructions. These are usually nonblocking.
   /** Set number of elements to operate over. */
