@@ -90,6 +90,8 @@ class BinOpDecode(implicit val p: Parameters) extends DecodeConstants {
     PLUS_RED-> List(Y, MEM_OPS_N, MEM_OPS_ZERO, FN_RED_ADD, Y, N),
     OR_RED-> List(Y, MEM_OPS_N, MEM_OPS_ZERO, FN_RED_OR, Y, N),
     AND_RED-> List(Y, MEM_OPS_N, MEM_OPS_ZERO, FN_RED_AND, Y, N),
+    MAX_RED-> List(Y, MEM_OPS_N, MEM_OPS_ZERO, FN_RED_MAX, Y, N),
+    MIN_RED-> List(Y, MEM_OPS_N, MEM_OPS_ZERO, FN_RED_MIN, Y, N),
     ADD_VEC-> List(Y, MEM_OPS_N, MEM_OPS_N, FN_VEC_ADD, Y, Y),
     PLUS_SCAN-> List(Y, MEM_OPS_N, MEM_OPS_N, FN_SCAN_ADD, Y, N))
 }
@@ -103,8 +105,8 @@ class BinOpDecode(implicit val p: Parameters) extends DecodeConstants {
   */
 class CtrlOpDecode(implicit val p: Parameters) extends DecodeConstants {
   val decode_table: Array[(BitPat, List[BitPat])] = Array(
-    SET_NUM_OPERANDS -> List(Y, MEM_OPS_ZERO, MEM_OPS_ZERO, FN_X, N),
-    SET_DEST_ADDR -> List(Y, MEM_OPS_ZERO, MEM_OPS_ZERO, FN_X, N))
+    SET_NUM_OPERANDS -> List(Y, MEM_OPS_ZERO, MEM_OPS_ZERO, FN_X, N, N),
+    SET_DEST_ADDR -> List(Y, MEM_OPS_ZERO, MEM_OPS_ZERO, FN_X, N, N))
 }
 
 /** A class holding a decode table for all possible RoCC instructions that are

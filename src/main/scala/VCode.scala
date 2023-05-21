@@ -100,8 +100,11 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
 
 
   /** Reduction Accum **/
+  val shift = (1 << p(XLen)) >> 1
   val redAccum0 = RegInit(0.U(p(XLen).W));
   val redAccum1 = RegInit(~(0.U(p(XLen).W)));
+  val redAccumMin = RegInit(~(0.U(p(XLen).W)) >> 1);
+  val redAccumMax = RegInit(1.U << (p(XLen) - 1));
   val scanAccum0 = RegInit(0.U(p(XLen).W));
 
   when(cmd_valid && !rocc_io.busy) {
@@ -157,8 +160,19 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
   ctrl_unit.io.rs2 := rs2 
   data_fetcher.io.amountData := ctrl_unit.io.amount_data
   data_fetcher.io.write := ctrl_unit.io.should_write
-  data_fetcher.io.rst_val := Mux(ctrl_sigs.alu_fn === 3.U, ~(0.U(p(XLen).W)), 0.U(p(XLen).W))
-  
+  data_fetcher.io.rst_val := 0.U(p(XLen).W)
+  //data_fetcher.io.rst_val := Mux(ctrl_sigs.alu_fn === 3.U, ~(0.U(p(XLen).W)), 0.U(p(XLen).W))
+  switch(ctrl_sigs.alu_fn){
+    is(3.U){
+      data_fetcher.io.rst_val := ~(0.U(p(XLen).W))
+    }
+    is(4.U){
+      data_fetcher.io.rst_val := 1.U << (p(XLen) - 1)
+    }
+    is(5.U){
+      data_fetcher.io.rst_val := ~(0.U(p(XLen).W)) >> 1
+    }
+  }
 
   when(data_fetcher.io.op_completed) {
     when(numFetchRuns === 0.U){
@@ -267,7 +281,24 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
             redAccum1, redAccum1 & alu.io.out(0).bits)
           }
         }
+        is(4.U){
+          redAccumMax := Mux(redAccumMax.asSInt > alu.io.out(0).bits.asSInt, redAccumMax, alu.io.out(0).bits)
+          alu_out := Mux(redAccumMax.asSInt > alu.io.out(0).bits.asSInt, redAccumMax, alu.io.out(0).bits)
+          if(p(VCodePrintfEnable)) {
+            printf("VCode\tALU \tAccum: 0x%x\nALU Out: 0x%x\n",
+            redAccumMax, alu.io.out(0).bits)
+          }
+        }
         is(5.U){
+          redAccumMin := Mux(redAccumMin.asSInt < alu.io.out(0).bits.asSInt, redAccumMin, alu.io.out(0).bits)
+          alu_out := Mux(redAccumMin.asSInt < alu.io.out(0).bits.asSInt, redAccumMin, alu.io.out(0).bits)
+          if(p(VCodePrintfEnable)) {
+            printf("VCode\tALU \tAccum: 0x%x\nALU Out: 0x%x\n",
+            redAccumMin, alu.io.out(0).bits)
+          }
+        }
+
+        is(7.U){
           if(p(VCodePrintfEnable)) {
             printf("VCode\tALU \tScan Accum: 0x%x\nALU Out: 0x%x\n",
             scanAccum0, scanAccum0 + alu.io.out(scanAccum0).bits)
@@ -329,6 +360,8 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
     redAccum1 := ~(0.U(p(XLen).W))
     scanAccum0 := 0.U
     numFetchRuns := 0.U
+    redAccumMax := 1.U << (p(XLen) - 1);
+    redAccumMin := (~(0.U(p(XLen).W)) >> 1);
   }
 
   when(response_required && response_ready) {

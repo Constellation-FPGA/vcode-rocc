@@ -18,8 +18,10 @@ object ALU {
   def FN_RED_ADD = BitPat(1.U(SZ_ALU_FN.W))
   def FN_RED_OR = BitPat(2.U(SZ_ALU_FN.W))
   def FN_RED_AND = BitPat(3.U(SZ_ALU_FN.W))
-  def FN_VEC_ADD = BitPat(4.U(SZ_ALU_FN.W))
-  def FN_SCAN_ADD = BitPat(5.U(SZ_ALU_FN.W))
+  def FN_RED_MAX = BitPat(4.U(SZ_ALU_FN.W))
+  def FN_RED_MIN = BitPat(5.U(SZ_ALU_FN.W))
+  def FN_VEC_ADD = BitPat(6.U(SZ_ALU_FN.W))
+  def FN_SCAN_ADD = BitPat(7.U(SZ_ALU_FN.W))
 }
 
 /** Implementation of an ALU.
@@ -66,6 +68,12 @@ class ALU(val xLen: Int, val batchSize: Int) extends Module {
       
     }
     is(4.U){
+      data_out(0) := io.in.reduceTree((a: UInt, b: UInt) => Mux(a.asSInt > b.asSInt, a, b))
+    }
+    is(5.U){
+      data_out(0) := io.in.reduceTree((a: UInt, b: UInt) => Mux(a.asSInt < b.asSInt, a, b))
+    }
+    is(6.U){
 
       when(!io.vec_first_round){
         for (i <- 0 until batchSize){
@@ -78,7 +86,7 @@ class ALU(val xLen: Int, val batchSize: Int) extends Module {
       }
 
     }
-    is(5.U){
+    is(7.U){
       for (i <- 0 until batchSize){
         data_out(i) := io.scan_accum + scan_tmp(i + 1)
       }

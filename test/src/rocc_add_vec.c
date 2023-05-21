@@ -14,7 +14,7 @@ int main() {
     ret = 0;
     ROCC_INSTRUCTION_S(0, 17, 0x40);  // Send "length" of vector
     ROCC_INSTRUCTION_S(0, &c, 0x41); // Send destination address
-    ROCC_INSTRUCTION_DSS(0, ret, &a, &b, 5); // Wait for result
+    ROCC_INSTRUCTION_DSS(0, ret, &a, &b, 7); // Wait for result
     int64_t expected = 0;
     for(int i = 0; i < 17; i++){
         if(c[i]!=a[i] + b[i]){
