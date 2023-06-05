@@ -98,14 +98,10 @@ class DCacheFetcher(val bufferEntries: Int)(implicit p: Parameters) extends Core
           }
         }
       }
-      vals(0.U) := io.rst_val
-      vals(1.U) := io.rst_val
-      vals(2.U) := io.rst_val
-      vals(3.U) := io.rst_val
-      vals(4.U) := io.rst_val
-      vals(5.U) := io.rst_val
-      vals(6.U) := io.rst_val
-      vals(7.U) := io.rst_val
+      
+      for (i <- 0 until bufferEntries){
+        vals(i) := io.rst_val
+      }
     }
     is(State.reading) {
       io.baseAddress.ready := false.B
@@ -117,10 +113,10 @@ class DCacheFetcher(val bufferEntries: Int)(implicit p: Parameters) extends Core
             vals(0.U), vals(1.U))
         }
         state := State.idle
-        io.fetched_data.bits(0.U) := vals(0.U); io.fetched_data.bits(1.U) := vals(1.U)
-        io.fetched_data.bits(2.U) := vals(2.U); io.fetched_data.bits(3.U) := vals(3.U)
-        io.fetched_data.bits(4.U) := vals(4.U); io.fetched_data.bits(5.U) := vals(5.U)
-        io.fetched_data.bits(6.U) := vals(6.U); io.fetched_data.bits(7.U) := vals(7.U)
+        for (i <- 0 until bufferEntries){
+          io.fetched_data.bits(i) := vals(i);
+        }
+
         op_completed := all_read_done
         io.fetched_data.valid := all_read_done
         amount_fetched := 0.U

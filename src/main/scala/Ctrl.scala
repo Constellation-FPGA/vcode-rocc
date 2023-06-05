@@ -76,7 +76,7 @@ class ControlUnit(val batchSize: Int)(implicit p: Parameters) extends Module {
       when ((OpCount - ((runsDone - 1.U) << logBatchSize.U)) <= batchSize.U){
         io.amount_data := OpCount - ((runsDone - 1.U) << logBatchSize.U)
       }.otherwise{
-        io.amount_data := 8.U
+        io.amount_data := batchSize.U
       }
     } .otherwise{
       io.amount_data := 1.U
@@ -89,7 +89,7 @@ class ControlUnit(val batchSize: Int)(implicit p: Parameters) extends Module {
       when ((OpCount - (runsDone << logBatchSize.U)) <= batchSize.U){
         io.amount_data := OpCount - (runsDone << logBatchSize.U)
       }.otherwise{
-        io.amount_data := 8.U
+        io.amount_data := batchSize.U
       }
     } .otherwise{
       io.amount_data := 1.U
