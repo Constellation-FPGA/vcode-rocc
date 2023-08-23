@@ -158,9 +158,8 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
     numFetchRuns := 0.U
   }
 
-  val addrToFetch = Mux(numFetchRuns === 0.U, rs1, rs2)
-  // FIXME: Should not need to rely on mem_op_completed boolean
-  when(ctrl_unit.io.should_fetch && !ctrl_unit.io.mem_op_completed && data_fetcher.io.baseAddress.ready) {
+  val addrToFetch = Mux(ctrl_unit.io.writeback_ready, destAddr,
+    Mux(numFetchRuns === 0.U, rs1, rs2))
     // Queue addrs and set valid bit
     data_fetcher.io.baseAddress.enq(addrToFetch)
     if(p(VCodePrintfEnable)) {
