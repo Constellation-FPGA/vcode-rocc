@@ -5,6 +5,10 @@ import chisel3.util._
 import chisel3.experimental.ChiselEnum
 import freechips.rocketchip.config.Parameters
 
+object SourceOperand extends ChiselEnum {
+  val none, rs1, rs2 = Value
+}
+
 class ControlUnit(implicit p: Parameters) extends Module {
   val io = IO(new Bundle {
     val ctrl_sigs = Input(new CtrlSigs())
