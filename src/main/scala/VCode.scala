@@ -135,32 +135,12 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
 
   val rs1 = Wire(Bits(p(XLen).W)); rs1 := rocc_cmd.rs1
   val rs2 = Wire(Bits(p(XLen).W)); rs2 := rocc_cmd.rs2
-
-  /* NOTE: numFetchRuns MUST be wide enough to represent the maximum number of
-   * memory operands to fetch! */
-  /* FIXME: numFetchRuns is a REALLY bad way to do this. The logic to re-run the
-   * the cache interaction module to fetch data should be in the ControlUnit. To
-   * do that, just add another state to the state machine in there (fetchOp1,
-   * fetchOp2, for instance). If you use numFetchRuns as it is now, it needs to
-   * be reset somehow.
-   */
-  val numFetchRuns = RegInit(0.U(NumOperatorOperands.SZ_MEM_OPS))
-  ctrl_unit.io.mem_op_completed := numFetchRuns === ctrl_unit.io.num_to_fetch
-  when(data_fetcher.io.op_completed) {
-    numFetchRuns := numFetchRuns + 1.U
-    if(p(VCodePrintfEnable)) {
-      printf("VCode\tCompleted %d fetch runs.\n", numFetchRuns)
-    }
-  }
-  /* FIXME: This is a gross, ugly, and bad way to reset. But it works for now.
-   * See the FIXME about numFetchRuns for why this is here and why it should be
-   * removed. */
-  when(!ctrl_unit.io.should_fetch && !ctrl_unit.io.writeback_ready) {
-    numFetchRuns := 0.U
-  }
+  // FIXME? Use 2 Mem banks, one for each operand vector?
 
   val addrToFetch = Mux(ctrl_unit.io.writeback_ready, destAddr,
-    Mux(numFetchRuns === 0.U, rs1, rs2))
+    Mux(ctrl_unit.io.sourceToFetch === SourceOperand.rs1, rs1, rs2))
+  // FIXME: Should not need to rely on op_completed boolean
+  when(!data_fetcher.io.op_completed && data_fetcher.io.baseAddress.ready) {
     // Queue addrs and set valid bit
     data_fetcher.io.baseAddress.enq(addrToFetch)
     if(p(VCodePrintfEnable)) {

@@ -17,6 +17,7 @@ class ControlUnit(implicit p: Parameters) extends Module {
     val accel_ready = Output(Bool())
     // TODO: Rework these booleans to an Enum which can be "exported"
     val should_fetch = Output(Bool())
+    val sourceToFetch = Output(SourceOperand())
     val num_to_fetch = Output(UInt())
     val mem_op_completed = Input(Bool())
     val should_execute = Output(Bool())
@@ -46,6 +47,9 @@ class ControlUnit(implicit p: Parameters) extends Module {
   io.should_fetch := (accel_state === State.fetch1 || accel_state === State.fetch2)
   io.num_to_fetch := Mux(accel_state === State.fetch1 || accel_state === State.fetch2,
     io.ctrl_sigs.num_mem_fetches, 0.U)
+  io.sourceToFetch := Mux(accel_state === State.fetch1, SourceOperand.rs1,
+    Mux(accel_state === State.fetch2, SourceOperand.rs2,
+      SourceOperand.none))
 
   io.should_execute := (accel_state === State.exe)
 
