@@ -110,7 +110,7 @@ class DCacheFetcher(val bufferEntries: Int)(implicit p: Parameters) extends Core
         }
 
         // We have a response to handle!
-        when(io.resp.valid && io.resp.bits.has_data) {
+        when(io.resp.valid) {
           if(p(VCodePrintfEnable)) {
             printf("DFetch\tGot cache response for tag 0x%x!\n", io.resp.bits.tag)
             printf("DFetch\tTag 0x%x data: 0x%x\n", io.resp.bits.tag, io.resp.bits.data)
