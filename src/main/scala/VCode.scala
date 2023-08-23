@@ -170,7 +170,7 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
   } .otherwise {
     data_fetcher.io.baseAddress.noenq()
   }
-  data_fetcher.io.start := ctrl_unit.io.should_fetch
+  data_fetcher.io.start := ctrl_unit.io.should_fetch || ctrl_unit.io.writeback_ready
   data_fetcher.io.amountData := numOperands
 
   val data1 = RegInit(0.U(p(XLen).W))
