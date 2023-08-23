@@ -122,6 +122,7 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
   val data_fetcher = Module(new DCacheFetcher(2))
   data_fetcher.io.ctrl_sigs := ctrl_sigs
   data_fetcher.io.mstatus := status
+  ctrl_unit.io.mem_op_completed := data_fetcher.io.op_completed
 
   when(ctrl_unit.io.writeback_ready) {
     data_fetcher.io.opToPerform := MemoryOperation.write
