@@ -231,7 +231,7 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
    * wire here is a non-issue because of it. */
   val response = Wire(new RoCCResponse)
   response.rd := returnReg
-  response.data := alu_out
+  response.data := 0.U // 0 for success. Could be number of elements processed too.
   io.resp.bits := response
   io.resp.valid := response_required && response_ready || exception
   when(rocc_io.resp.fire) {

@@ -6,12 +6,15 @@
 // int64_t a[NUM_ELEMENTS],b[NUM_ELEMENTS],c[NUM_ELEMENTS];
 // ROCC_INSTRUCTION_S(0, NUM_ELEMENTS, 0x40);
 int main() {
-    int64_t a,b,c;
+    int64_t a,b,c,status;
     a = 1;
     b = 2;
     ROCC_INSTRUCTION_S(0, 1, 0x40);  // Send "length" of vector
     ROCC_INSTRUCTION_S(0, &c, 0x41); // Send destination address
-    ROCC_INSTRUCTION_DSS(0, c, &a, &b, 1); // Wait for result
+    // DSS used to block the main core.
+    ROCC_INSTRUCTION_DSS(0, status, &a, &b, 1); // Wait for result
+    /* The value put back into the rd register is IMMEDIATELY stored back into
+     * memory! */
     int64_t expected = a + b;
-    return (expected == c) ? 0 : 1;
+    return ((status == 0) && (expected == c)) ? 0 : 1;
 }
