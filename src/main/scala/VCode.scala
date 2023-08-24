@@ -184,14 +184,17 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
   ctrl_unit.io.execution_completed := alu.io.out.valid
 
   // FIXME: Parameterize the 2 (must match bufferEntry passed to DCacheFetcher)
+  // NOTE: dmem_data is currently unused!
   val dmem_data = Reg(Vec(2, Bits(p(XLen).W))) // Data to SEND to memory
   when(alu.io.out.valid) {
     /* FIXME: This will yield the wrong value, because of timing problems.
      * This is off by 1 cycle, as alu_out is updated in the same cycle as this
      * gets run right now. */
-    dmem_data(0) := "h_FEEDBEAD_DEADBEEF".U
+    dmem_data(0) := alu.io.out.bits
   }
-  data_fetcher.io.dataToWrite.bits := dmem_data
+  // Need 2 elements in VecInit because DCacheFetcher instantiated with buffer
+  // of length 2.
+  data_fetcher.io.dataToWrite.bits := VecInit(alu.io.out.bits, 0.U)
   data_fetcher.io.dataToWrite.valid := ctrl_unit.io.writeback_ready
 
   val response_ready = Wire(Bool())
