@@ -18,6 +18,7 @@ class ControlUnit(implicit p: Parameters) extends Module {
     val should_execute = Output(Bool())
     val execution_completed = Input(Bool())
     val writeback_ready = Output(Bool())
+    // Writeback completion is marked by mem_op_completed
     val response_ready = Output(Bool())
     val response_completed = Input(Bool())
   })
