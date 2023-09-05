@@ -155,21 +155,21 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
   data_fetcher.io.start := ctrl_unit.io.should_fetch || ctrl_unit.io.writeback_ready
   data_fetcher.io.amountData := numOperands
 
-  val data1 = RegInit(0.U(p(XLen).W))
-  val data2 = RegInit(0.U(p(XLen).W))
+  val data1 = RegInit(VecInit.fill(batchSize)(0.U(p(XLen).W)))
+  val data2 = RegInit(VecInit.fill(batchSize)(0.U(p(XLen).W)))
 
   /***************
    * EXECUTE
    **************/
-  val alu = Module(new ALU(p(XLen)))
-  val alu_out = Reg(UInt())
+  val alu = Module(new ALU(p(XLen))(batchSize))
+  val alu_out = RegInit(VecInit.fill(batchSize)(0.U(p(XLen).W)))
   val alu_cout = Wire(UInt())
   // Hook up the ALU to VCode signals
   alu.io.fn := ctrl_sigs.alu_fn
   // FIXME: Only use rs1/rs2 if xs1/xs2 =1, respectively.
   when(data_fetcher.io.fetched_data.valid) {
-    data1 := data_fetcher.io.fetched_data.bits(0)
-    data2 := data_fetcher.io.fetched_data.bits(1)
+    data1 := data_fetcher.io.fetched_data.bits
+    data2 := data_fetcher.io.fetched_data.bits
   }
   alu.io.in1 := data1
   alu.io.in2 := data2
@@ -178,7 +178,7 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
     alu_out := alu.io.out.bits
     if(p(VCodePrintfEnable)) {
       printf("VCode\tALU in1: 0x%x\tin2: 0x%x\tout: 0x%x\nALU finished executing! Output bits now valid!\n",
-      alu.io.in1, alu.io.in2, alu.io.out.bits)
+      alu.io.in1(0), alu.io.in2(0), alu.io.out.bits(0))
     }
   }
   alu_cout := alu.io.cout
@@ -190,11 +190,11 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
     /* FIXME: This will yield the wrong value, because of timing problems.
      * This is off by 1 cycle, as alu_out is updated in the same cycle as this
      * gets run right now. */
-    dmem_data(0) := alu.io.out.bits
+    dmem_data := alu.io.out.bits
   }
   // Need 2 elements in VecInit because DCacheFetcher instantiated with buffer
   // of length 2.
-  data_fetcher.io.dataToWrite.bits := VecInit(alu.io.out.bits, 0.U)
+  data_fetcher.io.dataToWrite.bits := alu.io.out.bits
   data_fetcher.io.dataToWrite.valid := ctrl_unit.io.writeback_ready
 
   val response_ready = Wire(Bool())

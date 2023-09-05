@@ -20,14 +20,14 @@ object ALU {
 /** Implementation of an ALU.
   * @param p Implicit parameter passed by the build system.
   */
-class ALU(val xLen: Int) extends Module {
+class ALU(val xLen: Int)(val batchSize: Int) extends Module {
   import ALU._ // Import ALU object, so we do not have to fully-qualify names
   val io = IO(new Bundle {
     val fn = Input(Bits(SZ_ALU_FN.W))
     // The two register content values passed over the RoCCCommand are xLen wide
-    val in1 = Input(UInt(xLen.W))
-    val in2 = Input(UInt(xLen.W))
-    val out = Output(Valid(UInt(xLen.W)))
+    val in1 = Input(Vec(batchSize, UInt(xLen.W)))
+    val in2 = Input(Vec(batchSize, UInt(xLen.W)))
+    val out = Output(Valid(Vec(batchSize, UInt(xLen.W))))
     val cout = Output(UInt(xLen.W))
     val execute = Input(Bool())
   })
@@ -35,9 +35,9 @@ class ALU(val xLen: Int) extends Module {
   io.cout := 0.U
   io.out.valid := false.B
 
-  val data_out = RegInit(0.U(xLen.W))
+  val data_out = RegInit(VecInit.fill(batchSize)(0.U(xLen.W)))
   // ADD/SUB
-  data_out := io.in1 + io.in2
+  data_out(0) := io.in1(0) + io.in2(0)
 
   io.out.bits := data_out
 
