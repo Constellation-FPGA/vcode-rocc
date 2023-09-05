@@ -136,7 +136,6 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
 
   val rs1 = Wire(Bits(p(XLen).W)); rs1 := rocc_cmd.rs1
   val rs2 = Wire(Bits(p(XLen).W)); rs2 := rocc_cmd.rs2
-  // FIXME? Use 2 Mem banks, one for each operand vector?
 
   val addrToFetch = Mux(ctrl_unit.io.writeback_ready, destAddr,
     Mux(ctrl_unit.io.sourceToFetch === SourceOperand.rs1, rs1, rs2))
@@ -157,6 +156,17 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
 
   val data1 = RegInit(VecInit.fill(batchSize)(0.U(p(XLen).W)))
   val data2 = RegInit(VecInit.fill(batchSize)(0.U(p(XLen).W)))
+  // FIXME: Only use rs1/rs2 if xs1/xs2 =1, respectively.
+  when(data_fetcher.io.fetched_data.valid) {
+    switch(ctrl_unit.io.sourceToFetch) {
+      is(SourceOperand.rs1) {
+        data1 := data_fetcher.io.fetched_data.bits
+      }
+      is(SourceOperand.rs2) {
+        data2 := data_fetcher.io.fetched_data.bits
+      }
+    }
+  }
 
   /***************
    * EXECUTE
@@ -166,11 +176,6 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
   val alu_cout = Wire(UInt())
   // Hook up the ALU to VCode signals
   alu.io.fn := ctrl_sigs.alu_fn
-  // FIXME: Only use rs1/rs2 if xs1/xs2 =1, respectively.
-  when(data_fetcher.io.fetched_data.valid) {
-    data1 := data_fetcher.io.fetched_data.bits
-    data2 := data_fetcher.io.fetched_data.bits
-  }
   alu.io.in1 := data1
   alu.io.in2 := data2
   alu.io.execute := ctrl_unit.io.should_execute
