@@ -61,6 +61,7 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
    * CONTROL UNIT
    * Control unit connects ALU & Data fetcher together, properly sequencing them
    **************/
+  val batchSize = 2
   val ctrl_unit = Module(new ControlUnit())
   // Accelerator control unit controls when we are ready to accept the next
   // instruction from the RoCC command queue. Cannot accept another command
@@ -119,7 +120,7 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
    * Most instructions pass pointers to vectors, so we need to fetch that before
    * operating on the data.
    **************/
-  val data_fetcher = Module(new DCacheFetcher(2))
+  val data_fetcher = Module(new DCacheFetcher(batchSize))
   data_fetcher.io.ctrl_sigs := ctrl_sigs
   data_fetcher.io.mstatus := status
   ctrl_unit.io.mem_op_completed := data_fetcher.io.op_completed
@@ -183,9 +184,8 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
   alu_cout := alu.io.cout
   ctrl_unit.io.execution_completed := alu.io.out.valid
 
-  // FIXME: Parameterize the 2 (must match bufferEntry passed to DCacheFetcher)
   // NOTE: dmem_data is currently unused!
-  val dmem_data = Reg(Vec(2, Bits(p(XLen).W))) // Data to SEND to memory
+  val dmem_data = Reg(Vec(batchSize, Bits(p(XLen).W))) // Data to SEND to memory
   when(alu.io.out.valid) {
     /* FIXME: This will yield the wrong value, because of timing problems.
      * This is off by 1 cycle, as alu_out is updated in the same cycle as this
