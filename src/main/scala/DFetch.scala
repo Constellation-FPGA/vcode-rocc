@@ -156,7 +156,7 @@ class DCacheFetcher(val bufferEntries: Int)(implicit p: Parameters) extends Core
           io.req.bits.signed := false.B
           switch(io.opToPerform) {
             is(MemoryOperation.read) {
-              io.req.bits.data := 0.U
+              io.req.bits.data := 0.U // Does not matter what we set data to.
               io.req.bits.cmd := M_XRD
             }
             is(MemoryOperation.write) {
