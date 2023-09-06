@@ -77,11 +77,12 @@ class DCacheFetcher(val bufferEntries: Int)(implicit p: Parameters) extends Core
   val all_done = Wire(Bool()); all_done := !(wait_for_resp.reduce(_ || _))
 
   io.op_completed := false.B
+  // We can accept a new base address when we are idle.
+  io.baseAddress.ready := (state === State.idle)
 
   switch(state) {
     is(State.idle) {
       amount_fetched := 0.U; reqs_sent := 0.U
-      io.baseAddress.ready := io.start
       when(io.start && io.baseAddress.valid) {
         state := State.running
         if(p(VCodePrintfEnable)) {
@@ -90,7 +91,6 @@ class DCacheFetcher(val bufferEntries: Int)(implicit p: Parameters) extends Core
       }
     }
     is(State.running) {
-      io.baseAddress.ready := false.B
       when(amount_fetched >= io.amountData) {
         // We have fetched everything we needed to fetch. We are done.
         if(p(VCodePrintfEnable)) {
