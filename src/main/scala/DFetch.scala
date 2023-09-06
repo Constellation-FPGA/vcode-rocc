@@ -136,14 +136,11 @@ class DCacheFetcher(val bufferEntries: Int)(implicit p: Parameters) extends Core
 
         // We should submit a memory request!
         when(io.start) {
-          val addr_to_request = Wire(Bits(p(XLen).W))
-          addr_to_request := io.baseAddress.bits
+          val addr_to_request = io.baseAddress.bits + (reqs_sent << 3)
+          val tag = reqs_sent
+          // I am not a fan of the comparator here... But c'est la vie.
+          val should_send_request = io.start && !wait_for_resp(tag) && (reqs_sent < io.amountData)
 
-          // log2Up(n) finds # bits needed to represent n states
-          val tag = addr_to_request(log2Up(bufferEntries)+2, 3)
-          // Bit slicing is 0-indexed from the right and has [hi-idx, lo-idx) semantics
-          // Skip lowest 3 bits because all data is 8-byte aligned (int64, doubles, etc.)
-          val should_send_request = io.start && !wait_for_resp(tag)
           if(p(VCodePrintfEnable)) {
             printf("DFetch\tstart: %d\tbaseAddress_valid: %d\n",
               io.start, io.baseAddress.valid)
@@ -164,9 +161,9 @@ class DCacheFetcher(val bufferEntries: Int)(implicit p: Parameters) extends Core
             }
             is(MemoryOperation.write) {
               if(p(VCodePrintfEnable)) {
-                printf("DFetch\tTag 0x%x will WRITE 0x%x\n", tag, io.dataToWrite.bits(0))
+                printf("DFetch\tTag 0x%x will WRITE 0x%x\n", tag, io.dataToWrite.bits(tag))
               }
-              io.req.bits.data := io.dataToWrite.bits(0)
+              io.req.bits.data := io.dataToWrite.bits(tag)
               io.req.bits.cmd := M_XWR
             }
           }
