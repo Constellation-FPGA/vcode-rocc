@@ -143,6 +143,7 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
   when(!data_fetcher.io.op_completed && data_fetcher.io.baseAddress.ready) {
     // Queue addrs and set valid bit
     data_fetcher.io.baseAddress.enq(addrToFetch)
+    // FIXME: This print is very noisy. Remove me?
     if(p(VCodePrintfEnable)) {
       printf("VCode\tEnqueued addresses to data fetcher\n")
       printf("\tBase Address: 0x%x\tvalid? %d\n",
