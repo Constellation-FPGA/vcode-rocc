@@ -76,7 +76,8 @@ class DCacheFetcher(val bufferEntries: Int)(implicit p: Parameters) extends Core
   val wait_for_resp = RegInit(VecInit.fill(bufferEntries)(false.B))
   val all_done = Wire(Bool()); all_done := !(wait_for_resp.reduce(_ || _))
 
-  io.op_completed := false.B
+  // Operation completed when running & requests fulfilled >= amount of data requested
+  io.op_completed := (state === State.running) && (amount_fetched >= io.amountData)
   // We can accept a new base address when we are idle.
   io.baseAddress.ready := (state === State.idle)
 
@@ -101,7 +102,6 @@ class DCacheFetcher(val bufferEntries: Int)(implicit p: Parameters) extends Core
         state := State.idle
         io.fetched_data.bits(0.U) := vals(0.U); io.fetched_data.bits(1.U) := vals(1.U)
         io.fetched_data.valid := all_done
-        io.op_completed := true.B
         amount_fetched := 0.U; reqs_sent := 0.U
       } .otherwise {
         // We still have a request to make. We may still have outstanding responses too.
