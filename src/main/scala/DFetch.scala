@@ -80,7 +80,7 @@ class DCacheFetcher(val bufferEntries: Int)(implicit p: Parameters) extends Core
 
   switch(state) {
     is(State.idle) {
-      amount_fetched := 0.U
+      amount_fetched := 0.U; reqs_sent := 0.U
       io.baseAddress.ready := io.start
       when(io.start && io.baseAddress.valid) {
         state := State.running
@@ -102,7 +102,7 @@ class DCacheFetcher(val bufferEntries: Int)(implicit p: Parameters) extends Core
         io.fetched_data.bits(0.U) := vals(0.U); io.fetched_data.bits(1.U) := vals(1.U)
         io.fetched_data.valid := all_done
         io.op_completed := true.B
-        amount_fetched := 0.U
+        amount_fetched := 0.U; reqs_sent := 0.U
       } .otherwise {
         // We still have a request to make. We may still have outstanding responses too.
         state := State.running
