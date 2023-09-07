@@ -37,7 +37,8 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
 
   val data_out = RegInit(VecInit.fill(batchSize)(0.U(xLen.W)))
   // ADD/SUB
-  data_out(0) := io.in1(0) + io.in2(0)
+  // This zip->map chain feels a little gross, but it does what we want.
+  data_out := io.in1.zip(io.in2).map{case (l, r) => l+r}
 
   io.out.bits := data_out
 
