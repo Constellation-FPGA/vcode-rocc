@@ -60,6 +60,11 @@ class DCacheFetcher(val bufferEntries: Int)(implicit p: Parameters) extends Core
     val resp = Input(Valid(new HellaCacheResp))
   })
 
+  /* The amount of data this module can handle in one round of fetching must
+   * always be less than the maximum size of this module's internal buffer. */
+  assert(io.amountData <= bufferEntries.U,
+    "DCacheFetcher: Amount of data to handle > internal buffer!")
+
   object State extends ChiselEnum {
     val idle, running = Value
   }
