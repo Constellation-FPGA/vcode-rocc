@@ -4,6 +4,7 @@ import chisel3._
 import chisel3.util._
 import chisel3.experimental.ChiselEnum
 import freechips.rocketchip.config.Parameters
+import freechips.rocketchip.tile.XLen
 
 object SourceOperand extends ChiselEnum {
   val none, rs1, rs2 = Value
