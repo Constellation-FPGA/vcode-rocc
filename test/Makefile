@@ -1,4 +1,4 @@
-SHELL=/bin/bash
+SHELL=bash
 
 ifndef RISCV
 $(error RISCV is unset. You must set RISCV yourself, or through the Chipyard auto-generated env file)
