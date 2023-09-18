@@ -9,7 +9,7 @@ object SourceOperand extends ChiselEnum {
   val none, rs1, rs2 = Value
 }
 
-class ControlUnit(implicit p: Parameters) extends Module {
+class ControlUnit(val batchSize: Int)(implicit p: Parameters) extends Module {
   val io = IO(new Bundle {
     val ctrl_sigs = Input(new CtrlSigs())
     val cmd_valid = Input(Bool())
