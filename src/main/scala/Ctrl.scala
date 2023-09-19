@@ -18,6 +18,9 @@ class ControlUnit(val batchSize: Int)(implicit p: Parameters) extends Module {
     val accel_ready = Output(Bool())
     // TODO: Rework these booleans to an Enum which can be "exported"
     val should_fetch = Output(Bool())
+    // FIXME: rs1Fetch is hacky work-around to distinguish rs1 vs rs2 fetching
+    // This would be fixed by the enum export method!
+    val rs1Fetch = Output(Bool())
     val baseAddress = Output(UInt(p(XLen).W))
     val num_to_fetch = Output(UInt(p(XLen).W))
     val mem_op_completed = Input(Bool())
@@ -48,6 +51,7 @@ class ControlUnit(val batchSize: Int)(implicit p: Parameters) extends Module {
   io.should_fetch := (accel_state === State.fetch1 || accel_state === State.fetch2)
   io.num_to_fetch := Mux(accel_state === State.fetch1 || accel_state === State.fetch2,
     io.ctrl_sigs.num_mem_fetches, 0.U)
+  io.rs1Fetch := accel_state === State.fetch1
 
   io.baseAddress := Mux(accel_state === State.write, destAddr,
     Mux(accel_state === State.fetch1, rs1, rs2))
