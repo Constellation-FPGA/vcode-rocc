@@ -137,8 +137,7 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
   val rs1 = Wire(Bits(p(XLen).W)); rs1 := rocc_cmd.rs1
   val rs2 = Wire(Bits(p(XLen).W)); rs2 := rocc_cmd.rs2
 
-  val addrToFetch = Mux(ctrl_unit.io.writeback_ready, destAddr,
-    Mux(ctrl_unit.io.sourceToFetch === SourceOperand.rs1, rs1, rs2))
+  val addrToFetch = ctrl_unit.io.baseAddress
   // FIXME: Should not need to rely on op_completed boolean
   when(!data_fetcher.io.op_completed && data_fetcher.io.baseAddress.ready) {
     // Queue addrs and set valid bit
