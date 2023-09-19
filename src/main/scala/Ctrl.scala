@@ -19,7 +19,7 @@ class ControlUnit(val batchSize: Int)(implicit p: Parameters) extends Module {
     // TODO: Rework these booleans to an Enum which can be "exported"
     val should_fetch = Output(Bool())
     val sourceToFetch = Output(SourceOperand())
-    val num_to_fetch = Output(UInt())
+    val num_to_fetch = Output(UInt(p(XLen).W))
     val mem_op_completed = Input(Bool())
     val should_execute = Output(Bool())
     val execution_completed = Input(Bool())
