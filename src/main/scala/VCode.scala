@@ -61,7 +61,7 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
    * CONTROL UNIT
    * Control unit connects ALU & Data fetcher together, properly sequencing them
    **************/
-  val batchSize = 2
+  val batchSize = 2 // FIXME: batch size is something that should be set by the config!
   val ctrl_unit = Module(new ControlUnit(batchSize))
   // Accelerator control unit controls when we are ready to accept the next
   // instruction from the RoCC command queue. Cannot accept another command
