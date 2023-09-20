@@ -150,8 +150,9 @@ class ControlUnit(val batchSize: Int)(implicit p: Parameters) extends Module {
       }
       when(io.mem_op_completed) {
         // Decrement our "counter"
-        operandsToGo := operandsToGo - batchSize.U
-        when(operandsToGo > 0.U) {
+        val remainingOperands = Mux(operandsToGo <= batchSize.U, 0.U, operandsToGo - batchSize.U)
+        operandsToGo := remainingOperands
+        when(remainingOperands > 0.U) {
           // We have not yet completed the vector, go back.
           accel_state := State.fetch1
         } .otherwise {
