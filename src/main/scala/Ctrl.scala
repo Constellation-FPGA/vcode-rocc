@@ -44,6 +44,7 @@ class ControlUnit(val batchSize: Int)(implicit p: Parameters) extends Module {
   // TODO: Figure out better way to declare these configuration registers
   // Perhaps a separate module that handles this? class ConfigBank extends Module {}
   val numOperands = RegInit(0.U(p(XLen).W))
+  val operandsToGo = RegInit(0.U(p(XLen).W))
 
   val rs1 = RegInit(0.U(p(XLen).W))
   val rs2 = RegInit(0.U(p(XLen).W))
@@ -59,8 +60,7 @@ class ControlUnit(val batchSize: Int)(implicit p: Parameters) extends Module {
 
   // We should fetch when we are in fetching data state
   io.should_fetch := (accel_state === State.fetch1 || accel_state === State.fetch2)
-  io.num_to_fetch := Mux(accel_state === State.fetch1 || accel_state === State.fetch2,
-    io.ctrl_sigs.num_mem_fetches, 0.U)
+  io.num_to_fetch := Mux(operandsToGo >= batchSize.U, batchSize.U, operandsToGo)
   io.rs1Fetch := accel_state === State.fetch1
 
   io.baseAddress := Mux(accel_state === State.write, destAddr,
@@ -79,6 +79,7 @@ class ControlUnit(val batchSize: Int)(implicit p: Parameters) extends Module {
   when(io.cmd_valid && io.ctrl_sigs.legal &&
        io.roccCmd.inst.funct === Instructions.SET_NUM_OPERANDS && io.roccCmd.inst.xs1) {
     numOperands := io.roccCmd.rs1
+    operandsToGo := io.roccCmd.rs1
     if(p(VCodePrintfEnable)) {
       printf("Config\tSet numOperands to 0x%x\n", io.roccCmd.rs1)
     }
@@ -148,9 +149,17 @@ class ControlUnit(val batchSize: Int)(implicit p: Parameters) extends Module {
         printf("Ctrl\tExecution done. Writeback results\n")
       }
       when(io.mem_op_completed) {
-        accel_state := State.respond
-        if(p(VCodePrintfEnable)) {
-          printf("Ctrl\tWriteback completed. Accelerator must respond to main core\n")
+        // Decrement our "counter"
+        operandsToGo := operandsToGo - batchSize.U
+        when(operandsToGo > 0.U) {
+          // We have not yet completed the vector, go back.
+          accel_state := State.fetch1
+        } .otherwise {
+          // We have finished processing the vector. Move onwards.
+          accel_state := State.respond
+          if(p(VCodePrintfEnable)) {
+            printf("Ctrl\tWriteback completed. Accelerator must respond to main core\n")
+          }
         }
       }
     }
