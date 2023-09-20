@@ -4,7 +4,7 @@ import chisel3._
 import chisel3.util._
 import chisel3.experimental.ChiselEnum
 import freechips.rocketchip.config.Parameters
-import freechips.rocketchip.tile.XLen
+import freechips.rocketchip.tile.{XLen, RoCCCommand}
 
 object SourceOperand extends ChiselEnum {
   val none, rs1, rs2 = Value
@@ -12,6 +12,7 @@ object SourceOperand extends ChiselEnum {
 
 class ControlUnit(val batchSize: Int)(implicit p: Parameters) extends Module {
   val io = IO(new Bundle {
+    val roccCmd = Input(new RoCCCommand())
     val ctrl_sigs = Input(new CtrlSigs())
     val cmd_valid = Input(Bool())
     val busy = Output(Bool())
@@ -39,6 +40,15 @@ class ControlUnit(val batchSize: Int)(implicit p: Parameters) extends Module {
   }
   val accel_state = RegInit(State.idle) // Reset to idle state
 
+  // Configuration registers. Set by set-up instructions
+  // TODO: Figure out better way to declare these configuration registers
+  // Perhaps a separate module that handles this? class ConfigBank extends Module {}
+  val numOperands = RegInit(0.U(p(XLen).W))
+
+  val rs1 = RegInit(0.U(p(XLen).W))
+  val rs2 = RegInit(0.U(p(XLen).W))
+  val destAddr = RegInit(0.U(p(XLen).W))
+
   // The accelerator is ready to execute if it is in the idle state
   io.accel_ready := (accel_state === State.idle)
 
@@ -62,10 +72,29 @@ class ControlUnit(val batchSize: Int)(implicit p: Parameters) extends Module {
 
   io.response_ready := (accel_state === State.respond)
 
+  // TODO: Simplify the use of non-blocking assignments to set up the accelerator
+  when(io.cmd_valid && io.ctrl_sigs.legal &&
+       io.roccCmd.inst.funct === Instructions.SET_NUM_OPERANDS && io.roccCmd.inst.xs1) {
+    numOperands := io.roccCmd.rs1
+    if(p(VCodePrintfEnable)) {
+      printf("Config\tSet numOperands to 0x%x\n", io.roccCmd.rs1)
+    }
+  }
+
+  when(io.cmd_valid && io.ctrl_sigs.legal &&
+       io.roccCmd.inst.funct === Instructions.SET_DEST_ADDR && io.roccCmd.inst.xs1) {
+    destAddr := io.roccCmd.rs1
+    if(p(VCodePrintfEnable)) {
+      printf("Config\tSet destAddr to 0x%x\n", io.roccCmd.rs1)
+    }
+  }
+
   switch(accel_state) {
     is(State.idle) {
       when(io.cmd_valid && io.ctrl_sigs.legal && io.ctrl_sigs.is_mem_op) {
         accel_state := State.fetch1
+        // If we leave idle, we should grab the source addresses
+        rs1 := io.roccCmd.rs1; rs2 := io.roccCmd.rs2
         if(p(VCodePrintfEnable)) {
           printf("Ctrl\tMoving from idle to fetch1 state\n")
         }
