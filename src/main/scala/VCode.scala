@@ -122,10 +122,10 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
 
   val addrToFetch = ctrl_unit.io.baseAddress
   // FIXME: Should not need to rely on op_completed boolean
-  when(!data_fetcher.io.op_completed && data_fetcher.io.baseAddress.ready) {
+  when((ctrl_unit.io.should_fetch || ctrl_unit.io.writeback_ready) &&
+    !data_fetcher.io.op_completed && data_fetcher.io.baseAddress.ready) {
     // Queue addrs and set valid bit
     data_fetcher.io.baseAddress.enq(addrToFetch)
-    // FIXME: This print is very noisy. Remove me?
     if(p(VCodePrintfEnable)) {
       printf("VCode\tEnqueued addresses to data fetcher\n")
       printf("\tBase Address: 0x%x\tvalid? %d\n",
