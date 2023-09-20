@@ -49,6 +49,10 @@ class ControlUnit(val batchSize: Int)(implicit p: Parameters) extends Module {
   val rs1 = RegInit(0.U(p(XLen).W))
   val rs2 = RegInit(0.U(p(XLen).W))
   val destAddr = RegInit(0.U(p(XLen).W))
+  val currentRs1 = RegInit(0.U(p(XLen).W))
+  val currentRs2 = RegInit(0.U(p(XLen).W))
+  val currentDestAddr = RegInit(0.U(p(XLen).W))
+
 
   // The accelerator is ready to execute if it is in the idle state
   io.accel_ready := (accel_state === State.idle)
@@ -63,8 +67,8 @@ class ControlUnit(val batchSize: Int)(implicit p: Parameters) extends Module {
   io.num_to_fetch := Mux(operandsToGo >= batchSize.U, batchSize.U, operandsToGo)
   io.rs1Fetch := accel_state === State.fetch1
 
-  io.baseAddress := Mux(accel_state === State.write, destAddr,
-    Mux(accel_state === State.fetch1, rs1, rs2))
+  io.baseAddress := Mux(accel_state === State.write, currentDestAddr,
+    Mux(accel_state === State.fetch1, currentRs1, currentRs2))
 
   io.should_execute := (accel_state === State.exe)
 
@@ -88,6 +92,7 @@ class ControlUnit(val batchSize: Int)(implicit p: Parameters) extends Module {
   when(io.cmd_valid && io.ctrl_sigs.legal &&
        io.roccCmd.inst.funct === Instructions.SET_DEST_ADDR && io.roccCmd.inst.xs1) {
     destAddr := io.roccCmd.rs1
+    currentDestAddr := io.roccCmd.rs1
     if(p(VCodePrintfEnable)) {
       printf("Config\tSet destAddr to 0x%x\n", io.roccCmd.rs1)
     }
@@ -99,6 +104,7 @@ class ControlUnit(val batchSize: Int)(implicit p: Parameters) extends Module {
         accel_state := State.fetch1
         // If we leave idle, we should grab the source addresses
         rs1 := io.roccCmd.rs1; rs2 := io.roccCmd.rs2
+        currentRs1 := io.roccCmd.rs1; currentRs2 := io.roccCmd.rs2
         if(p(VCodePrintfEnable)) {
           printf("Ctrl\tMoving from idle to fetch1 state\n")
         }
