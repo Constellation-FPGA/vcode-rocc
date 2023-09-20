@@ -73,6 +73,9 @@ class ControlUnit(val batchSize: Int)(implicit p: Parameters) extends Module {
   io.response_ready := (accel_state === State.respond)
 
   // TODO: Simplify the use of non-blocking assignments to set up the accelerator
+  /* NOTE: Configuration commands do NOT change the accelerator's control unit's
+   * state! This is because the control unit's FSM is meant to organize the
+   * execution of vector operations. Config commands can be handled in 1 cycle. */
   when(io.cmd_valid && io.ctrl_sigs.legal &&
        io.roccCmd.inst.funct === Instructions.SET_NUM_OPERANDS && io.roccCmd.inst.xs1) {
     numOperands := io.roccCmd.rs1
