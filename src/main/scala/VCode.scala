@@ -70,6 +70,7 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
   ctrl_unit.io.cmd_valid := cmd_valid
   // RoCC must assert RoCCCoreIO.busy line high when memory actions happening
   rocc_io.busy := ctrl_unit.io.busy
+  ctrl_unit.io.roccCmd := rocc_cmd
   ctrl_unit.io.ctrl_sigs := ctrl_sigs
   ctrl_unit.io.response_completed := rocc_io.resp.fire
 
@@ -95,24 +96,6 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
         rocc_cmd.inst.funct, rocc_cmd.rs1, rocc_cmd.rs2, rocc_cmd.inst.xd)
       printf("The instruction legal: %d\n", ctrl_sigs.legal)
     }
-  }
-
-  val numOperands = RegInit(0.U(p(XLen).W))
-  when(cmd_valid && rocc_cmd.inst.funct === Instructions.SET_NUM_OPERANDS && rocc_cmd.inst.xs1) {
-    numOperands := rocc_cmd.rs1
-    if(p(VCodePrintfEnable)) {
-      printf("VCode\tSet numOperands to 0x%x\n", rocc_cmd.rs1)
-    }
-    cmd_valid := false.B
-  }
-
-  val destAddr = RegInit(0.U(p(XLen).W))
-  when(cmd_valid && rocc_cmd.inst.funct === Instructions.SET_DEST_ADDR && rocc_cmd.inst.xs1) {
-    destAddr := rocc_cmd.rs1
-    if(p(VCodePrintfEnable)) {
-      printf("VCode\tSet destAddr to 0x%x\n", rocc_cmd.rs1)
-    }
-    cmd_valid := false.B
   }
 
   /***************
@@ -152,7 +135,7 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
     data_fetcher.io.baseAddress.noenq()
   }
   data_fetcher.io.start := ctrl_unit.io.should_fetch || ctrl_unit.io.writeback_ready
-  data_fetcher.io.amountData := numOperands
+  data_fetcher.io.amountData := ctrl_unit.io.num_to_fetch
 
   val data1 = RegInit(VecInit.fill(batchSize)(0.U(p(XLen).W)))
   val data2 = RegInit(VecInit.fill(batchSize)(0.U(p(XLen).W)))
