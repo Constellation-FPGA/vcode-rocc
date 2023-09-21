@@ -86,6 +86,11 @@ class BinOpDecode(implicit val p: Parameters) extends DecodeConstants {
     PLUS_INT-> List(Y, MEM_OPS_TWO, FN_ADD, Y))
 }
 
+class ReduceDecode(implicit val p: Parameters) extends DecodeConstants {
+  val decode_table: Array[(BitPat, List[BitPat])] = Array(
+    PLUS_RED_INT -> List(Y, MEM_OPS_ONE, FN_RED_ADD, Y))
+}
+
 /** Decode table for accelerator control instructions.
   * These tend to be non-blocking instructions that have no memory operands and
   * may or may not use the ALU.
@@ -106,6 +111,7 @@ class DecodeTable(implicit val p: Parameters) {
   /** The decode table for all types of operators. */
   def table = {
     Seq(new BinOpDecode) ++
+    Seq(new ReduceDecode) ++
     Seq(new CtrlOpDecode)
   } flatMap(_.decode_table)
 
