@@ -15,6 +15,7 @@ object ALU {
   def FN_X = BitPat.dontCare(SZ_ALU_FN)
   // This funky syntax creates a bit pattern of specified length with that value
   def FN_ADD = BitPat(0.U(SZ_ALU_FN.W))
+  def FN_RED_ADD = BitPat(1.U(SZ_ALU_FN.W))
 }
 
 /** Implementation of an ALU.
@@ -38,11 +39,18 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
   io.cout := 0.U
   io.out.valid := false.B
 
-  // ADD/SUB
-  // This zip->map chain feels a little gross, but it does what we want.
-  data_out := io.in1.zip(io.in2).map{case (l, r) => l+r}
-
-  io.out.bits := data_out
+  switch(io.fn){
+    is(0.U){
+      // ADD/SUB
+      // This zip->map chain feels a little gross, but it does what we want.
+      data_out := io.in1.zip(io.in2).map{case (l, r) => l+r}
+    }
+    is(1.U){
+      // +_REDUCE INT
+      data_out(0) := io.in1.reduce(_ + _)
+      // .reduce could be replaced by reduceTree
+    }
+  }
 
   when(io.execute) {
     // Written this way so that variable-latency operations can signal properly
