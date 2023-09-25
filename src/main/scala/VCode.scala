@@ -168,15 +168,7 @@ class VCodeAccelImp(outer: VCodeAccel, batchSize: Int) extends LazyRoCCModuleImp
   alu_cout := alu.io.cout
   ctrl_unit.io.execution_completed := alu.io.out.valid
 
-  // NOTE: dmem_data is currently unused!
-  val dmem_data = Reg(Vec(batchSize, Bits(p(XLen).W))) // Data to SEND to memory
-  when(alu.io.out.valid) {
-    /* FIXME: This will yield the wrong value, because of timing problems.
-     * This is off by 1 cycle, as alu_out is updated in the same cycle as this
-     * gets run right now. */
-    dmem_data := alu.io.out.bits
-  }
-  data_fetcher.io.dataToWrite.bits := alu.io.out.bits
+  data_fetcher.io.dataToWrite.bits := alu_out
   data_fetcher.io.dataToWrite.valid := ctrl_unit.io.writeback_ready
 
   val response_ready = Wire(Bool())
