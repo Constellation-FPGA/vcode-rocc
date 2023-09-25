@@ -76,7 +76,7 @@ class DCacheFetcher(val bufferEntries: Int)(implicit p: Parameters) extends Core
   // Number of requests that have been sent.
   val reqs_sent = RegInit(0.U(8.W))
 
-  val vals = Mem(bufferEntries, UInt(p(XLen).W))
+  val vals = RegInit(VecInit.fill(bufferEntries)(0.U(p(XLen).W)))
 
   val wait_for_resp = RegInit(VecInit.fill(bufferEntries)(false.B))
   val all_done = Wire(Bool()); all_done := !(wait_for_resp.reduce(_ || _))
@@ -105,7 +105,7 @@ class DCacheFetcher(val bufferEntries: Int)(implicit p: Parameters) extends Core
             vals(0.U), vals(1.U))
         }
         state := State.idle
-        io.fetched_data.bits(0.U) := vals(0.U); io.fetched_data.bits(1.U) := vals(1.U)
+        io.fetched_data.bits := vals
         io.fetched_data.valid := all_done
         amount_fetched := 0.U; reqs_sent := 0.U
       } .otherwise {
