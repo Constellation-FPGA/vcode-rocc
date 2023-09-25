@@ -73,9 +73,9 @@ These operations are ones that are required to make the hardware work, but do *n
 Namely, these are instructions that have *no VCODE equivalent*.
 | Chisel Symbol      | ~funct7~ Encoding (Binary) | ~funct7~ Encoding (Hex) |
 |--------------------+----------------------------+-------------------------|
-| ~SET_NUM_OPERANDS~ |                    1000000 |                      40 |
-| ~SET_DEST_ADDR~    |                    1000001 |                      41 |
-#+TBLFM: $3='(format "%x" (string-to-number $2 2))
+| ~SET_NUM_OPERANDS~ |                    1000000 |                    0x40 |
+| ~SET_DEST_ADDR~    |                    1000001 |                    0x41 |
+#+TBLFM: $3='(format "0x%x" (string-to-number $2 2))
 
 #+begin_comment
 To update all of these tables inside Emacs, use ~(org-table-recalculate-buffer-tables)~.
@@ -86,17 +86,17 @@ To update just a single table, use ~(org-table-iterate)~ or the keybinding ~C-u 
 The binary operations require pointers to the two vectors be passed, and the instruction determines the operation to perform.
 | VCODE Operation | Chisel Symbol | ~funct7~ Encoding (Binary) | ~funct7~ Encoding (Hex) |
 |-----------------+---------------+----------------------------+-------------------------|
-| ~+~             | ~PLUS_INT~    |                    0000001 |                       1 |
-|                 |               |                    0101011 |                      2b |
-|                 |               |                            |                       0 |
-|                 |               |                            |                       0 |
-#+TBLFM: $4='(format "%x" (string-to-number $3 2))
+| ~+~             | ~PLUS_INT~    |                    0000001 |                     0x1 |
+|                 |               |                    0101011 |                    0x2b |
+|                 |               |                            |                     0x0 |
+|                 |               |                            |                     0x0 |
+#+TBLFM: $4='(format "0x%x" (string-to-number $3 2))
 
 ** Vector Operations
 | VCODE Operation | Chisel Symbol   | ~funct7~ Encoding (Binary) | ~funct7~ Encoding (Hex) |
 |-----------------+-----------------+----------------------------+-------------------------|
-| ~+_SCAN~        | ~PLUS_SCAN_INT~ | ???????                    |                       0 |
-#+TBLFM: $4='(format "%x" (string-to-number $3 2))
+| ~+_SCAN~        | ~PLUS_SCAN_INT~ | ???????                    |                     0x0 |
+#+TBLFM: $4='(format "0x%x" (string-to-number $3 2))
 
 ** Using the Instructions
 When writing the instruction in C code, use volatile inline assembly (~asm volatile ("insn")~ or ~__asm__ __volatile__ ("insn")~)
