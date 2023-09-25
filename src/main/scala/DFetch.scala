@@ -141,6 +141,7 @@ class DCacheFetcher(val bufferEntries: Int)(implicit p: Parameters) extends Core
 
         // We should submit a memory request!
         when(io.start) {
+          // Static shift by 3 as all data is 8-byte aligned
           val addr_to_request = io.baseAddress.bits + (reqs_sent << 3)
           val tag = reqs_sent
           // I am not a fan of the comparator here... But c'est la vie.
