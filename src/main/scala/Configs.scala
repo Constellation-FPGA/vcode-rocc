@@ -7,10 +7,10 @@ import freechips.rocketchip.config.{Config, Field, Parameters}
 
 /** Mixin to build a chip that includes a VCode accelerator.
   */
-class WithVCodeAccel extends Config((site, here, up) => {
+class WithVCodeAccel(batchSize: Int = 2) extends Config((site, here, up) => {
   case BuildRoCC => List (
     (p: Parameters) => {
-      val vcodeAccel = LazyModule(new VCodeAccel(OpcodeSet.custom0)(p))
+      val vcodeAccel = LazyModule(new VCodeAccel(OpcodeSet.custom0, batchSize)(p))
       vcodeAccel
     })
 })

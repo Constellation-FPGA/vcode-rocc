@@ -19,8 +19,8 @@ import freechips.rocketchip.util.EnhancedChisel3Assign
   * @param p The implicit key-value store of design parameters for this design.
   * This value is passed by the build system. You do not need to worry about it.
   */
-class VCodeAccel(opcodes: OpcodeSet)(implicit p: Parameters) extends LazyRoCC(opcodes) {
-  override lazy val module = new VCodeAccelImp(this)
+class VCodeAccel(opcodes: OpcodeSet, batchSize: Int)(implicit p: Parameters) extends LazyRoCC(opcodes) {
+  override lazy val module = new VCodeAccelImp(this, batchSize)
 }
 
 /** Implementation class for the VCODE accelerator.
@@ -32,7 +32,7 @@ class VCodeAccel(opcodes: OpcodeSet)(implicit p: Parameters) extends LazyRoCC(op
   * different HARTs, and multiple to attach to a single HART using different
   * custom opcode sets.
   */
-class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
+class VCodeAccelImp(outer: VCodeAccel, batchSize: Int) extends LazyRoCCModuleImp(outer) {
   // io is "implicit" because we inherit from LazyRoCCModuleImp.
   // io is the RoCCCoreIO
   val rocc_io = io
@@ -61,7 +61,6 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
    * CONTROL UNIT
    * Control unit connects ALU & Data fetcher together, properly sequencing them
    **************/
-  val batchSize = 2 // FIXME: batch size is something that should be set by the config!
   val ctrl_unit = Module(new ControlUnit(batchSize))
   // Accelerator control unit controls when we are ready to accept the next
   // instruction from the RoCC command queue. Cannot accept another command
@@ -177,8 +176,6 @@ class VCodeAccelImp(outer: VCodeAccel) extends LazyRoCCModuleImp(outer) {
      * gets run right now. */
     dmem_data := alu.io.out.bits
   }
-  // Need 2 elements in VecInit because DCacheFetcher instantiated with buffer
-  // of length 2.
   data_fetcher.io.dataToWrite.bits := alu.io.out.bits
   data_fetcher.io.dataToWrite.valid := ctrl_unit.io.writeback_ready
 
