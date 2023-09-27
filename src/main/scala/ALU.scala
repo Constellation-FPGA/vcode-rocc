@@ -33,6 +33,8 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
     val execute = Input(Bool())
   })
 
+  val lastBatchResult = RegInit(0.U(xLen.W))
+
   val data_out = WireInit(VecInit.fill(batchSize)(0.U(xLen.W)))
   io.out.bits := data_out
 
