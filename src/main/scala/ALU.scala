@@ -39,22 +39,22 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
   io.cout := 0.U
   io.out.valid := false.B
 
-  switch(io.fn){
-    is(0.U){
-      // ADD/SUB
-      // This zip->map chain feels a little gross, but it does what we want.
-      data_out := io.in1.zip(io.in2).map{case (l, r) => l+r}
-    }
-    is(1.U){
-      // +_REDUCE INT
-      data_out(0) := io.in1.reduce(_ + _)
-      // .reduce could be replaced by reduceTree
-    }
-  }
-
   when(io.execute) {
     // Written this way so that variable-latency operations can signal properly
-    // Addition can be done in one cycle though, so it is a moto point here.
-    io.out.valid := true.B
+    switch(io.fn){
+      is(0.U){
+        // ADD/SUB
+        // This zip->map chain feels a little gross, but it does what we want.
+        data_out := (io.in1, io.in2).zipped.map(_ + _) // io.in1.zip(io.in2).map{case (l, r) => l+r}
+        io.out.valid := true.B
+      }
+      is(1.U){
+        // +_REDUCE INT
+        // data_out(0) := io.in1.fold(0.U)(_ + _)
+        data_out(0) := io.in1.reduce(_ + _)
+        // NOTE: .reduce could be replaced by reduceTree
+        io.out.valid := true.B
+      }
+    }
   }
 }
