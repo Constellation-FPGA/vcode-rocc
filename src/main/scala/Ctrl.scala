@@ -65,8 +65,7 @@ class ControlUnit(val batchSize: Int)(implicit p: Parameters) extends Module {
   // We should fetch when we are in fetching data state
   io.should_fetch := (accel_state === State.fetch1 || accel_state === State.fetch2)
   // FIXME: This num_to_fetch is a little bit messy.
-  io.num_to_fetch := Mux((accel_state === State.write) && (io.ctrl_sigs.alu_fn === ALU.FN_RED_ADD), 1.U,
-    Mux(operandsToGo >= batchSize.U, batchSize.U, operandsToGo))
+  io.num_to_fetch := Mux(operandsToGo >= batchSize.U, batchSize.U, operandsToGo)
   io.rs1Fetch := accel_state === State.fetch1
 
   io.baseAddress := Mux(accel_state === State.write, currentDestAddr,
@@ -146,9 +145,30 @@ class ControlUnit(val batchSize: Int)(implicit p: Parameters) extends Module {
         printf("Ctrl\tIn execution state\n")
       }
       when(io.execution_completed) {
-        accel_state := State.write
-        if(p(VCodePrintfEnable)) {
-          printf("Ctrl\tMoving from exe state to write state\n")
+        // If execution completed, but this is a reduction
+        when(io.ctrl_sigs.alu_fn === ALU.FN_RED_ADD) {
+          // FIXME: Turn this into a function?
+          // Decrement our "counter"
+          val remainingOperands = Mux(operandsToGo <= batchSize.U, 0.U, operandsToGo - batchSize.U)
+          operandsToGo := remainingOperands
+          when(remainingOperands > 0.U) {
+            // We have not yet completed the reduction, go back.
+            accel_state := State.fetch1
+            // Multiply address by 8 because all values use 64 bits
+            currentRs1 := currentRs1 + (batchSize.U << 3)
+            currentRs2 := currentRs2 + (batchSize.U << 3)
+          } .otherwise {
+            // The reduction's computation is complete, write.
+            accel_state := State.write
+            // Set operandsToGo to 1 to write reduction's single result
+            operandsToGo := 1.U
+          }
+        } .otherwise {
+          // Execution completed, but this is NOT a reduction
+          accel_state := State.write
+          if(p(VCodePrintfEnable)) {
+            printf("Ctrl\tMoving from exe state to write state\n")
+          }
         }
       }
     }
