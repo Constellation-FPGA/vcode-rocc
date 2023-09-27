@@ -158,15 +158,8 @@ class VCodeAccelImp(outer: VCodeAccel, batchSize: Int) extends LazyRoCCModuleImp
   alu.io.in1 := data1
   alu.io.in2 := data2
   alu.io.execute := ctrl_unit.io.should_execute
-  when(alu.io.out.valid) {
-    alu_out := alu.io.out.bits
-    if(p(VCodePrintfEnable)) {
-      printf("VCode\tALU in1: 0x%x\tin2: 0x%x\tout: 0x%x\nALU finished executing! Output bits now valid!\n",
-      alu.io.in1(0), alu.io.in2(0), alu.io.out.bits(0))
-    }
-  }
+  alu_out := alu.io.out
   alu_cout := alu.io.cout
-  ctrl_unit.io.execution_completed := alu.io.out.valid
 
   data_fetcher.io.dataToWrite.bits := alu_out
   data_fetcher.io.dataToWrite.valid := ctrl_unit.io.writeback_ready

@@ -28,34 +28,34 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
     // The two register content values passed over the RoCCCommand are xLen wide
     val in1 = Input(Vec(batchSize, UInt(xLen.W)))
     val in2 = Input(Vec(batchSize, UInt(xLen.W)))
-    val out = Output(Valid(Vec(batchSize, UInt(xLen.W))))
+    val out = Output(Vec(batchSize, UInt(xLen.W)))
     val cout = Output(UInt(xLen.W))
     val execute = Input(Bool())
   })
 
-  val lastBatchResult = RegInit(0.U(xLen.W))
-
-  val data_out = WireInit(VecInit.fill(batchSize)(0.U(xLen.W)))
-  io.out.bits := data_out
+  // TODO: Reset workingSpace when RoCC operation is complete
+  val workingSpace = RegInit(VecInit.fill(batchSize)(0.U(xLen.W)))
+  io.out := workingSpace
+  // FIXME: This should be RegInit(Bits(xLen.W))?
+  val lastBatchResult = workingSpace(0)
 
   io.cout := 0.U
-  io.out.valid := false.B
 
   when(io.execute) {
-    // Written this way so that variable-latency operations can signal properly
-    switch(io.fn){
-      is(0.U){
+    switch(io.fn) {
+      is(0.U) {
         // ADD/SUB
         // This zip->map chain feels a little gross, but it does what we want.
-        data_out := (io.in1, io.in2).zipped.map(_ + _) // io.in1.zip(io.in2).map{case (l, r) => l+r}
-        io.out.valid := true.B
+        workingSpace := (io.in1, io.in2).zipped.map(_ + _) // io.in1.zip(io.in2).map{case (l, r) => l+r}
       }
-      is(1.U){
+      is(1.U) {
         // +_REDUCE INT
-        // data_out(0) := io.in1.fold(0.U)(_ + _)
-        data_out(0) := io.in1.reduce(_ + _)
+        // data_out(0) := io.in1.fold(lastBatchResult)(_ + _)
+        // data_out(0) := io.in1.reduce(lastBatchresult + _ + _) // Allowed?
+        // TODO: Check a +_REDUCE on a vector of length 3 with batchSize of 2
+        lastBatchResult := io.in1.fold(lastBatchResult)(_ + _)
+        // data_out(0) := io.in1.reduce(_ + _)
         // NOTE: .reduce could be replaced by reduceTree
-        io.out.valid := true.B
       }
     }
   }

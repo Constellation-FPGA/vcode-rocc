@@ -26,7 +26,6 @@ class ControlUnit(val batchSize: Int)(implicit p: Parameters) extends Module {
     val num_to_fetch = Output(UInt(p(XLen).W))
     val mem_op_completed = Input(Bool())
     val should_execute = Output(Bool())
-    val execution_completed = Input(Bool())
     val writeback_ready = Output(Bool())
     // Writeback completion is marked by mem_op_completed
     val response_ready = Output(Bool())
@@ -144,31 +143,31 @@ class ControlUnit(val batchSize: Int)(implicit p: Parameters) extends Module {
       if(p(VCodePrintfEnable)) {
         printf("Ctrl\tIn execution state\n")
       }
-      when(io.execution_completed) {
-        // If execution completed, but this is a reduction
-        when(io.ctrl_sigs.alu_fn === ALU.FN_RED_ADD) {
-          // FIXME: Turn this into a function?
-          // Decrement our "counter"
-          val remainingOperands = Mux(operandsToGo <= batchSize.U, 0.U, operandsToGo - batchSize.U)
-          operandsToGo := remainingOperands
-          when(remainingOperands > 0.U) {
-            // We have not yet completed the reduction, go back.
-            accel_state := State.fetch1
-            // Multiply address by 8 because all values use 64 bits
-            currentRs1 := currentRs1 + (batchSize.U << 3)
-            currentRs2 := currentRs2 + (batchSize.U << 3)
-          } .otherwise {
-            // The reduction's computation is complete, write.
-            accel_state := State.write
-            // Set operandsToGo to 1 to write reduction's single result
-            operandsToGo := 1.U
-          }
+
+      // Where to go once in EXE?
+      when(io.ctrl_sigs.alu_fn === ALU.FN_RED_ADD) {
+        // If this operation is a reduction, we may need to go around again
+        // FIXME: Turn this into a function?
+        // Decrement our "counter"
+        val remainingOperands = Mux(operandsToGo <= batchSize.U, 0.U, operandsToGo - batchSize.U)
+        operandsToGo := remainingOperands
+        when(remainingOperands > 0.U) {
+          // We have not yet completed the reduction, go back.
+          accel_state := State.fetch1
+          // Multiply address by 8 because all values use 64 bits
+          currentRs1 := currentRs1 + (batchSize.U << 3)
+          currentRs2 := currentRs2 + (batchSize.U << 3)
         } .otherwise {
-          // Execution completed, but this is NOT a reduction
+          // The reduction's computation is complete, write.
           accel_state := State.write
-          if(p(VCodePrintfEnable)) {
-            printf("Ctrl\tMoving from exe state to write state\n")
-          }
+          // Set operandsToGo to 1 to write reduction's single result
+          operandsToGo := 1.U
+        }
+      } .otherwise {
+        // Execution completed, but this is NOT a reduction
+        accel_state := State.write
+        if(p(VCodePrintfEnable)) {
+          printf("Ctrl\tMoving from exe state to write state\n")
         }
       }
     }
