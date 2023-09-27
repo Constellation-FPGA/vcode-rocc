@@ -64,7 +64,9 @@ class ControlUnit(val batchSize: Int)(implicit p: Parameters) extends Module {
 
   // We should fetch when we are in fetching data state
   io.should_fetch := (accel_state === State.fetch1 || accel_state === State.fetch2)
-  io.num_to_fetch := Mux(operandsToGo >= batchSize.U, batchSize.U, operandsToGo)
+  // FIXME: This num_to_fetch is a little bit messy.
+  io.num_to_fetch := Mux((accel_state === State.write) && (io.ctrl_sigs.alu_fn === ALU.FN_RED_ADD), 1.U,
+    Mux(operandsToGo >= batchSize.U, batchSize.U, operandsToGo))
   io.rs1Fetch := accel_state === State.fetch1
 
   io.baseAddress := Mux(accel_state === State.write, currentDestAddr,
