@@ -20,6 +20,8 @@ import freechips.rocketchip.util.EnhancedChisel3Assign
   * This value is passed by the build system. You do not need to worry about it.
   */
 class VCodeAccel(opcodes: OpcodeSet, batchSize: Int)(implicit p: Parameters) extends LazyRoCC(opcodes) {
+  // batchSize must be power of 2 to make certain ops on counters efficient
+  require(isPow2(batchSize), "VCode accelerator batchSize must be power of 2!")
   override lazy val module = new VCodeAccelImp(this, batchSize)
 }
 
