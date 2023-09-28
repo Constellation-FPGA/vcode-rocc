@@ -76,7 +76,9 @@ class DCacheFetcher(val bufferEntries: Int)(implicit p: Parameters) extends Core
   // Number of requests that have been sent.
   val reqs_sent = RegInit(0.U(8.W))
 
-  val vals = RegInit(VecInit.fill(bufferEntries)(0.U(p(XLen).W)))
+  val vals = withReset(state === State.idle) {
+    RegInit(VecInit.fill(bufferEntries)(0.U(p(XLen).W)))
+  }
 
   val wait_for_resp = RegInit(VecInit.fill(bufferEntries)(false.B))
   val all_done = Wire(Bool()); all_done := !(wait_for_resp.reduce(_ || _))
