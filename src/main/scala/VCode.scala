@@ -75,7 +75,6 @@ class VCodeAccelImp(outer: VCodeAccel, batchSize: Int) extends LazyRoCCModuleImp
   ctrl_unit.io.ctrl_sigs := ctrl_sigs
   ctrl_unit.io.response_completed := rocc_io.resp.fire
 
-  // TODO: Exception-raising module?
   // If invalid instruction, raise exception
   val exception = cmd_valid && !ctrl_sigs.legal
   rocc_io.interrupt := exception

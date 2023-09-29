@@ -34,9 +34,9 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
   })
 
   // TODO: Reset workingSpace when RoCC operation is complete
+  // FIXME: This should be RegInit(Bits(xLen.W))?
   val workingSpace = RegInit(VecInit.fill(batchSize)(0.U(xLen.W)))
   io.out := workingSpace
-  // FIXME: This should be RegInit(Bits(xLen.W))?
   val lastBatchResult = workingSpace(0)
 
   io.cout := 0.U
@@ -45,16 +45,11 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
     switch(io.fn) {
       is(0.U) {
         // ADD/SUB
-        // This zip->map chain feels a little gross, but it does what we want.
-        workingSpace := (io.in1, io.in2).zipped.map(_ + _) // io.in1.zip(io.in2).map{case (l, r) => l+r}
+        workingSpace := (io.in1, io.in2).zipped.map(_ + _)
       }
       is(1.U) {
         // +_REDUCE INT
-        // data_out(0) := io.in1.fold(lastBatchResult)(_ + _)
-        // data_out(0) := io.in1.reduce(lastBatchresult + _ + _) // Allowed?
-        // TODO: Check a +_REDUCE on a vector of length 3 with batchSize of 2
         lastBatchResult := io.in1.fold(lastBatchResult)(_ + _)
-        // data_out(0) := io.in1.reduce(_ + _)
         // NOTE: .reduce could be replaced by reduceTree
       }
     }
