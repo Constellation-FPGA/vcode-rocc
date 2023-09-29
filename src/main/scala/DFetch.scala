@@ -71,8 +71,10 @@ class DCacheFetcher(val bufferEntries: Int)(implicit p: Parameters) extends Core
   val state = RegInit(State.idle)
 
   // NOTE: 0.U implies a 1-bit unsigned integer. Need to explicitly state width
+  /* log2Up(bufferEntries)+1.W means amountFetched is exactly big enough to count
+   * bufferEntries number of elements and NOT wrap around. */
   // Number of requests that have been fulfilled.
-  val amount_fetched = RegInit(0.U(8.W))
+  val amount_fetched = RegInit(0.U((log2Up(bufferEntries)+1).W))
   // Number of requests that have been sent.
   val reqs_sent = RegInit(0.U(8.W))
 
