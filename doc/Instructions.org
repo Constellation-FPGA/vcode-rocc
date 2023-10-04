@@ -95,8 +95,8 @@ The binary operations require pointers to the two vectors be passed, and the ins
 ** Vector Operations
 | VCODE Operation | Chisel Symbol   | ~funct7~ Encoding (Binary) | ~funct7~ Encoding (Hex) |
 |-----------------+-----------------+----------------------------+-------------------------|
-| ~+_SCAN~        | ~PLUS_SCAN_INT~ | ???????                    |                     0x0 |
-| ~+_REDUCE~      | ~PLUS_RED_INT~  | 0000010                    |                     0x2 |
+| ~+_REDUCE~      | ~PLUS_RED_INT~  |                    0000010 |                     0x2 |
+| ~+_SCAN~        | ~PLUS_SCAN_INT~ |                    0000011 |                     0x3 |
 #+TBLFM: $4='(format "0x%x" (string-to-number $3 2))
 
 ** Using the Instructions

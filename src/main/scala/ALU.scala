@@ -16,6 +16,7 @@ object ALU {
   // This funky syntax creates a bit pattern of specified length with that value
   def FN_ADD = BitPat(0.U(SZ_ALU_FN.W))
   def FN_RED_ADD = BitPat(1.U(SZ_ALU_FN.W))
+  def FN_SCAN_ADD = BitPat(2.U(SZ_ALU_FN.W))
 }
 
 /** Implementation of an ALU.
