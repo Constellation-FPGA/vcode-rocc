@@ -53,6 +53,11 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
         lastBatchResult := lastBatchResult + io.in1.reduce(_ + _)
         // NOTE: .reduce could be replaced by reduceTree
       }
+      is(2.U) { // +_SCAN INT
+        // .slice(from, to): both "from" and "to" are INCLUSIVE!
+        workingSpace := io.in1.scan(0.U)(_ + _).slice(0, 8)
+        // NOTE .scan has .scanLeft & .scanRight variants
+      }
     }
   }
 }
