@@ -49,7 +49,7 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
       }
       is(1.U) {
         // +_REDUCE INT
-        lastBatchResult := io.in1.fold(lastBatchResult)(_ + _)
+        lastBatchResult := lastBatchResult + io.in1.reduce(_ + _)
         // NOTE: .reduce could be replaced by reduceTree
       }
     }
