@@ -40,6 +40,9 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
   io.out := workingSpace
   val lastBatchResult = workingSpace(0)
 
+  // TODO: Reset identity when RoCC operation is complete
+  val identity = RegInit(0.U)
+
   io.cout := 0.U
 
   when(io.execute) {
@@ -54,8 +57,12 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
         // NOTE: .reduce could be replaced by reduceTree
       }
       is(2.U) { // +_SCAN INT
-        // .slice(from, to): both "from" and "to" are INCLUSIVE!
-        workingSpace := io.in1.scan(0.U)(_ + _).slice(0, 8)
+        /* FIXME: Can factor out SCAN HW out and just select identity & binary operator
+         * rather than the entire thing. Works because .scan()() requires identity
+         * as first argument (partial evaluation). */
+        val tmp = io.in1.scan(0.U)(_ + _)
+        workingSpace := tmp.slice(0, 8) // .slice(from, to) is [from, to). to is EXCLUSIVE
+        identity := tmp(8) // Grab bit 8, the end of the vector.
         // NOTE .scan has .scanLeft & .scanRight variants
       }
     }
