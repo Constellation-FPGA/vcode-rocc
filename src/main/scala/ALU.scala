@@ -61,8 +61,8 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
          * rather than the entire thing. Works because .scan()() requires identity
          * as first argument (partial evaluation). */
         val tmp = io.in1.scan(identity)(_ + _)
-        workingSpace := tmp.slice(0, 8) // .slice(from, to) is [from, to). to is EXCLUSIVE
-        identity := tmp(8) // Grab bit 8, the end of the vector.
+        workingSpace := tmp.slice(0, batchSize) // .slice(from, to) is [from, to). to is EXCLUSIVE
+        identity := tmp(batchSize) // Grab the last bit, the end of the vector.
         // NOTE .scan has .scanLeft & .scanRight variants
       }
     }
