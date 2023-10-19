@@ -15,4 +15,7 @@ pkgs.mkShell {
     # keep this line if you use bash
     bashInteractive
   ];
+
+  # Ensure locales are present
+  LOCALE_ARCHIVE = "${pkgs.glibcLocales}/lib/locale/locale-archive";
 }
