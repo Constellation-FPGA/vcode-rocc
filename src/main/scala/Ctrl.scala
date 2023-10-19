@@ -185,7 +185,7 @@ class ControlUnit(val batchSize: Int)(implicit p: Parameters) extends Module {
           // Multiply address by 8 because all values use 64 bits
           currentRs1 := currentRs1 + (batchSize.U << 3)
           currentRs2 := currentRs2 + (batchSize.U << 3)
-          currentDestAddr := destAddr + (batchSize.U << 3)
+          currentDestAddr := currentDestAddr + (batchSize.U << 3)
         } .otherwise {
           // We have finished processing the vector. Move onwards.
           accel_state := State.respond
