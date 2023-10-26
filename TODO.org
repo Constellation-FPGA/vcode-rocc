@@ -16,3 +16,4 @@
 * Things to Investigate
   1. Connect accelerator to L2 instead of L1.
      Could improve performance by having larger cache and not filling L1 with data.
+  2. Look into ~UInt.andR~ for bit-reduction (boolean vectors).
