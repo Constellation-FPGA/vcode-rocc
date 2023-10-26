@@ -151,6 +151,8 @@ class VCodeAccelImp(outer: VCodeAccel, batchSize: Int) extends LazyRoCCModuleImp
   /***************
    * EXECUTE
    **************/
+  /* TODO: Have multiple ALUs, one for each element, thus one per lane?
+   * Or have one big ALU handle a whole batchSize simultaneously? */
   val alu = Module(new ALU(p(XLen))(batchSize))
   // FIXME?: Should be a register to hold values if we start the next batch on the ALU immediately
   // val alu_out = RegInit(VecInit.fill(batchSize)(0.U(p(XLen).W)))

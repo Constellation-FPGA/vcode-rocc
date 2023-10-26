@@ -17,3 +17,6 @@
   1. Connect accelerator to L2 instead of L1.
      Could improve performance by having larger cache and not filling L1 with data.
   2. Look into ~UInt.andR~ for bit-reduction (boolean vectors).
+  3. Have multiple ALUs, one for each element, thus one per lane?
+     Or have one big ALU handle a whole ~batchSize~ simultaneously?
+     * Currently the ALU handles a whole ~batchSize~ in one go.
