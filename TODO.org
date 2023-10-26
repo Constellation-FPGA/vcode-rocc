@@ -1,11 +1,14 @@
 #+TITLE: TODO List
 #+AUTHOR: Karl Hallsby
 
-1. Split instruction encodings out to separate file and automatically generate the Chisel & documentation from it.
+1. Add RISC-V memory fence to end of all RoCC C tests before checking result.
+   This ensures the memory subsystem has fully flushed all results before checking the results.
+   While this does not cause problems for us yet, it will help us when the tests get larger and more complicated.
+2. Turn ~object Thing { def FN_ADD = BitPat(0.U) ... }~ into ~ChiselEnum~s?
+3. Split instruction encodings out to separate file and automatically generate the Chisel & documentation from it.
    (Write once and run script to re-build the instruction encodings & documentation)
-2. Support more complex RoCC instruction decoding (if need be).
+4. Support more complex RoCC instruction decoding (if need be).
    Look at Rocket's ~IDecode.scala~ & ~Decode.scala~ files.
    ~IDecode.scala~ deals with mapping the particular bit patterns to signals.
    ~Decode.scala~ deals with using a QMCMinimizer to generate a truth table to decode against.
    Instructions that use ~?~ have the ~?~ ignored by the minimizer.
-3.
