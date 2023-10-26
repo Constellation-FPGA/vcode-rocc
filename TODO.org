@@ -12,3 +12,7 @@
    ~IDecode.scala~ deals with mapping the particular bit patterns to signals.
    ~Decode.scala~ deals with using a QMCMinimizer to generate a truth table to decode against.
    Instructions that use ~?~ have the ~?~ ignored by the minimizer.
+
+* Things to Investigate
+  1. Connect accelerator to L2 instead of L1.
+     Could improve performance by having larger cache and not filling L1 with data.

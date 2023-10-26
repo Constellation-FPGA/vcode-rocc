@@ -35,6 +35,15 @@ object MemoryOperation extends ChiselEnum {
   *        before returning data to another component. Total size is
   *        bufferEntries * XLen.
   * @param p Implicit parameter passed by build system of top-level design parameters.
+  *
+  * freechips.rocketchip.rocket.constants.MemoryOpConstants provides named bit
+  * patterns for submitting requests to the memory system.
+  *
+  * From Chipyard documentation:
+  * RoCC accelerator can access memory through the L1 Cache of the core it is
+  * attached to. This is a simpler interface for accelerator architects to
+  * implement, but will generally have lower achievable throughput than a dedicated
+  * TileLink port.
   */
 class DCacheFetcher(val bufferEntries: Int)(implicit p: Parameters) extends CoreModule()(p)
     with MemoryOpConstants {

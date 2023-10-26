@@ -202,4 +202,10 @@ class VCodeAccelImp(outer: VCodeAccel, batchSize: Int) extends LazyRoCCModuleImp
         io.resp.bits.data, io.resp.valid)
     }
   }
+
+  /* LazyRoCC class contains two TLOutputNode instances, atlNode and tlNode.
+   * atlNode connects into a tile-local arbiter along with the backside of the
+   * L1 instruction cache.
+   * tlNode connects directly to the L1-L2 crossbar. The corresponding Tilelink
+   * ports in the module implementation’s IO bundle are atl and tl, respectively. */
 }
