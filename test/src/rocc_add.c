@@ -7,8 +7,8 @@
 // ROCC_INSTRUCTION_S(0, NUM_ELEMENTS, 0x40);
 int main() {
     int64_t c[3],status;
-    int64_t a[3] = {1, 0xcd9c, 4};
-    int64_t b[3] = {2, 0x1111, 4};
+    int64_t a[3] = {-1, 0xcd9c, 4};
+    int64_t b[3] = {-2, 0x1111, 4};
     ROCC_INSTRUCTION_S(0, 3, 0x40);  // Send "length" of vector
     ROCC_INSTRUCTION_S(0, &c, 0x41); // Send destination address
     // DSS used to block the main core.
