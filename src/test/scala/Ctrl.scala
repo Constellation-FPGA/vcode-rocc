@@ -13,10 +13,11 @@ import freechips.rocketchip.config.Parameters
 
 class ControlUnitTest extends AnyFlatSpec with ChiselScalatestTester {
   implicit val p: Parameters = new vcoderocc.VCodeTestConfig
+  val batchSize = 2
 
   behavior of "Control Unit"
   it should s"Control signals for ${PLUS_INT}" in {
-    test(new ControlUnit) { dut =>
+    test(new ControlUnit(batchSize)) { dut =>
       val ctrl_sigs = (new DecodeTable).findCtrlSigs(PLUS_INT)
 
       dut.io.accel_ready.expect(true.B)
