@@ -201,21 +201,6 @@ class DCacheFetcher(val bufferEntries: Int)(implicit p: Parameters) extends Core
       }
     }
   }
-
-  /** Internal buffer to organize and synchronize the two operands' data. */
-  // val buffer = new Bundle {
-  //   val myWidth = 64
-  //   // The backing buffer implementation
-  //   val mem = Mem(128, Clock()) // FIXME: Clock?? Holds 2 64-bit values
-  //   // Addressing
-  //   val r_addr = Reg(UInt(2.W)) // FIXME: This hardcoded 2 should be a design parameter based on memory size
-  //   val w_addr = Wire(UInt(myWidth.W)); w_addr := 0.U
-  //   // Data
-  //   val r_data = Bits(myWidth.W)
-  //   val w_data = Wire(UInt(myWidth.W)); w_data := 0.U
-  //   // Enable
-  //   val w_enable = Wire(Bool())
-  // }
 }
 
 /** Module connecting VCode accelerator directly to the L1-L2 crossbar connecting
