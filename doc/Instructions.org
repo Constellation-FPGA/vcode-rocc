@@ -87,16 +87,18 @@ The binary operations require pointers to the two vectors be passed, and the ins
 | VCODE Operation | Chisel Symbol | ~funct7~ Encoding (Binary) | ~funct7~ Encoding (Hex) |
 |-----------------+---------------+----------------------------+-------------------------|
 | ~+~             | ~PLUS_INT~    |                    0000001 |                     0x1 |
-|                 |               |                    0101011 |                    0x2b |
+| ~AND_BOOL~      | ~AND_BOOL~    |                    0000100 |                     0x4 |
 |                 |               |                            |                     0x0 |
 |                 |               |                            |                     0x0 |
 #+TBLFM: $4='(format "0x%x" (string-to-number $3 2))
 
 ** Vector Operations
-| VCODE Operation | Chisel Symbol   | ~funct7~ Encoding (Binary) | ~funct7~ Encoding (Hex) |
-|-----------------+-----------------+----------------------------+-------------------------|
-| ~+_REDUCE~      | ~PLUS_RED_INT~  |                    0000010 |                     0x2 |
-| ~+_SCAN~        | ~PLUS_SCAN_INT~ |                    0000011 |                     0x3 |
+| VCODE Operation   | Chisel Symbol   | ~funct7~ Encoding (Binary) | ~funct7~ Encoding (Hex) |
+|-------------------+-----------------+----------------------------+-------------------------|
+| ~+_REDUCE~        | ~PLUS_RED_INT~  |                    0000010 |                     0x2 |
+| ~+_SCAN~          | ~PLUS_SCAN_INT~ |                    0000011 |                     0x3 |
+| ~AND_REDUCE_BOOL~ | ~AND_RED_BOOL~  |                    0000101 |                     0x5 |
+| ~AND_SCAN_BOOL~   | ~AND_SCAN_BOOL~ |                    0000110 |                     0x6 |
 #+TBLFM: $4='(format "0x%x" (string-to-number $3 2))
 
 ** Using the Instructions

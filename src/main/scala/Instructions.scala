@@ -7,6 +7,10 @@ object Instructions {
   def PLUS_RED_INT = BitPat("b0000010")
   def PLUS_SCAN_INT = BitPat("b0000011")
 
+  def AND_BOOL = BitPat("b0000100")
+  def AND_RED_BOOL = BitPat("b0000101")
+  def AND_SCAN_BOOL = BitPat("b0000110")
+
   // Accelerator configuration instructions. These are usually nonblocking.
   /** Set number of elements to operate over. */
   def SET_NUM_OPERANDS = BitPat("b1000000")
