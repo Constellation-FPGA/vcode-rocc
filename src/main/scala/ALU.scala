@@ -35,7 +35,6 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
   })
 
   // TODO: Reset workingSpace when RoCC operation is complete
-  // FIXME: This should be RegInit(Bits(xLen.W))?
   val workingSpace = RegInit(VecInit.fill(batchSize)(0.U(xLen.W)))
   io.out := workingSpace
   val lastBatchResult = workingSpace(0)

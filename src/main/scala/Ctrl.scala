@@ -63,7 +63,6 @@ class ControlUnit(val batchSize: Int)(implicit p: Parameters) extends Module {
 
   // We should fetch when we are in fetching data state
   io.should_fetch := (accel_state === State.fetch1 || accel_state === State.fetch2)
-  // FIXME: This num_to_fetch is a little bit messy.
   io.num_to_fetch := Mux(operandsToGo >= batchSize.U, batchSize.U, operandsToGo)
   io.rs1Fetch := accel_state === State.fetch1
 
