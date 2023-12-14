@@ -148,6 +148,10 @@ _start:
   sll a2, a0, STKSHIFT
   add tp, tp, a2
 
+  # Create an illegal instruction exception for testing/exploration
+  # .word 0x0000 # An invalid/unimplemented compressed instruction
+  csrw marchid, x0
+
   j _init
 
   .align 2

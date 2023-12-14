@@ -61,10 +61,21 @@ void __attribute__((noreturn)) tohost_exit(uintptr_t code)
 
 static inline int is_trap_interrupt(uint64_t mcause) { return mcause >> 63; }
 
+static inline int illegal_instruction(uint64_t mcause) { return (mcause & ((uint64_t) 2)) >> 1; }
+
 uintptr_t __attribute__((weak)) handle_trap(uintptr_t cause, uintptr_t epc, uintptr_t regs[32])
 {
     if (is_trap_interrupt(cause)) {
         tohost_exit(2022);
+    }
+
+    // exception cause is 63 lower bits.
+    uint64_t exception_cause = cause & 0x7FFFFFFF;
+    printf("0x%x\n", exception_cause);
+    // Want leading 0s
+    // printf("0x%x\n", cause);
+    if (illegal_instruction(cause)) {
+        tohost_exit(43);
     } else {
         // The trap was an exception
         tohost_exit(1337);
