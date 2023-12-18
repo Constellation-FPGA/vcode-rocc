@@ -6,10 +6,11 @@ void read_vec(volatile uint64_t *src, uint64_t count) {
   volatile uint64_t *first = src;
   volatile uint64_t *last = src + count;
 
-  __asm__ __volatile__ ("loop: \n"
+  __asm__ __volatile__ ("loop_start: \n"
                         "ld t0, 0(%0) \n"
                         "addi %0, %0, 8 \n"
-                        "blt %0, %1, loop \n"
+                        "blt %0, %1, loop_start \n"
+                        "loop_end: \n"
 : "=r" (first), "=r" (last)
   : //"r" (last)
 : "t0");
