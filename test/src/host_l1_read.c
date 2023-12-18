@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <stdint.h>
 
 #define read_csr(name)                         \
@@ -58,6 +59,13 @@ void copy_vec(volatile uint64_t *dest, volatile uint64_t *src, uint64_t count) {
 
 int main() {
   volatile uint64_t src[NUM_ELEMENTS];
+  uint64_t t1,t2,t3,t4,t5,t6;
+
+  t1 = read_cycle_count();
   read_vec(src, NUM_ELEMENTS);
+  t2 = read_cycle_count();
+
+  printf("Cycle count: %lu\n", t2 - t1);
+
   return 0;
 }
