@@ -1,5 +1,14 @@
 #include <stdint.h>
 
+#define read_csr(name)                         \
+  ({                                           \
+    uint64_t x;                             \
+    asm volatile("csrr %0, " #name : "=r"(x)); \
+    x;                                         \
+})
+
+#define read_cycle_count() read_csr(cycle)
+
 #define NUM_ELEMENTS (3 * 4090)
 
 void read_vec(volatile uint64_t *src, uint64_t count) {
