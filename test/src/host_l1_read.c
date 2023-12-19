@@ -70,8 +70,13 @@ int main() {
   copy_vec(dest, src, NUM_ELEMENTS);
   t4 = read_cycle_count();
 
+  t5 = read_cycle_count();
+  write_vec(dest, NUM_ELEMENTS);
+  t6 = read_cycle_count();
+
   printf("Cycle count: %lu\n", t2 - t1);
   printf("Cycle count: %lu\n", t4 - t3);
+  printf("Cycle count: %lu\n", t6 - t5);
 
   return 0;
 }
