@@ -172,9 +172,14 @@ _start:
   li t0, 0xf
   csrw pmpcfg0, t0
 
+  # mret to User-level, using the value in mepc to set the PC where the CPU should
+  # begin executing after the switch.
+  # Nothing directly after the mret will execute!
+  mret
+
   # Create an illegal instruction exception for testing/exploration
   # .word 0x0000 # An invalid/unimplemented compressed instruction
-  csrw marchid, x0
+  # csrw marchid, x0
 
   j _init
 
