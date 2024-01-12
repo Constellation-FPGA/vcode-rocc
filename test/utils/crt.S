@@ -148,11 +148,40 @@ _start:
   sll a2, a0, STKSHIFT
   add tp, tp, a2
 
+  # Set M Previous Privilege to User, so mret goes back to user.
+  # Reset bits 12:11 to 00
+#define MSTATUS_MPP_U 0xFFFFFFFFFFFFE7FF
+  csrr t0, mstatus
+  li t1, MSTATUS_MPP_U
+  and t0, t0, t1
+  csrw mstatus, t0
+
+  # Set M Exception Program Counter to a test block
+  la t0, test_block
+  csrw mepc, t0
+
+  # Do not delegate exceptions or interrupts
+  li t0, 0
+  csrw medeleg, t0
+  csrw mideleg, t0
+
+  # Set up Physical Memory Protection, letting the user have access to the entire
+  # physical address space.
+  li t0, 0x3fffffffffffff
+  csrw pmpaddr0, t0
+  li t0, 0xf
+  csrw pmpcfg0, t0
+
   # Create an illegal instruction exception for testing/exploration
   # .word 0x0000 # An invalid/unimplemented compressed instruction
   csrw marchid, x0
 
   j _init
+
+  .align 2
+test_block:
+  li t0, 0xdeadbeeffeedbead
+  j test_block
 
   .align 2
 trap_entry:
