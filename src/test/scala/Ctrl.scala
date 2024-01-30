@@ -17,43 +17,43 @@ class ControlUnitTest extends AnyFlatSpec with ChiselScalatestTester {
   behavior of "Control Unit"
   it should s"Control signals for ${PLUS_INT}" in {
     test(new ControlUnit) { dut =>
-      val ctrl_sigs = (new DecodeTable).findCtrlSigs(PLUS_INT)
+      val ctrlSigs = (new DecodeTable).findCtrlSigs(PLUS_INT)
 
-      dut.io.accel_ready.expect(true.B)
+      dut.io.accelReady.expect(true.B)
       dut.io.busy.expect(false.B)
-      dut.io.ctrl_sigs.poke(ctrl_sigs)
-      dut.io.cmd_valid.poke(true.B)
+      dut.io.ctrlSigs.poke(ctrlSigs)
+      dut.io.cmdValid.poke(true.B)
       dut.clock.step()
 
       // Should be in fetchingData state now
-      dut.io.accel_ready.expect(false.B)
+      dut.io.accelReady.expect(false.B)
       dut.io.busy.expect(true.B)
-      dut.io.should_fetch.expect(true.B)
-      dut.io.num_to_fetch.expect(2.U)
-      dut.io.fetching_completed.poke(true.B)
+      dut.io.shouldFetch.expect(true.B)
+      dut.io.numToFetch.expect(2.U)
+      dut.io.fetchingCompleted.poke(true.B)
       dut.clock.step()
 
       // Should be in execute state now
       dut.clock.step()
-      dut.io.accel_ready.expect(false.B)
+      dut.io.accelReady.expect(false.B)
       dut.io.busy.expect(true.B)
-      dut.io.should_fetch.expect(false.B)
-      dut.io.should_execute.expect(true.B)
-      dut.io.execution_completed.poke(true.B)
+      dut.io.shouldFetch.expect(false.B)
+      dut.io.shouldExecute.expect(true.B)
+      dut.io.executionCompleted.poke(true.B)
 
       // Should be in write-back state now
       dut.clock.step()
-      dut.io.accel_ready.expect(false.B)
+      dut.io.accelReady.expect(false.B)
       dut.io.busy.expect(true.B)
-      dut.io.should_execute.expect(false.B)
-      dut.io.response_ready.expect(true.B)
-      dut.io.response_completed.poke(true.B)
+      dut.io.shouldExecute.expect(false.B)
+      dut.io.responseReady.expect(true.B)
+      dut.io.responseCompleted.poke(true.B)
 
       // Return to idle
       dut.clock.step()
-      dut.io.accel_ready.expect(true.B)
+      dut.io.accelReady.expect(true.B)
       dut.io.busy.expect(false.B)
-      dut.io.response_ready.expect(false.B)
+      dut.io.responseReady.expect(false.B)
     }
   }
 }

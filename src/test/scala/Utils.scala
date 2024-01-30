@@ -16,7 +16,7 @@ object RoCCInstructionFactory {
     xs1: Boolean, xs2: Boolean, xd: Boolean,
     roccOpcode: Data): RoCCInstruction = {
 
-    val rocc_inst = (new RoCCInstruction()).Lit(
+    val roccInst = (new RoCCInstruction()).Lit(
       _.funct -> funct.value.U,
       _.rs1 -> rs1.U,
       _.rs2 -> rs2.U,
@@ -25,6 +25,6 @@ object RoCCInstructionFactory {
       _.xs2 -> xs2.B,
       _.xd -> xs2.B,
       _.opcode -> ROCC_CUSTOM_OPCODE_0)
-    rocc_inst
+    roccInst
   }
 }

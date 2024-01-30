@@ -39,15 +39,15 @@ class VCodeAccelImp(outer: VCodeAccel, batchSize: Int) extends LazyRoCCModuleImp
   // io is the RoCCCoreIO
   val rocc_io = io
   val cmd = rocc_io.cmd
-  val rocc_cmd = Reg(new RoCCCommand)
-  val cmd_valid = RegInit(false.B)
+  val roccCmd = Reg(new RoCCCommand)
+  val cmdValid = RegInit(false.B)
 
-  val rocc_inst = rocc_cmd.inst // The customX instruction in instruction stream
-  val returnReg = rocc_inst.rd
-  val status = rocc_cmd.status
+  val roccInst = roccCmd.inst // The customX instruction in instruction stream
+  val returnReg = roccInst.rd
+  val status = roccCmd.status
   when(cmd.fire) {
-    rocc_cmd := cmd.bits // The entire RoCC Command provided to the accelerator
-    cmd_valid := true.B
+    roccCmd := cmd.bits // The entire RoCC Command provided to the accelerator
+    cmdValid := true.B
   }
 
   /***************
@@ -55,46 +55,46 @@ class VCodeAccelImp(outer: VCodeAccel, batchSize: Int) extends LazyRoCCModuleImp
    * Decode instruction, yielding control signals
    **************/
   val decoder = Module(new Decoder)
-  val ctrl_sigs = Wire(new CtrlSigs())
-  decoder.io.rocc_inst := rocc_cmd.inst
-  ctrl_sigs := decoder.io.ctrl_sigs
+  val ctrlSigs = Wire(new CtrlSigs())
+  decoder.io.roccInst := roccCmd.inst
+  ctrlSigs := decoder.io.ctrlSigs
 
   /***************
    * CONTROL UNIT
    * Control unit connects ALU & Data fetcher together, properly sequencing them
    **************/
-  val ctrl_unit = Module(new ControlUnit(batchSize))
+  val ctrlUnit = Module(new ControlUnit(batchSize))
   // Accelerator control unit controls when we are ready to accept the next
   // instruction from the RoCC command queue. Cannot accept another command
   // unless accelerator is ready/idle
-  cmd.ready := ctrl_unit.io.accel_ready
-  ctrl_unit.io.cmd_valid := cmd_valid
+  cmd.ready := ctrlUnit.io.accelReady
+  ctrlUnit.io.cmdValid := cmdValid
   // RoCC must assert RoCCCoreIO.busy line high when memory actions happening
-  rocc_io.busy := ctrl_unit.io.busy
-  ctrl_unit.io.roccCmd := rocc_cmd
-  ctrl_unit.io.ctrl_sigs := ctrl_sigs
-  ctrl_unit.io.response_completed := rocc_io.resp.fire
+  rocc_io.busy := ctrlUnit.io.busy
+  ctrlUnit.io.roccCmd := roccCmd
+  ctrlUnit.io.ctrlSigs := ctrlSigs
+  ctrlUnit.io.responseCompleted := rocc_io.resp.fire
 
   // If invalid instruction, raise exception
-  val exception = cmd_valid && !ctrl_sigs.legal
+  val exception = cmdValid && !ctrlSigs.legal
   rocc_io.interrupt := exception
   when(exception) {
     if(p(VCodePrintfEnable)) {
       printf("Raising exception to processor through interrupt!\nILLEGAL INSTRUCTION!\n")
     }
-    rocc_cmd := DontCare
-    cmd_valid := false.B
+    roccCmd := DontCare
+    cmdValid := false.B
     status := DontCare
   }
 
   /* The valid bit is raised to true by the main processor when the command is
    * sent to the DecoupledIO Queue. */
-  when(cmd_valid) {
+  when(cmdValid) {
     // TODO: Find a nice way to condense these conditional prints
     if(p(VCodePrintfEnable)) {
       printf("Got funct7 = 0x%x\trs1.val=0x%x\trs2.val=0x%x\txd.val=0x%x\n",
-        rocc_cmd.inst.funct, rocc_cmd.rs1, rocc_cmd.rs2, rocc_cmd.inst.xd)
-      printf("The instruction legal: %d\n", ctrl_sigs.legal)
+        roccCmd.inst.funct, roccCmd.rs1, roccCmd.rs2, roccCmd.inst.xd)
+      printf("The instruction legal: %d\n", ctrlSigs.legal)
     }
   }
 
@@ -103,48 +103,48 @@ class VCodeAccelImp(outer: VCodeAccel, batchSize: Int) extends LazyRoCCModuleImp
    * Most instructions pass pointers to vectors, so we need to fetch that before
    * operating on the data.
    **************/
-  val data_fetcher = Module(new DCacheFetcher(batchSize))
-  data_fetcher.io.ctrl_sigs := ctrl_sigs
-  data_fetcher.io.mstatus := status
-  ctrl_unit.io.mem_op_completed := data_fetcher.io.op_completed
+  val dataFetcher = Module(new DCacheFetcher(batchSize))
+  dataFetcher.io.ctrlSigs := ctrlSigs
+  dataFetcher.io.mstatus := status
+  ctrlUnit.io.memOpCompleted := dataFetcher.io.opCompleted
 
-  when(ctrl_unit.io.writeback_ready) {
-    data_fetcher.io.opToPerform := MemoryOperation.write
+  when(ctrlUnit.io.writebackReady) {
+    dataFetcher.io.opToPerform := MemoryOperation.write
   } .otherwise {
-    data_fetcher.io.opToPerform := MemoryOperation.read
+    dataFetcher.io.opToPerform := MemoryOperation.read
   }
 
-  rocc_io.mem.req :<> data_fetcher.io.req // Connect Request queue
-  data_fetcher.io.resp :<> rocc_io.mem.resp  // Connect response queue
+  rocc_io.mem.req :<> dataFetcher.io.req // Connect Request queue
+  dataFetcher.io.resp :<> rocc_io.mem.resp  // Connect response queue
 
-  val rs1 = Wire(Bits(p(XLen).W)); rs1 := rocc_cmd.rs1
-  val rs2 = Wire(Bits(p(XLen).W)); rs2 := rocc_cmd.rs2
+  val rs1 = Wire(Bits(p(XLen).W)); rs1 := roccCmd.rs1
+  val rs2 = Wire(Bits(p(XLen).W)); rs2 := roccCmd.rs2
 
-  val addrToFetch = ctrl_unit.io.baseAddress
+  val addrToFetch = ctrlUnit.io.baseAddress
   // FIXME: Should not need to rely on op_completed boolean
-  when((ctrl_unit.io.should_fetch || ctrl_unit.io.writeback_ready) &&
-    !data_fetcher.io.op_completed && data_fetcher.io.baseAddress.ready) {
+  when((ctrlUnit.io.shouldFetch || ctrlUnit.io.writebackReady) &&
+    !dataFetcher.io.opCompleted && dataFetcher.io.baseAddress.ready) {
     // Queue addrs and set valid bit
-    data_fetcher.io.baseAddress.enq(addrToFetch)
+    dataFetcher.io.baseAddress.enq(addrToFetch)
     if(p(VCodePrintfEnable)) {
       printf("VCode\tEnqueued addresses to data fetcher\n")
       printf("\tBase Address: 0x%x\tvalid? %d\n",
-        data_fetcher.io.baseAddress.bits, data_fetcher.io.baseAddress.valid)
+        dataFetcher.io.baseAddress.bits, dataFetcher.io.baseAddress.valid)
     }
   } .otherwise {
-    data_fetcher.io.baseAddress.noenq()
+    dataFetcher.io.baseAddress.noenq()
   }
-  data_fetcher.io.start := ctrl_unit.io.should_fetch || ctrl_unit.io.writeback_ready
-  data_fetcher.io.amountData := ctrl_unit.io.num_to_fetch
+  dataFetcher.io.start := ctrlUnit.io.shouldFetch || ctrlUnit.io.writebackReady
+  dataFetcher.io.amountData := ctrlUnit.io.numToFetch
 
   val data1 = RegInit(VecInit.fill(batchSize)(0.U(p(XLen).W)))
   val data2 = RegInit(VecInit.fill(batchSize)(0.U(p(XLen).W)))
   // FIXME: Only use rs1/rs2 if xs1/xs2 =1, respectively.
-  when(data_fetcher.io.fetched_data.valid) {
-    when(ctrl_unit.io.rs1Fetch) {
-      data1 := data_fetcher.io.fetched_data.bits
+  when(dataFetcher.io.fetchedData.valid) {
+    when(ctrlUnit.io.rs1Fetch) {
+      data1 := dataFetcher.io.fetchedData.bits
     } .otherwise {
-      data2 := data_fetcher.io.fetched_data.bits
+      data2 := dataFetcher.io.fetchedData.bits
     }
   }
 
@@ -156,29 +156,29 @@ class VCodeAccelImp(outer: VCodeAccel, batchSize: Int) extends LazyRoCCModuleImp
   val alu = Module(new ALU(p(XLen))(batchSize))
   // FIXME?: Should be a register to hold values if we start the next batch on the ALU immediately
   // val alu_out = RegInit(VecInit.fill(batchSize)(0.U(p(XLen).W)))
-  val alu_out = WireInit(VecInit.fill(batchSize)(0.U(p(XLen).W)))
-  val alu_cout = Wire(UInt())
+  val aluOut = WireInit(VecInit.fill(batchSize)(0.U(p(XLen).W)))
+  val aluCout = Wire(UInt())
   // Hook up the ALU to VCode signals
-  alu.io.fn := ctrl_sigs.alu_fn
+  alu.io.fn := ctrlSigs.aluFn
   alu.io.in1 := data1
   alu.io.in2 := data2
-  alu.io.execute := ctrl_unit.io.should_execute
-  alu_out := alu.io.out
-  alu_cout := alu.io.cout
+  alu.io.execute := ctrlUnit.io.shouldExecute
+  aluOut := alu.io.out
+  aluCout := alu.io.cout
 
-  data_fetcher.io.dataToWrite.bits := alu_out
-  data_fetcher.io.dataToWrite.valid := ctrl_unit.io.writeback_ready
+  dataFetcher.io.dataToWrite.bits := aluOut
+  dataFetcher.io.dataToWrite.valid := ctrlUnit.io.writebackReady
 
-  val response_ready = Wire(Bool())
-  response_ready := ctrl_unit.io.response_ready
+  val responseReady = Wire(Bool())
+  responseReady := ctrlUnit.io.responseReady
 
   /***************
    * RESPOND
    **************/
   // Check if the accelerator needs to respond
-  val response_required = RegInit(false.B)
-  when(cmd_valid && ctrl_sigs.legal && rocc_cmd.inst.xd) {
-    response_required := true.B
+  val responseRequired = RegInit(false.B)
+  when(cmdValid && ctrlSigs.legal && roccCmd.inst.xd) {
+    responseRequired := true.B
   }
 
   // Send response to main processor
@@ -188,13 +188,13 @@ class VCodeAccelImp(outer: VCodeAccel, batchSize: Int) extends LazyRoCCModuleImp
   response.rd := returnReg
   response.data := 0.U // 0 for success. Could be number of elements processed too.
   io.resp.bits := response
-  io.resp.valid := response_required && response_ready || exception
+  io.resp.valid := responseRequired && responseReady || exception
   when(rocc_io.resp.fire) {
-    response_required := false.B
-    cmd_valid := false.B
+    responseRequired := false.B
+    cmdValid := false.B
   }
 
-  when(response_required && response_ready) {
+  when(responseRequired && responseReady) {
     if(p(VCodePrintfEnable)) {
       printf("Main processor ready for response? %d\n", io.resp.ready)
     }

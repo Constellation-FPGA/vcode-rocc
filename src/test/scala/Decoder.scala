@@ -19,10 +19,10 @@ class DecoderTest extends AnyFlatSpec with ChiselScalatestTester {
   def testDecode(inst: BitPat, rocc_inst: RoCCInstruction): Unit = {
     it should s"Decode ${inst}" in {
       test(new Decoder) { dut =>
-        val expected_sigs = (new DecodeTable).findCtrlSigs(inst)
-        dut.io.rocc_inst.poke(rocc_inst)
+        val expectedSigs = (new DecodeTable).findCtrlSigs(inst)
+        dut.io.roccInst.poke(roccInst)
 
-        dut.io.ctrl_sigs.expect(expected_sigs)
+        dut.io.ctrlSigs.expect(expectedSigs)
       }
     }
   }

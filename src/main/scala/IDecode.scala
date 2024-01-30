@@ -16,7 +16,7 @@ import NumOperatorOperands._
 trait DecodeConstants extends HasCoreParameters { // TODO: Not sure if extends needed
   /** Array of pairs (table) mapping between instruction bit patterns and control
     * signals. */
-  val decode_table: Array[(BitPat, List[BitPat])]
+  val decodeTable: Array[(BitPat, List[BitPat])]
 }
 
 /** Control signals in the processor.
@@ -26,13 +26,13 @@ class CtrlSigs extends Bundle {
   /* All control signals used in this coprocessor
    * See rocket-chip's rocket/IDecode.scala#IntCtrlSigs#default */
   val legal = Bool() // Example control signal.
-  val alu_fn = Bits(SZ_ALU_FN.W)
-  val is_mem_op = Bool()
-  val num_mem_fetches = Bits(SZ_MEM_OPS)
+  val aluFn = Bits(SZ_ALU_FN.W)
+  val isMemOp = Bool()
+  val numMemFetches = Bits(SZ_MEM_OPS)
 
   /** List of default control signal values
     * @return List of default control signal values. */
-  def default_decode_ctrl_sigs: List[BitPat] =
+  def defaultDecodeCtrlSigs: List[BitPat] =
     List(N, MEM_OPS_X, FN_X, N)
 
   /** Decodes an instruction to its control signals.
@@ -41,15 +41,15 @@ class CtrlSigs extends Bundle {
     * signal values.
     * @return Sequence of control signal values for the provided instruction.
     */
-  def decode(inst: UInt, decode_table: Iterable[(BitPat, List[BitPat])]) = {
-    val decoder = freechips.rocketchip.rocket.DecodeLogic(inst, default_decode_ctrl_sigs, decode_table)
+  def decode(inst: UInt, decodeTable: Iterable[(BitPat, List[BitPat])]) = {
+    val decoder = freechips.rocketchip.rocket.DecodeLogic(inst, defaultDecodeCtrlSigs, decodeTable)
     /* Make sequence ordered how signals are ordered.
      * See rocket-chip's rocket/IDecode.scala#IntCtrlSigs#decode#sigs */
-    val ctrl_sigs = Seq(legal, num_mem_fetches, alu_fn, is_mem_op)
+    val ctrlSigs = Seq(legal, numMemFetches, aluFn, isMemOp)
     /* Decoder is a minimized truth-table. We partially apply the map here,
      * which allows us to apply an instruction to get its control signals back.
      * We then zip that with the sequence of names for the control signals. */
-    ctrl_sigs zip decoder map{case(s,d) => s := d}
+    ctrlSigs zip decoder map{case(s,d) => s := d}
     this
   }
 }
@@ -64,13 +64,13 @@ object CtrlSigs {
   def convert(signalPattern: Iterable[BitPat]): CtrlSigs = {
     // This map destructures the signalPattern and assigns the elements to each
     // name in this sequence.
-    val Seq(legal, num_mem_fetches, alu_fn, is_mem_op) = signalPattern.map{ case (x: BitPat) => x }
+    val Seq(legal, numMemFetches, aluFn, isMemOp) = signalPattern.map{ case (x: BitPat) => x }
 
     (new CtrlSigs()).Lit(
       _.legal -> BitPat.bitPatToUInt(legal).asBool,
-      _.num_mem_fetches -> BitPat.bitPatToUInt(num_mem_fetches),
-      _.alu_fn -> alu_fn.value.U, // NOTE: BitPat of unknowns BitPat("b???") will be converted to 0s by this!
-      _.is_mem_op -> BitPat.bitPatToUInt(is_mem_op).asBool
+      _.numMemFetches -> BitPat.bitPatToUInt(numMemFetches),
+      _.aluFn -> aluFn.value.U, // NOTE: BitPat of unknowns BitPat("b???") will be converted to 0s by this!
+      _.isMemOp -> BitPat.bitPatToUInt(isMemOp).asBool
     )
   }
 }
@@ -82,17 +82,17 @@ object CtrlSigs {
   * parameters of the design during elaboration.
   */
 class BinOpDecode(implicit val p: Parameters) extends DecodeConstants {
-  val decode_table: Array[(BitPat, List[BitPat])] = Array(
+  val decodeTable: Array[(BitPat, List[BitPat])] = Array(
     PLUS_INT-> List(Y, MEM_OPS_TWO, FN_ADD, Y))
 }
 
 class ReduceDecode(implicit val p: Parameters) extends DecodeConstants {
-  val decode_table: Array[(BitPat, List[BitPat])] = Array(
+  val decodeTable: Array[(BitPat, List[BitPat])] = Array(
     PLUS_RED_INT -> List(Y, MEM_OPS_ONE, FN_RED_ADD, Y))
 }
 
 class ScanDecode(implicit val p: Parameters) extends DecodeConstants {
-  val decode_table: Array[(BitPat, List[BitPat])] = Array(
+  val decodeTable: Array[(BitPat, List[BitPat])] = Array(
     PLUS_SCAN_INT -> List(Y, MEM_OPS_ONE, FN_SCAN_ADD, Y))
 }
 
@@ -104,7 +104,7 @@ class ScanDecode(implicit val p: Parameters) extends DecodeConstants {
   * parameters of the design during elaboration.
   */
 class CtrlOpDecode(implicit val p: Parameters) extends DecodeConstants {
-  val decode_table: Array[(BitPat, List[BitPat])] = Array(
+  val decodeTable: Array[(BitPat, List[BitPat])] = Array(
     SET_NUM_OPERANDS -> List(Y, MEM_OPS_ZERO, FN_X, N),
     SET_DEST_ADDR -> List(Y, MEM_OPS_ZERO, FN_X, N))
 }
@@ -119,13 +119,13 @@ class DecodeTable(implicit val p: Parameters) {
     Seq(new ReduceDecode) ++
     Seq(new ScanDecode) ++
     Seq(new CtrlOpDecode)
-  } flatMap(_.decode_table)
+  } flatMap(_.decodeTable)
 
   /** Given an operation/funct7 code, find the control signals for that
     * particular RoCC instruction. */
   def findCtrlSigs(op: BitPat): CtrlSigs = {
     val ctrlSigs = new CtrlSigs
-    var sigs: List[BitPat] = ctrlSigs.default_decode_ctrl_sigs
+    var sigs: List[BitPat] = ctrlSigs.defaultDecodeCtrlSigs
     // Try to find matching operation -> signal mapping in decode table
     for (opSigs <- table) {
       val operation = opSigs._1
