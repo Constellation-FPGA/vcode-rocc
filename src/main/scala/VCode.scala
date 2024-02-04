@@ -163,6 +163,7 @@ class VCodeAccelImp(outer: VCodeAccel, batchSize: Int) extends LazyRoCCModuleImp
   alu.io.in1 := data1
   alu.io.in2 := data2
   alu.io.execute := ctrlUnit.io.shouldExecute
+  alu.io.accelIdle := !ctrlUnit.io.busy // ctrlUnit.io.accelReady is also valid.
   aluOut := alu.io.out
   aluCout := alu.io.cout
 

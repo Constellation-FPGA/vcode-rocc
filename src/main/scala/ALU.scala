@@ -32,17 +32,19 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
     val out = Output(Vec(batchSize, UInt(xLen.W)))
     val cout = Output(UInt(xLen.W))
     val execute = Input(Bool())
+    val accelIdle = Input(Bool())
   })
 
-  // TODO: Reset workingSpace when RoCC operation is complete
   // FIXME: This should be RegInit(Bits(xLen.W))?
-  val workingSpace = RegInit(VecInit.fill(batchSize)(0.U(xLen.W)))
+  val workingSpace = withReset(io.accelIdle) {
+    RegInit(VecInit.fill(batchSize)(0.U(xLen.W)))
+  }
   io.out := workingSpace
   val lastBatchResult = workingSpace(0)
 
-  // TODO: Reset identity when RoCC operation is complete
-  val identity = RegInit(0.U)
-
+  val identity = withReset(io.accelIdle) {
+    RegInit(0.U)
+  }
   io.cout := 0.U
 
   when(io.execute) {
