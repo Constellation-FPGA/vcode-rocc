@@ -83,7 +83,8 @@ object CtrlSigs {
   */
 class BinOpDecode(implicit val p: Parameters) extends DecodeConstants {
   val decodeTable: Array[(BitPat, List[BitPat])] = Array(
-    PLUS_INT-> List(Y, MEM_OPS_TWO, FN_ADD, Y))
+    PLUS_INT-> List(Y, MEM_OPS_TWO, FN_ADD, Y),
+    SUB_INT -> List(Y, MEM_OPS_TWO, FN_SUB, Y))
 }
 
 class ReduceDecode(implicit val p: Parameters) extends DecodeConstants {

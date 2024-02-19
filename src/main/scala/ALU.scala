@@ -17,6 +17,7 @@ object ALU {
   def FN_ADD = BitPat(0.U(SZ_ALU_FN.W))
   def FN_RED_ADD = BitPat(1.U(SZ_ALU_FN.W))
   def FN_SCAN_ADD = BitPat(2.U(SZ_ALU_FN.W))
+  def FN_SUB = BitPat(3.U(SZ_ALU_FN.W))
 }
 
 /** Implementation of an ALU.
@@ -66,6 +67,10 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
         workingSpace := tmp.slice(0, batchSize) // .slice(from, to) is [from, to). to is EXCLUSIVE
         identity := tmp(batchSize) // Grab the last bit, the end of the vector.
         // NOTE .scan has .scanLeft & .scanRight variants
+      }
+      is(3.U){
+        // SUB
+        workingSpace := (io.in1, io.in2).zipped.map(_ - _)
       }
     }
   }
