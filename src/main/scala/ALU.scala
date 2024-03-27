@@ -20,6 +20,7 @@ object ALU {
   def FN_SUB = BitPat(3.U(SZ_ALU_FN.W))
   def FN_MUL = BitPat(4.U(SZ_ALU_FN.W))
   def FN_DIV =  BitPat(7.U(SZ_ALU_FN.W))
+  def FN_MOD =  BitPat(8.U(SZ_ALU_FN.W))
 }
 
 /** Implementation of an ALU.
@@ -81,6 +82,10 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
       is(7.U){
         // DIV
         workingSpace := (io.in1, io.in2).zipped.map(_ / _)
+      }
+      is(8.U){
+        // MOD
+        workingSpace := (io.in1, io.in2).zipped.map(_ % _)
       }
     }
   }
