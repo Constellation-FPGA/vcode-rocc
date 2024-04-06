@@ -180,7 +180,7 @@ class DCacheFetcher(val bufferEntries: Int)(implicit p: Parameters) extends Core
             }
             is(MemoryOperation.write) {
               if(p(VCodePrintfEnable)) {
-                printf("DFetch\tTag 0x%x will WRITE 0x%x\n", tag, io.dataToWrite.bits(tag))
+                printf("DFetch\tTag 0x%x will WRITE %b\n", tag, io.dataToWrite.bits(tag))
               }
               io.req.bits.data := io.dataToWrite.bits(tag)
               io.req.bits.cmd := M_XWR

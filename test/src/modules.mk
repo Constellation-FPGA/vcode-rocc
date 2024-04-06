@@ -5,6 +5,9 @@ TEST_SRCS += rocc_add.c host_add.c \
              rocc_mul.c \
              rocc_div.c \
              rocc_mod.c \
+             rocc_less.c \
+             rocc_less_equal.c\
+             rocc_greater.c\
              rocc_illegal.c rocc_illegal_nonblocking.c \
              host_div0.c host_ecall.c \
              malloc.c
