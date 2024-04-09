@@ -89,7 +89,7 @@ class BinOpDecode(implicit val p: Parameters) extends DecodeConstants {
     DIV_INT -> List(Y, MEM_OPS_TWO, FN_DIV, Y),
     MOD_INT -> List(Y, MEM_OPS_TWO, FN_MOD, Y),
     LESS_INT -> List(Y, MEM_OPS_TWO, FN_LESS, Y),
-    LESS_EQUAL_INT -> List(Y, MEM_OPS_TWO, FN_MOD, Y),
+    LESS_EQUAL_INT -> List(Y, MEM_OPS_TWO, FN_LESS_EQUAL, Y),
     GREATER_INT -> List(Y, MEM_OPS_TWO, FN_MOD, Y),
     GREATER_EQUAL_INT -> List(Y, MEM_OPS_TWO, FN_MOD, Y),
     EQUAL_INT -> List(Y, MEM_OPS_TWO, FN_MOD, Y),
