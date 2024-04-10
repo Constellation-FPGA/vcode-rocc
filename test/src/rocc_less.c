@@ -24,11 +24,7 @@ int main() {
     int arrays_equal = 1;
     if (status == 0) {
         for(int i = 0; i < 3; i++) {
-            /* Chisel only sets the Least-significant bit when bools are expanded
-             * to larger bit-widths, and those upper bits may be garbage. We need
-             * to peel out the LSB before doing the comparison. */
-            int64_t actual_result = c[i] & ((int64_t) 1);
-            if(actual_result != expected[i]) {
+            if(c[i] != expected[i]) {
                 arrays_equal = 0;
                 return i+1;
             }

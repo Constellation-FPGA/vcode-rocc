@@ -7,18 +7,18 @@
 // ROCC_INSTRUCTION_S(0, NUM_ELEMENTS, 0x40);
 int main() {
     int64_t c[3],status;
-    int64_t a[3] = {1, 0xdc32, 33};
-    int64_t b[3] = {3, 0x0cf1, 33};
+    int64_t a[3] = {1, 0xdc32, 4};
+    int64_t b[3] = {3, 0x2cf1, 4};
     ROCC_INSTRUCTION_S(0, 3, 0x40);  // Send "length" of vector
     ROCC_INSTRUCTION_S(0, &c, 0x41); // Send destination address
     // DSS used to block the main core.
-    ROCC_INSTRUCTION_DSS(0, status, &a, &b, 11); // Wait for result
+    ROCC_INSTRUCTION_DSS(0, status, &a, &b, 14); // Wait for result
     /* The value put back into the rd register is IMMEDIATELY stored back into
      * memory! */
-    // Host-side mul: (a <= b)
+    // Host-side mul: (a == b)
     int64_t expected[3]; 
     for(int i = 0; i < 3; i++) {
-        expected[i] = (a[i] <= b[i]) ? 1 : 0;
+        expected[i] = (a[i] == b[i]) ? 1 : 0;
     }
 
     int arrays_equal = 1;
