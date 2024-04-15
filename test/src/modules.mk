@@ -11,6 +11,8 @@ TEST_SRCS += rocc_add.c host_add.c \
              rocc_greater_equal.c\
              rocc_equal.c\
              rocc_unequal.c\
+             rocc_left_shift.c\
+             rocc_right_shift.c\
              rocc_illegal.c rocc_illegal_nonblocking.c \
              host_div0.c host_ecall.c \
              malloc.c

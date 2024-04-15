@@ -9,7 +9,7 @@ import freechips.rocketchip.tile.CoreModule
   */
 object ALU {
   /** The size of the ALU's internal functional unit's addresses */
-  val SZ_ALU_FN = 4
+  val SZ_ALU_FN = 7
 
   /** Unknown ALU function */
   def FN_X = BitPat.dontCare(SZ_ALU_FN)
@@ -27,6 +27,8 @@ object ALU {
   def FN_GREATER_EQUAL = BitPat(12.U(SZ_ALU_FN.W))
   def FN_EQUAL = BitPat(13.U(SZ_ALU_FN.W))
   def FN_UNEQUAL = BitPat(14.U(SZ_ALU_FN.W))
+  def FN_LSHIFT = BitPat(15.U(SZ_ALU_FN.W))
+  def FN_RSHIFT = BitPat(16.U(SZ_ALU_FN.W))
 }
 
 /** Implementation of an ALU.
@@ -116,6 +118,14 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
       is(14.U){
         // UNEQUAL
         workingSpace := (io.in1, io.in2).zipped.map(_ =/= _)
+      }
+      is(15.U){
+        // LEFT SHIFT
+        workingSpace := (io.in1, io.in2).zipped.map(_ << _(18,0))
+      }
+      is(16.U){
+        // RIGHT SHIFT
+        workingSpace := (io.in1, io.in2).zipped.map(_ >> _(18,0))
       }
     }
   }
