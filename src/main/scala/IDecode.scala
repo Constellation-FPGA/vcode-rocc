@@ -95,7 +95,11 @@ class BinOpDecode(implicit val p: Parameters) extends DecodeConstants {
     EQUAL_INT -> List(Y, MEM_OPS_TWO, FN_EQUAL, Y),
     UNEQUAL_INT -> List(Y, MEM_OPS_TWO, FN_UNEQUAL, Y),
     LSHIFT_INT -> List(Y, MEM_OPS_TWO, FN_LSHIFT, Y),
-    RSHIFT_INT -> List(Y, MEM_OPS_TWO, FN_RSHIFT, Y))
+    RSHIFT_INT -> List(Y, MEM_OPS_TWO, FN_RSHIFT, Y),
+    NOT_INT -> List(Y, MEM_OPS_ONE, FN_NOT, Y),
+    AND_INT -> List(Y, MEM_OPS_TWO, FN_AND, Y),
+    OR_INT -> List(Y, MEM_OPS_TWO, FN_OR, Y),
+    XOR_INT -> List(Y, MEM_OPS_TWO, FN_XOR, Y))
 }
 
 class ReduceDecode(implicit val p: Parameters) extends DecodeConstants {

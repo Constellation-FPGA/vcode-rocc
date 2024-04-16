@@ -18,6 +18,10 @@ object Instructions {
   def UNEQUAL_INT = BitPat("b0001111")
   def LSHIFT_INT = BitPat("b0010000")
   def RSHIFT_INT = BitPat("b0010001")
+  def NOT_INT = BitPat("b0010010")
+  def AND_INT = BitPat("b0010011")
+  def OR_INT = BitPat("b0010100")
+  def XOR_INT = BitPat("b0010101")
 
   // Accelerator configuration instructions. These are usually nonblocking.
   /** Set number of elements to operate over. */

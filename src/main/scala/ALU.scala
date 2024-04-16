@@ -29,6 +29,10 @@ object ALU {
   def FN_UNEQUAL = BitPat(14.U(SZ_ALU_FN.W))
   def FN_LSHIFT = BitPat(15.U(SZ_ALU_FN.W))
   def FN_RSHIFT = BitPat(16.U(SZ_ALU_FN.W))
+  def FN_NOT = BitPat(17.U(SZ_ALU_FN.W))
+  def FN_AND = BitPat(18.U(SZ_ALU_FN.W))
+  def FN_OR = BitPat(19.U(SZ_ALU_FN.W))
+  def FN_XOR = BitPat(20.U(SZ_ALU_FN.W))
 }
 
 /** Implementation of an ALU.
@@ -126,6 +130,22 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
       is(16.U){
         // RIGHT SHIFT
         workingSpace := (io.in1, io.in2).zipped.map(_ >> _(18,0))
+      }
+      is(17.U){
+        // NOT (bitwise for ints)
+        workingSpace := io.in1.map(~_)
+      }
+      is(18.U){
+        // AND (bitwise or boolean)
+        workingSpace := (io.in1, io.in2).zipped.map(_ & _)
+      }
+      is(19.U){
+        // OR (bitwise or boolean)
+        workingSpace := (io.in1, io.in2).zipped.map(_ | _)
+      }
+      is(20.U){
+        // XOR (bitwise or boolean)
+        workingSpace := (io.in1, io.in2).zipped.map(_ ^ _)
       }
     }
   }
