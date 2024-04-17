@@ -21,6 +21,12 @@ object ALU {
   def FN_MUL = BitPat(4.U(SZ_ALU_FN.W))
   def FN_DIV =  BitPat(7.U(SZ_ALU_FN.W))
   def FN_MOD =  BitPat(8.U(SZ_ALU_FN.W))
+  def FN_LESS = BitPat(9.U(SZ_ALU_FN.W))
+  def FN_LESS_EQUAL = BitPat(10.U(SZ_ALU_FN.W))
+  def FN_GREATER = BitPat(11.U(SZ_ALU_FN.W))
+  def FN_GREATER_EQUAL = BitPat(12.U(SZ_ALU_FN.W))
+  def FN_EQUAL = BitPat(13.U(SZ_ALU_FN.W))
+  def FN_UNEQUAL = BitPat(14.U(SZ_ALU_FN.W))
 }
 
 /** Implementation of an ALU.
@@ -86,6 +92,30 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
       is(8.U){
         // MOD
         workingSpace := (io.in1, io.in2).zipped.map(_ % _)
+      }
+      is(9.U){
+        // LESS
+        workingSpace := (io.in1, io.in2).zipped.map(_ < _)
+      }
+      is(10.U){
+        // LESS OR EQUAL
+        workingSpace := (io.in1, io.in2).zipped.map(_ <= _)
+      }
+      is(11.U){
+        // GREATER
+        workingSpace := (io.in1, io.in2).zipped.map(_ > _)
+      }
+      is(12.U){
+        // GREATER OR EQUAL
+        workingSpace := (io.in1, io.in2).zipped.map(_ >= _)
+      }
+      is(13.U){
+        // EQUAL
+        workingSpace := (io.in1, io.in2).zipped.map(_ === _)
+      }
+      is(14.U){
+        // UNEQUAL
+        workingSpace := (io.in1, io.in2).zipped.map(_ =/= _)
       }
     }
   }

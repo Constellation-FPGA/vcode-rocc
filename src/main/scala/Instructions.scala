@@ -10,6 +10,12 @@ object Instructions {
   def MUL_INT = BitPat("b0000101")
   def DIV_INT = BitPat("b0001000")
   def MOD_INT = BitPat("b0001001")
+  def LESS_INT = BitPat("b0001010")
+  def LESS_EQUAL_INT = BitPat("b0001011")
+  def GREATER_INT = BitPat("b0001100")
+  def GREATER_EQUAL_INT = BitPat("b0001101")
+  def EQUAL_INT = BitPat("b0001110")
+  def UNEQUAL_INT = BitPat("b0001111")
 
   // Accelerator configuration instructions. These are usually nonblocking.
   /** Set number of elements to operate over. */
