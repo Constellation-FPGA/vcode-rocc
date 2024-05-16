@@ -112,6 +112,11 @@ class ScanDecode(implicit val p: Parameters) extends DecodeConstants {
     PLUS_SCAN_INT -> List(Y, MEM_OPS_ONE, FN_SCAN_ADD, Y))
 }
 
+class SelectDecode(implicit val p: Parameters) extends DecodeConstants {
+  val decodeTable: Array[(BitPat, List[BitPat])] = Array(
+    SELECT_INT -> List(Y, MEM_OPS_THREE, FN_SELECT, Y))
+}
+
 /** Decode table for accelerator control instructions.
   * These tend to be non-blocking instructions that have no memory operands and
   * may or may not use the ALU.
@@ -122,7 +127,8 @@ class ScanDecode(implicit val p: Parameters) extends DecodeConstants {
 class CtrlOpDecode(implicit val p: Parameters) extends DecodeConstants {
   val decodeTable: Array[(BitPat, List[BitPat])] = Array(
     SET_NUM_OPERANDS -> List(Y, MEM_OPS_ZERO, FN_X, N),
-    SET_DEST_ADDR -> List(Y, MEM_OPS_ZERO, FN_X, N))
+    SET_DEST_ADDR -> List(Y, MEM_OPS_ZERO, FN_X, N),
+    SET_THIRD_OPERAND -> List(Y, MEM_OPS_ZERO, FN_X, N))
 }
 
 /** A class holding a decode table for all possible RoCC instructions that are
@@ -134,6 +140,7 @@ class DecodeTable(implicit val p: Parameters) {
     Seq(new BinOpDecode) ++
     Seq(new ReduceDecode) ++
     Seq(new ScanDecode) ++
+    Seq(new SelectDecode) ++
     Seq(new CtrlOpDecode)
   } flatMap(_.decodeTable)
 

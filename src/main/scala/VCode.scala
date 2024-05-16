@@ -20,6 +20,7 @@ import vcoderocc.constants._
 class VCodeAccel(opcodes: OpcodeSet, batchSize: Int)(implicit p: Parameters) extends LazyRoCC(opcodes) {
   // batchSize must be power of 2 to make certain ops on counters efficient
   require(isPow2(batchSize), "VCode accelerator batchSize must be power of 2!")
+  require((batchSize <= 64), "VCode accelerator batchSize must not be greater than 64!")
   override lazy val module = new VCodeAccelImp(this, batchSize)
 }
 
@@ -116,6 +117,8 @@ class VCodeAccelImp(outer: VCodeAccel, batchSize: Int) extends LazyRoCCModuleImp
   rocc_io.mem.req :<>= dataFetcher.io.req // Connect Request queue
   dataFetcher.io.resp :<>= rocc_io.mem.resp  // Connect response queue
 
+  /* rsX here are just wire aliases to make using rs1/rs2 slightly shorter in
+   * later portions of this file, where rsX get used more frequently. */
   val rs1 = Wire(Bits(xLen.W)); rs1 := roccCmd.rs1
   val rs2 = Wire(Bits(xLen.W)); rs2 := roccCmd.rs2
 
@@ -138,12 +141,15 @@ class VCodeAccelImp(outer: VCodeAccel, batchSize: Int) extends LazyRoCCModuleImp
 
   val data1 = RegInit(VecInit.fill(batchSize)(0.U(xLen.W)))
   val data2 = RegInit(VecInit.fill(batchSize)(0.U(xLen.W)))
+  val data3 = RegInit(0.U(xLen.W))
   // FIXME: Only use rs1/rs2 if xs1/xs2 =1, respectively.
   when(dataFetcher.io.fetchedData.valid) {
     when(ctrlUnit.io.rs1Fetch) {
       data1 := dataFetcher.io.fetchedData.bits
-    } .otherwise {
+    } .elsewhen(ctrlUnit.io.rs2Fetch){
       data2 := dataFetcher.io.fetchedData.bits
+    }.otherwise {
+      data3 := dataFetcher.io.fetchedData.bits(0)
     }
   }
 
@@ -162,6 +168,7 @@ class VCodeAccelImp(outer: VCodeAccel, batchSize: Int) extends LazyRoCCModuleImp
   alu.io.fn := ctrlSigs.aluFn
   alu.io.in1 := data1
   alu.io.in2 := data2
+  alu.io.in3 := data3
   alu.io.execute := ctrlUnit.io.shouldExecute
   alu.io.accelIdle := !ctrlUnit.io.busy // ctrlUnit.io.accelReady is also valid.
   aluOut := alu.io.out

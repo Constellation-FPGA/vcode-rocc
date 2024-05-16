@@ -33,6 +33,7 @@ object ALU {
   def FN_AND = BitPat(18.U(SZ_ALU_FN.W))
   def FN_OR = BitPat(19.U(SZ_ALU_FN.W))
   def FN_XOR = BitPat(20.U(SZ_ALU_FN.W))
+  def FN_SELECT = BitPat(21.U(SZ_ALU_FN.W))
 }
 
 /** Implementation of an ALU.
@@ -45,11 +46,26 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
     // The two register content values passed over the RoCCCommand are xLen wide
     val in1 = Input(Vec(batchSize, UInt(xLen.W)))
     val in2 = Input(Vec(batchSize, UInt(xLen.W)))
+    val in3 = Input(UInt(xLen.W))
     val out = Output(Vec(batchSize, UInt(xLen.W)))
     val cout = Output(UInt(xLen.W))
     val execute = Input(Bool())
     val accelIdle = Input(Bool())
   })
+
+  val selectFlagsCounter = withReset(io.accelIdle) {
+    RegInit(0.U(log2Down(xLen).W))
+  }
+  /* Use a for-loop to dynamically index and pull out the flags provided
+   * through io.in3, creating a "view/slice" of the flags. This MUST be done
+   * this way because Chisel does not have a built-in function to generate
+   * this kind of code.
+   * When looking at the generated code on Scastie, it amounts to 3 assigns,
+   * which is pretty much exactly what we want. */
+  val selectFlags = WireInit(VecInit(Seq.fill(batchSize)(false.B)))
+  for (i <- 0 until batchSize) {
+    selectFlags(i) := io.in3(i.U + selectFlagsCounter)
+  }
 
   // FIXME: This should be RegInit(Bits(xLen.W))?
   val workingSpace = withReset(io.accelIdle) {
@@ -146,6 +162,14 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
       is(20.U){
         // XOR (bitwise or boolean)
         workingSpace := io.in1.zip(io.in2).map{ case (x, y) => x ^ y }
+      }
+      is(21.U){
+        // SELECT
+        workingSpace := selectFlags.lazyZip(io.in1)
+          .lazyZip(io.in2)
+          .toVector
+          .map({ case (s, t, f) => Mux(s, t, f) })
+        selectFlagsCounter := selectFlagsCounter + batchSize.U;
       }
     }
   }
