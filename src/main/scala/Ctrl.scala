@@ -7,7 +7,7 @@ import freechips.rocketchip.config.Parameters
 import freechips.rocketchip.tile.{XLen, RoCCCommand}
 
 object SourceOperand extends ChiselEnum {
-  val none, rs1, rs2 = Value
+  val none, rs1, rs2, rs3 = Value
 }
 
 class ControlUnit(val batchSize: Int)(implicit p: Parameters) extends Module {
@@ -35,7 +35,7 @@ class ControlUnit(val batchSize: Int)(implicit p: Parameters) extends Module {
   object State extends ChiselEnum {
     /* Internally (in Verilog) represented as integers. First item in list has
      * value 0, i.e. idle = 0x0. */
-    val idle, fetch1, fetch2, exe, write, respond = Value
+    val idle, fetch1, fetch2, fetch3, exe, write, respond = Value
   }
   val accelState = RegInit(State.idle) // Reset to idle state
 
@@ -47,9 +47,11 @@ class ControlUnit(val batchSize: Int)(implicit p: Parameters) extends Module {
 
   val rs1 = RegInit(0.U(p(XLen).W))
   val rs2 = RegInit(0.U(p(XLen).W))
+  val rs3 = RegInit(0.U(p(XLen).W))
   val destAddr = RegInit(0.U(p(XLen).W))
   val currentRs1 = RegInit(0.U(p(XLen).W))
   val currentRs2 = RegInit(0.U(p(XLen).W))
+  val currentRs3 = RegInit(0.U(p(XLen).W))
   val currentDestAddr = RegInit(0.U(p(XLen).W))
 
 
@@ -62,13 +64,15 @@ class ControlUnit(val batchSize: Int)(implicit p: Parameters) extends Module {
   // responses are being made. Perhaps make this less strict?
 
   // We should fetch when we are in fetching data state
-  io.shouldFetch := (accelState === State.fetch1 || accelState === State.fetch2)
+  io.shouldFetch := (accelState === State.fetch1 || accelState === State.fetch2 || accelState === State.fetch3)
   // FIXME: This num_to_fetch is a little bit messy.
   io.numToFetch := Mux(operandsToGo >= batchSize.U, batchSize.U, operandsToGo)
   io.rs1Fetch := accelState === State.fetch1
 
   io.baseAddress := Mux(accelState === State.write, currentDestAddr,
-    Mux(accelState === State.fetch1, currentRs1, currentRs2))
+    Mux(accelState === State.fetch1, currentRs1, Mux(accelState === State.fetch2, currentRs2, currentRs3)))
+  /*io.baseAddress := Mux(accelState === State.write, currentDestAddr,
+    Mux(accelState === State.fetch1, currentRs1, currentRs2))*/
 
   io.shouldExecute := (accelState === State.exe)
 
@@ -98,13 +102,21 @@ class ControlUnit(val batchSize: Int)(implicit p: Parameters) extends Module {
     }
   }
 
+  when(io.cmdValid && io.ctrlSigs.legal &&
+       io.roccCmd.inst.funct === Instructions.SET_THIRD_OPERAND && io.roccCmd.inst.xs1) {
+    rs3 := io.roccCmd.rs1
+    if(p(VCodePrintfEnable)) {
+      printf("Config\tSet rs3 to 0x%x\n", io.roccCmd.rs1)
+    }
+  }
+
   switch(accelState) {
     is(State.idle) {
       when(io.cmdValid && io.ctrlSigs.legal && io.ctrlSigs.isMemOp) {
         accelState := State.fetch1
         // If we leave idle, we should grab the source addresses
         rs1 := io.roccCmd.rs1; rs2 := io.roccCmd.rs2
-        currentRs1 := io.roccCmd.rs1; currentRs2 := io.roccCmd.rs2
+        currentRs1 := io.roccCmd.rs1; currentRs2 := io.roccCmd.rs2; currentRs3 := rs3
         if(p(VCodePrintfEnable)) {
           printf("Ctrl\tMoving from idle to fetch1 state\n")
         }
@@ -115,7 +127,7 @@ class ControlUnit(val batchSize: Int)(implicit p: Parameters) extends Module {
         printf("Ctrl\tIn fetch1 state\n")
       }
       when(io.memOpCompleted) {
-        when(io.ctrlSigs.numMemFetches === NumOperatorOperands.MEM_OPS_TWO) {
+        when(io.ctrlSigs.numMemFetches === NumOperatorOperands.MEM_OPS_TWO || io.ctrlSigs.numMemFetches === NumOperatorOperands.MEM_OPS_THREE) {
           if(p(VCodePrintfEnable)) {
             printf("Ctrl\tMoving from fetch1 to fetch2 state\n")
           }
@@ -133,9 +145,27 @@ class ControlUnit(val batchSize: Int)(implicit p: Parameters) extends Module {
         printf("Ctrl\tIn fetch2 state\n")
       }
       when(io.memOpCompleted) {
+        when(io.ctrlSigs.numMemFetches === NumOperatorOperands.MEM_OPS_THREE) {
+          if(p(VCodePrintfEnable)) {
+            printf("Ctrl\tMoving from fetch2 to fetch3 state\n")
+          }
+          accelState := State.fetch3
+        } .otherwise{
+          accelState := State.exe
+          if(p(VCodePrintfEnable)) {
+            printf("Ctrl\tMoving from fetch2 to exe state\n")
+          }
+        }
+      }
+    }
+    is(State.fetch3) {
+      if(p(VCodePrintfEnable)) {
+        printf("Ctrl\tIn fetch3 state\n")
+      }
+      when(io.memOpCompleted) {
         accelState := State.exe
         if(p(VCodePrintfEnable)) {
-          printf("Ctrl\tMoving from fetch2 to exe state\n")
+            printf("Ctrl\tMoving from fetch3 to exe state\n")
         }
       }
     }
@@ -157,6 +187,7 @@ class ControlUnit(val batchSize: Int)(implicit p: Parameters) extends Module {
           // Multiply address by 8 because all values use 64 bits
           currentRs1 := currentRs1 + (batchSize.U << 3)
           currentRs2 := currentRs2 + (batchSize.U << 3)
+          currentRs3 := currentRs3 + (batchSize.U << 3)
         } .otherwise {
           // The reduction's computation is complete, write.
           accelState := State.write
@@ -185,6 +216,7 @@ class ControlUnit(val batchSize: Int)(implicit p: Parameters) extends Module {
           // Multiply address by 8 because all values use 64 bits
           currentRs1 := currentRs1 + (batchSize.U << 3)
           currentRs2 := currentRs2 + (batchSize.U << 3)
+          currentRs3 := currentRs3 + (batchSize.U << 3)
           currentDestAddr := currentDestAddr + (batchSize.U << 3)
         } .otherwise {
           // We have finished processing the vector. Move onwards.

@@ -33,6 +33,7 @@ object ALU {
   def FN_AND = BitPat(18.U(SZ_ALU_FN.W))
   def FN_OR = BitPat(19.U(SZ_ALU_FN.W))
   def FN_XOR = BitPat(20.U(SZ_ALU_FN.W))
+  def FN_SELECT = BitPat(21.U(SZ_ALU_FN.W))
 }
 
 /** Implementation of an ALU.
@@ -45,11 +46,23 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
     // The two register content values passed over the RoCCCommand are xLen wide
     val in1 = Input(Vec(batchSize, UInt(xLen.W)))
     val in2 = Input(Vec(batchSize, UInt(xLen.W)))
+    val in3 = Input(Vec(batchSize, UInt(xLen.W)))
     val out = Output(Vec(batchSize, UInt(xLen.W)))
     val cout = Output(UInt(xLen.W))
     val execute = Input(Bool())
     val accelIdle = Input(Bool())
   })
+
+  val in3BoolRegister = RegInit(VecInit(Seq.fill(batchSize)(false.B)))
+  for (i <- 0 until batchSize) {
+    when(io.in3(i) =/= 0.U(xLen.W)){
+      in3BoolRegister(i) := true.B
+    }
+    .otherwise{
+      in3BoolRegister(i) := false.B
+    }
+  }
+  //in3BoolRegister := io.in3.asBools()
 
   // FIXME: This should be RegInit(Bits(xLen.W))?
   val workingSpace = withReset(io.accelIdle) {
@@ -146,6 +159,10 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
       is(20.U){
         // XOR (bitwise or boolean)
         workingSpace := (io.in1, io.in2).zipped.map(_ ^ _)
+      }
+      is(21.U){
+        // SELECT
+        workingSpace := (in3BoolRegister, io.in2, io.in1).zipped.map(Mux(_, _, _))
       }
     }
   }

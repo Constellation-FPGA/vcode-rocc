@@ -92,8 +92,8 @@ class VCodeAccelImp(outer: VCodeAccel, batchSize: Int) extends LazyRoCCModuleImp
   when(cmdValid) {
     // TODO: Find a nice way to condense these conditional prints
     if(p(VCodePrintfEnable)) {
-      printf("Got funct7 = 0x%x\trs1.val=0x%x\trs2.val=0x%x\txd.val=0x%x\n",
-        roccCmd.inst.funct, roccCmd.rs1, roccCmd.rs2, roccCmd.inst.xd)
+      printf("Got funct7 = 0x%x\trs1.val=0x%x\trs2.val=0x%x\trs3.val=0x%x\txd.val=0x%x\n",
+        roccCmd.inst.funct, roccCmd.rs1, roccCmd.rs2, roccCmd.rs3, roccCmd.inst.xd)
       printf("The instruction legal: %d\n", ctrlSigs.legal)
     }
   }
@@ -119,6 +119,7 @@ class VCodeAccelImp(outer: VCodeAccel, batchSize: Int) extends LazyRoCCModuleImp
 
   val rs1 = Wire(Bits(p(XLen).W)); rs1 := roccCmd.rs1
   val rs2 = Wire(Bits(p(XLen).W)); rs2 := roccCmd.rs2
+  val rs3 = Wire(Bits(p(XLen).W)); rs3 := roccCmd.rs3
 
   val addrToFetch = ctrlUnit.io.baseAddress
   // FIXME: Should not need to rely on op_completed boolean

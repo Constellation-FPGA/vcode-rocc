@@ -22,10 +22,13 @@ object Instructions {
   def AND_INT = BitPat("b0010011")
   def OR_INT = BitPat("b0010100")
   def XOR_INT = BitPat("b0010101")
+  def SELECT_INT = BitPat("b0010110")
 
   // Accelerator configuration instructions. These are usually nonblocking.
   /** Set number of elements to operate over. */
   def SET_NUM_OPERANDS = BitPat("b1000000")
   /** Set the destination vector base address for the next vector operation */
   def SET_DEST_ADDR = BitPat("b1000001")
+  /* Set the third operand */
+  def SET_THIRD_OPERAND = BitPat("b1000010")
 }

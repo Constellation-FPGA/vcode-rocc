@@ -239,4 +239,6 @@ object NumOperatorOperands {
   def MEM_OPS_ONE = BitPat("b01")
   /** Two operands to fetch from memory. */
   def MEM_OPS_TWO = BitPat("b10")
+  /** Three operands to fetch from memory. */
+  def MEM_OPS_THREE = BitPat("b11")
 }
