@@ -5,12 +5,16 @@ version := "0.0"
 name := "vcode-rocc"
 
 // Chosen to be the same version as rocket-chip
-scalaVersion := "2.12.15"
+scalaVersion := "2.13.10"
+// ThisBuild / scalaVersion := "2.13.10"
 
-val chiselVersion = "3.5.2"
+// Chosen to be the same as Chipyard
+val chiselVersion = "3.6.1"
+
 lazy val chiselSettings = Seq(
-  libraryDependencies ++= Seq("edu.berkeley.cs" %% "chisel3" % chiselVersion),
+  libraryDependencies ++= Seq(
+    "edu.berkeley.cs" %% "chisel3" % chiselVersion,
+    "edu.berkeley.cs" %% "rocketchip" % "1.6.0"
+  ),
   addCompilerPlugin("edu.berkeley.cs" % "chisel3-plugin" % chiselVersion cross CrossVersion.full)
 )
-
-libraryDependencies += "edu.berkeley.cs" %% "chiseltest" % "0.5.2"

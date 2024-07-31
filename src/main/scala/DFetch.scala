@@ -2,9 +2,9 @@ package vcoderocc
 
 import chisel3._
 import chisel3.util._
-import chisel3.experimental.ChiselEnum
-import freechips.rocketchip.config.Parameters
-import freechips.rocketchip.tile.{XLen, CoreModule, RoCCCommand}
+// import freechips.rocketchip.tile.{XLen, CoreModule, RoCCCommand}
+import org.chipsalliance.cde.config.Parameters
+import freechips.rocketchip.tile.{CoreModule, RoCCCommand}
 import freechips.rocketchip.rocket.constants.MemoryOpConstants
 import vcoderocc.constants._
 import freechips.rocketchip.rocket.MStatus
@@ -52,13 +52,13 @@ class DCacheFetcher(val bufferEntries: Int)(implicit p: Parameters) extends Core
   val io = IO(new Bundle {
     val ctrlSigs = Input(new CtrlSigs)
     /** The base address from which to operate on (load from/store to). */
-    val baseAddress = Flipped(Decoupled(Bits(p(XLen).W)))
+    val baseAddress = Flipped(Decoupled(Bits(xLen.W)))
     val mstatus = Input(new MStatus)
     val opToPerform = Input(MemoryOperation()) // NOTE: The () is important!
     // Actual Data outputs
     // fetched_data is only of interest if a read was performed
-    val fetchedData = Output(Valid(Vec(bufferEntries, Bits(p(XLen).W))))
-    val dataToWrite = Input(Valid(Vec(bufferEntries, Bits(p(XLen).W))))
+    val fetchedData = Output(Valid(Vec(bufferEntries, Bits(xLen.W))))
+    val dataToWrite = Input(Valid(Vec(bufferEntries, Bits(xLen.W))))
     /** Flag to tell DCacheFetcher to start loading/storing from/to memory. */
     val start = Input(Bool())
     /** The number of elements to fetch. */
@@ -84,11 +84,21 @@ class DCacheFetcher(val bufferEntries: Int)(implicit p: Parameters) extends Core
    * bufferEntries number of elements and NOT wrap around. */
   // Number of requests that have been fulfilled.
   val amountFetched = RegInit(0.U((log2Up(bufferEntries)+1).W))
-  // Number of requests that have been sent.
-  val reqsSent = RegInit(0.U(8.W))
+  /* Number of requests that have been sent.
+   * log2Down(bufferEntries)+1.@ means reqsSent can count PAST bufferEntries
+   * number of elements, allowing us to terminate the fetch cycle by detecting
+   * when we have submitted as many requests as we can.
+   *
+   * If bufferEntries = 8, then we must count 0 to 7 (to assign unique tags).
+   * This means we need 3 bits to perform this counting. But we RELY on counting
+   * one past the limit, to detect when we cannot submit any more requests. Hence,
+   * we actually count 0 to 8, requiring 4 (3+1) bits.
+   *
+   * FIXME: This should be an EXACT value, not a deliberate off-by-one. */
+  val reqsSent = RegInit(0.U((log2Down(bufferEntries)+1).W))
 
   val vals = withReset(state === State.idle) {
-    RegInit(VecInit.fill(bufferEntries)(0.U(p(XLen).W)))
+    RegInit(VecInit.fill(bufferEntries)(0.U(xLen.W)))
   }
 
   val waitForResp = RegInit(VecInit.fill(bufferEntries)(false.B))
@@ -98,6 +108,45 @@ class DCacheFetcher(val bufferEntries: Int)(implicit p: Parameters) extends Core
   io.opCompleted := (state === State.running) && (amountFetched >= io.amountData)
   // We can accept a new base address when we are idle.
   io.baseAddress.ready := (state === State.idle)
+
+  io.fetchedData.valid := allDone
+  io.fetchedData.bits := vals
+
+  val tag = reqsSent
+  io.req.bits.tag := tag
+  // I am not a fan of the comparator here... But c'est la vie.
+  val shouldSendRequest = io.start && !waitForResp(tag) && (reqsSent < io.amountData)
+  io.req.valid := shouldSendRequest
+  // Static shift by 3 as all data is 8-byte aligned
+  val addrToRequest = io.baseAddress.bits + (reqsSent << 3)
+  io.req.bits.addr := addrToRequest
+  io.req.bits.size := log2Ceil(8).U // Always loading 8 bytes
+  io.req.bits.signed := false.B
+  io.req.bits.phys := false.B
+  io.req.bits.dprv := io.mstatus.dprv
+  io.req.bits.dv := io.mstatus.dv
+  io.req.bits.cmd := Mux(io.opToPerform === MemoryOperation.read, M_XRD, M_XWR)
+  io.req.bits.data := Mux(io.opToPerform === MemoryOperation.read,
+    0.U, // Does not matter what we set data to for a read.
+    io.dataToWrite.bits(tag))
+  // switch(io.opToPerform) {
+  //   is(MemoryOperation.read) {
+  //     io.req.bits.data := 0.U // Does not matter what we set data to.
+  //     io.req.bits.cmd := M_XRD
+  //   }
+  //   is(MemoryOperation.write) {
+  //     if(p(VCodePrintfEnable)) {
+  //       printf("DFetch\tTag 0x%x will WRITE 0x%x\n", tag, io.dataToWrite.bits(tag))
+  //     }
+  //     io.req.bits.data := io.dataToWrite.bits(tag)
+  //     io.req.bits.cmd := M_XWR
+  //   }
+  // }
+  // TODO: What do these new ones do?
+  io.req.bits.mask := false.B
+  io.req.bits.no_resp := false.B
+  io.req.bits.no_alloc := false.B
+  io.req.bits.no_xcpt := false.B
 
   switch(state) {
     is(State.idle) {
@@ -118,8 +167,7 @@ class DCacheFetcher(val bufferEntries: Int)(implicit p: Parameters) extends Core
             vals(0.U), vals(1.U))
         }
         state := State.idle
-        io.fetchedData.bits := vals
-        io.fetchedData.valid := allDone
+
         amountFetched := 0.U; reqsSent := 0.U
       } .otherwise {
         // We still have a request to make. We may still have outstanding responses too.
@@ -154,12 +202,6 @@ class DCacheFetcher(val bufferEntries: Int)(implicit p: Parameters) extends Core
 
         // We should submit a memory request!
         when(io.start) {
-          // Static shift by 3 as all data is 8-byte aligned
-          val addrToRequest = io.baseAddress.bits + (reqsSent << 3)
-          val tag = reqsSent
-          // I am not a fan of the comparator here... But c'est la vie.
-          val shouldSendRequest = io.start && !waitForResp(tag) && (reqsSent < io.amountData)
-
           if(p(VCodePrintfEnable)) {
             printf("DFetch\tstart: %d\tbaseAddress_valid: %d\n",
               io.start, io.baseAddress.valid)
@@ -168,27 +210,6 @@ class DCacheFetcher(val bufferEntries: Int)(implicit p: Parameters) extends Core
             printf("DFetch\tdprv: %d\tdv: %d\n", io.mstatus.dprv, io.mstatus.dv)
           }
 
-          io.req.valid := shouldSendRequest
-          io.req.bits.addr := addrToRequest
-          io.req.bits.tag := tag
-          io.req.bits.size := log2Ceil(8).U // Load 8 bytes
-          io.req.bits.signed := false.B
-          switch(io.opToPerform) {
-            is(MemoryOperation.read) {
-              io.req.bits.data := 0.U // Does not matter what we set data to.
-              io.req.bits.cmd := M_XRD
-            }
-            is(MemoryOperation.write) {
-              if(p(VCodePrintfEnable)) {
-                printf("DFetch\tTag 0x%x will WRITE 0x%x\n", tag, io.dataToWrite.bits(tag))
-              }
-              io.req.bits.data := io.dataToWrite.bits(tag)
-              io.req.bits.cmd := M_XWR
-            }
-          }
-          io.req.bits.phys := false.B
-          io.req.bits.dprv := io.mstatus.dprv
-          io.req.bits.dv := io.mstatus.dv
           when(io.req.fire) {
             // When our request is sent, we must increment number of requests made
             reqsSent := reqsSent + 1.U

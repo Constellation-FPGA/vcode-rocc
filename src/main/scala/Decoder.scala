@@ -3,7 +3,7 @@ package vcoderocc
 import chisel3._
 import chisel3.util._
 import freechips.rocketchip.tile.RoCCInstruction
-import freechips.rocketchip.config.Parameters
+import org.chipsalliance.cde.config.Parameters
 
 class Decoder(implicit p: Parameters) extends Module {
   val io = IO(new Bundle {

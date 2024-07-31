@@ -3,13 +3,11 @@ package vcoderocc
 import chisel3._
 import chisel3.util._
 import freechips.rocketchip.tile._
-import freechips.rocketchip.config._
-import freechips.rocketchip.diplomacy._
+import org.chipsalliance.cde.config._
+import org.chipsalliance.diplomacy.lazymodule._
 import freechips.rocketchip.rocket._
 import freechips.rocketchip.tilelink._
 import vcoderocc.constants._
-
-import freechips.rocketchip.util.EnhancedChisel3Assign
 
 /** The outer wrapping class for the VCODE accelerator.
   *
@@ -37,6 +35,7 @@ class VCodeAccel(opcodes: OpcodeSet, batchSize: Int)(implicit p: Parameters) ext
 class VCodeAccelImp(outer: VCodeAccel, batchSize: Int) extends LazyRoCCModuleImp(outer) {
   // io is "implicit" because we inherit from LazyRoCCModuleImp.
   // io is the RoCCCoreIO
+  val xLen = p(TileKey).core.xLen
   val rocc_io = io
   val cmd = rocc_io.cmd
   val roccCmd = Reg(new RoCCCommand)
@@ -114,11 +113,11 @@ class VCodeAccelImp(outer: VCodeAccel, batchSize: Int) extends LazyRoCCModuleImp
     dataFetcher.io.opToPerform := MemoryOperation.read
   }
 
-  rocc_io.mem.req :<> dataFetcher.io.req // Connect Request queue
-  dataFetcher.io.resp :<> rocc_io.mem.resp  // Connect response queue
+  rocc_io.mem.req :<>= dataFetcher.io.req // Connect Request queue
+  dataFetcher.io.resp :<>= rocc_io.mem.resp  // Connect response queue
 
-  val rs1 = Wire(Bits(p(XLen).W)); rs1 := roccCmd.rs1
-  val rs2 = Wire(Bits(p(XLen).W)); rs2 := roccCmd.rs2
+  val rs1 = Wire(Bits(xLen.W)); rs1 := roccCmd.rs1
+  val rs2 = Wire(Bits(xLen.W)); rs2 := roccCmd.rs2
 
   val addrToFetch = ctrlUnit.io.baseAddress
   // FIXME: Should not need to rely on op_completed boolean
@@ -137,8 +136,8 @@ class VCodeAccelImp(outer: VCodeAccel, batchSize: Int) extends LazyRoCCModuleImp
   dataFetcher.io.start := ctrlUnit.io.shouldFetch || ctrlUnit.io.writebackReady
   dataFetcher.io.amountData := ctrlUnit.io.numToFetch
 
-  val data1 = RegInit(VecInit.fill(batchSize)(0.U(p(XLen).W)))
-  val data2 = RegInit(VecInit.fill(batchSize)(0.U(p(XLen).W)))
+  val data1 = RegInit(VecInit.fill(batchSize)(0.U(xLen.W)))
+  val data2 = RegInit(VecInit.fill(batchSize)(0.U(xLen.W)))
   // FIXME: Only use rs1/rs2 if xs1/xs2 =1, respectively.
   when(dataFetcher.io.fetchedData.valid) {
     when(ctrlUnit.io.rs1Fetch) {
@@ -153,10 +152,11 @@ class VCodeAccelImp(outer: VCodeAccel, batchSize: Int) extends LazyRoCCModuleImp
    **************/
   /* TODO: Have multiple ALUs, one for each element, thus one per lane?
    * Or have one big ALU handle a whole batchSize simultaneously? */
-  val alu = Module(new ALU(p(XLen))(batchSize))
+  // Must more specifically specify MY ALU, because freechips.rocketchip.rocket.ALU is also defined.
+  val alu = Module(new vcoderocc.ALU(xLen)(batchSize))
   // FIXME?: Should be a register to hold values if we start the next batch on the ALU immediately
-  // val alu_out = RegInit(VecInit.fill(batchSize)(0.U(p(XLen).W)))
-  val aluOut = WireInit(VecInit.fill(batchSize)(0.U(p(XLen).W)))
+  // val alu_out = RegInit(VecInit.fill(batchSize)(0.U(xLen.W)))
+  val aluOut = WireInit(VecInit.fill(batchSize)(0.U(xLen.W)))
   val aluCout = Wire(UInt())
   // Hook up the ALU to VCode signals
   alu.io.fn := ctrlSigs.aluFn

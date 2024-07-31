@@ -2,15 +2,14 @@ package vcoderocc
 
 import chisel3._
 import chisel3.util._
-import chisel3.experimental.ChiselEnum
-import freechips.rocketchip.config.Parameters
-import freechips.rocketchip.tile.{XLen, RoCCCommand}
+import org.chipsalliance.cde.config.Parameters
+import freechips.rocketchip.tile.{CoreModule, RoCCCommand}
 
 object SourceOperand extends ChiselEnum {
   val none, rs1, rs2 = Value
 }
 
-class ControlUnit(val batchSize: Int)(implicit p: Parameters) extends Module {
+class ControlUnit(val batchSize: Int)(implicit p: Parameters) extends CoreModule()(p) {
   val io = IO(new Bundle {
     val roccCmd = Input(new RoCCCommand())
     val ctrlSigs = Input(new CtrlSigs())
@@ -22,8 +21,8 @@ class ControlUnit(val batchSize: Int)(implicit p: Parameters) extends Module {
     // FIXME: rs1Fetch is hacky work-around to distinguish rs1 vs rs2 fetching
     // This would be fixed by the enum export method!
     val rs1Fetch = Output(Bool())
-    val baseAddress = Output(UInt(p(XLen).W))
-    val numToFetch = Output(UInt(p(XLen).W))
+    val baseAddress = Output(UInt(xLen.W))
+    val numToFetch = Output(UInt(xLen.W))
     val memOpCompleted = Input(Bool())
     val shouldExecute = Output(Bool())
     val writebackReady = Output(Bool())
@@ -42,15 +41,15 @@ class ControlUnit(val batchSize: Int)(implicit p: Parameters) extends Module {
   // Configuration registers. Set by set-up instructions
   // TODO: Figure out better way to declare these configuration registers
   // Perhaps a separate module that handles this? class ConfigBank extends Module {}
-  val numOperands = RegInit(0.U(p(XLen).W))
-  val operandsToGo = RegInit(0.U(p(XLen).W))
+  val numOperands = RegInit(0.U(xLen.W))
+  val operandsToGo = RegInit(0.U(xLen.W))
 
-  val rs1 = RegInit(0.U(p(XLen).W))
-  val rs2 = RegInit(0.U(p(XLen).W))
-  val destAddr = RegInit(0.U(p(XLen).W))
-  val currentRs1 = RegInit(0.U(p(XLen).W))
-  val currentRs2 = RegInit(0.U(p(XLen).W))
-  val currentDestAddr = RegInit(0.U(p(XLen).W))
+  val rs1 = RegInit(0.U(xLen.W))
+  val rs2 = RegInit(0.U(xLen.W))
+  val destAddr = RegInit(0.U(xLen.W))
+  val currentRs1 = RegInit(0.U(xLen.W))
+  val currentRs2 = RegInit(0.U(xLen.W))
+  val currentDestAddr = RegInit(0.U(xLen.W))
 
 
   // The accelerator is ready to execute if it is in the idle state

@@ -2,7 +2,7 @@ package vcoderocc
 
 import chisel3._
 import chisel3.util._
-import freechips.rocketchip.config.Parameters
+import org.chipsalliance.cde.config.Parameters
 import freechips.rocketchip.tile.CoreModule
 
 /** Externally-visible properties of the ALU.
@@ -67,7 +67,7 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
     switch(io.fn) {
       is(0.U) {
         // ADD/SUB
-        workingSpace := (io.in1, io.in2).zipped.map(_ + _)
+        workingSpace := io.in1.zip(io.in2).map{ case (x, y) => x + y }
       }
       is(1.U) {
         // +_REDUCE INT
@@ -85,67 +85,67 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
       }
       is(3.U){
         // SUB
-        workingSpace := (io.in1, io.in2).zipped.map(_ - _)
+        workingSpace := io.in1.zip(io.in2).map{ case (x, y) => x - y }
       }
       is(4.U){
         // MUL
-        workingSpace := (io.in1, io.in2).zipped.map(_ * _)
+        workingSpace := io.in1.zip(io.in2).map{ case (x, y) => x * y }
       }
       is(7.U){
         // DIV
-        workingSpace := (io.in1, io.in2).zipped.map(_ / _)
+        workingSpace := io.in1.zip(io.in2).map{ case (x, y) => x / y }
       }
       is(8.U){
         // MOD
-        workingSpace := (io.in1, io.in2).zipped.map(_ % _)
+        workingSpace := io.in1.zip(io.in2).map{ case (x, y) => x % y }
       }
       is(9.U){
         // LESS
-        workingSpace := (io.in1, io.in2).zipped.map(_ < _)
+        workingSpace := io.in1.zip(io.in2).map{ case (x, y) => x < y }
       }
       is(10.U){
         // LESS OR EQUAL
-        workingSpace := (io.in1, io.in2).zipped.map(_ <= _)
+        workingSpace := io.in1.zip(io.in2).map{ case (x, y) => x <= y }
       }
       is(11.U){
         // GREATER
-        workingSpace := (io.in1, io.in2).zipped.map(_ > _)
+        workingSpace := io.in1.zip(io.in2).map{ case (x, y) => x > y }
       }
       is(12.U){
         // GREATER OR EQUAL
-        workingSpace := (io.in1, io.in2).zipped.map(_ >= _)
+        workingSpace := io.in1.zip(io.in2).map{ case (x, y) => x >= y }
       }
       is(13.U){
         // EQUAL
-        workingSpace := (io.in1, io.in2).zipped.map(_ === _)
+        workingSpace := io.in1.zip(io.in2).map{ case (x, y) => x === y }
       }
       is(14.U){
         // UNEQUAL
-        workingSpace := (io.in1, io.in2).zipped.map(_ =/= _)
+        workingSpace := io.in1.zip(io.in2).map{ case (x, y) => x =/= y }
       }
       is(15.U){
         // LEFT SHIFT
-        workingSpace := (io.in1, io.in2).zipped.map(_ << _(18,0))
+        workingSpace := io.in1.zip(io.in2).map{ case (x, y) => x << y(18,0) }
       }
       is(16.U){
         // RIGHT SHIFT
-        workingSpace := (io.in1, io.in2).zipped.map(_ >> _(18,0))
+        workingSpace := io.in1.zip(io.in2).map{ case (x, y) => x >> y(18,0) }
       }
       is(17.U){
         // NOT (bitwise for ints)
-        workingSpace := io.in1.map(~_)
+        workingSpace := io.in1.map { case (x) => ~x }
       }
       is(18.U){
         // AND (bitwise or boolean)
-        workingSpace := (io.in1, io.in2).zipped.map(_ & _)
+        workingSpace := io.in1.zip(io.in2).map{ case (x, y) => x & y }
       }
       is(19.U){
         // OR (bitwise or boolean)
-        workingSpace := (io.in1, io.in2).zipped.map(_ | _)
+        workingSpace := io.in1.zip(io.in2).map{ case (x, y) => x | y }
       }
       is(20.U){
         // XOR (bitwise or boolean)
-        workingSpace := (io.in1, io.in2).zipped.map(_ ^ _)
+        workingSpace := io.in1.zip(io.in2).map{ case (x, y) => x ^ y }
       }
     }
   }

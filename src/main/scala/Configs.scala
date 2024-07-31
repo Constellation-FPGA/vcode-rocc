@@ -1,9 +1,9 @@
 package vcoderocc
 
-import freechips.rocketchip.diplomacy.LazyModule
+import org.chipsalliance.diplomacy.lazymodule.LazyModule
 import freechips.rocketchip.tile.{BuildRoCC, TileKey, TileParams, RocketTileParams, OpcodeSet}
-import freechips.rocketchip.subsystem.{RocketTilesKey, RocketSubsystem}
-import freechips.rocketchip.config.{Config, Field, Parameters}
+import freechips.rocketchip.subsystem.RocketSubsystem
+import org.chipsalliance.cde.config.{Config, Field, Parameters}
 
 /** Mixin to build a chip that includes a VCode accelerator.
   */
@@ -37,7 +37,7 @@ class WithVCodePrintf extends Config((site, here, up) => {
 class TileKeyTestConfig extends Config((site, here, up) => {
   case freechips.rocketchip.tile.TileKey => RocketTileParams(
     core = freechips.rocketchip.rocket.RocketCoreParams(), // Use the default Rocket Core configuration
-    name = Some("VCode RoCC TileParams Config"),
+    // name = Some("VCode RoCC TileParams Config"),
   )
 })
 
