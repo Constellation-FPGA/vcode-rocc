@@ -94,7 +94,9 @@ class DCacheFetcher(val bufferEntries: Int)(implicit p: Parameters) extends Core
    * one past the limit, to detect when we cannot submit any more requests. Hence,
    * we actually count 0 to 8, requiring 4 (3+1) bits.
    *
-   * FIXME: This should be an EXACT value, not a deliberate off-by-one. */
+   * FIXME: This should be an EXACT value, not a deliberate off-by-one.
+   * [W004] Dynamic index with width 2 is too wide for Vec of size 2 (expected
+   * index width 1). */
   val reqsSent = RegInit(0.U((log2Down(bufferEntries)+1).W))
 
   val vals = withReset(state === State.idle) {
