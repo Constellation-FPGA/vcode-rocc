@@ -2,7 +2,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
-#include <time.h>
 
 /* This test is NOT intended to be a performance benchmark (for now). This is
  * meant to be a validation test for the extra logic added to make the three
@@ -19,9 +18,10 @@
 #define FLAG_WIDTH 64
 #define NUM_FLAGS CEIL(NUM_ELEMENTS, FLAG_WIDTH)
 
+/** Build a random 64-bit value that we will "interpret" as an integer. */
 int64_t random_int64() {
-    int64_t high = (int64_t)rand(); 
-    int64_t low = (int64_t)rand();  
+    int64_t high = (int64_t)rand();
+    int64_t low = (int64_t)rand();
     return (high << 32) | low;
 }
 
