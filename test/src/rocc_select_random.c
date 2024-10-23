@@ -48,7 +48,7 @@ int main() {
     int64_t expected[NUM_ELEMENTS];
     for(int j = 0; j < NUM_FLAGS; j++){
         flags[j] = random_int64();
-        for(int i = 64*j; i < 64*(j+1) && i < 1000; i++) {
+        for(int i = FLAG_WIDTH * j; i < FLAG_WIDTH * (j+1) && i < NUM_ELEMENTS; i++) {
             true_vec[i] = random_int64();
             false_vec[i] = random_int64();
             if(flags[j] & 0x1 == 0x1){
@@ -72,7 +72,7 @@ int main() {
 
     int arrays_equal = 1;
     if (status == 0) {
-        for(int i = 0; i < 1000; i++) {
+        for(int i = 0; i < NUM_ELEMENTS; i++) {
             if(dest[i] != expected[i]) {
                 arrays_equal = 0;
                 printf("FAIL: i=%3d\tdest[i] = 0x%016" PRIx64
