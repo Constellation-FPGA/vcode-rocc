@@ -51,7 +51,8 @@ int main() {
         for(int i = FLAG_WIDTH * j; i < FLAG_WIDTH * (j+1) && i < NUM_ELEMENTS; i++) {
             true_vec[i] = random_int64();
             false_vec[i] = random_int64();
-            if(flags[j] & 0x1 == 0x1){
+            uint64_t flag_mask = 0x1 << i;
+            if ((flags[j] & flag_mask) >> i == 0x1) {
                 expected[i] = true_vec[i];
             }
             else /*if(flags & 0x1 == 0x0)*/ {
@@ -61,7 +62,6 @@ int main() {
             /*        "\tfalse value = 0x%016" PRIx64 */
             /*        "\texpected: 0x%016" PRIx64 "\n", */
             /*        i, flags[j] & 0x1, true_vec[i], false_vec[i], dest[i], expected[i]); */
-            flags[j] = flags[j] >> 1;
         }
     }
 
