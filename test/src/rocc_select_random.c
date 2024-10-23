@@ -30,7 +30,7 @@ int main() {
     int64_t dest[NUM_ELEMENTS],status;
     int64_t true_vec[NUM_ELEMENTS];
     int64_t false_vec[NUM_ELEMENTS];
-    int64_t flag[NUM_FLAGS];
+    int64_t flags[NUM_FLAGS];
 
     /* We send metadata about the operation to perform to the co-processor
      * ahead-of-time. We do this for no paritcular reason, other than we can.
@@ -47,21 +47,21 @@ int main() {
     // Host-side select: c ? a : b
     int64_t expected[NUM_ELEMENTS];
     for(int j = 0; j < NUM_FLAGS; j++){
-        flag[j] = random_int64();
+        flags[j] = random_int64();
         for(int i = 64*j; i < 64*(j+1) && i < 1000; i++) {
             true_vec[i] = random_int64();
             false_vec[i] = random_int64();
-            if(flag[j] & 0x1 == 0x1){
+            if(flags[j] & 0x1 == 0x1){
                 expected[i] = true_vec[i];
             }
-            else /*if(flag & 0x1 == 0x0)*/ {
+            else /*if(flags & 0x1 == 0x0)*/ {
                 expected[i] = false_vec[i];
             }
             /* printf("%3d: flag bit is 0b%x\ttrue value = 0x%016" PRIx64 */
             /*        "\tfalse value = 0x%016" PRIx64 */
             /*        "\texpected: 0x%016" PRIx64 "\n", */
-            /*        i, flag[j] & 0x1, true_vec[i], false_vec[i], dest[i], expected[i]); */
-            flag[j] = flag[j] >> 1;
+            /*        i, flags[j] & 0x1, true_vec[i], false_vec[i], dest[i], expected[i]); */
+            flags[j] = flags[j] >> 1;
         }
     }
 
