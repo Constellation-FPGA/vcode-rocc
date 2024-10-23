@@ -39,8 +39,8 @@ int main() {
      * addresses to the coprocessor and us filling them. If they do, then we
      * must send this information AFTER we initialize them! */
     ROCC_INSTRUCTION_S(0, NUM_ELEMENTS, 0x40);  // Send "length" of vector
-    ROCC_INSTRUCTION_S(0, &dest, 0x41); // Send destination address
-    ROCC_INSTRUCTION_S(0, &flag, 0x42); // Send flags
+    ROCC_INSTRUCTION_S(0, dest, 0x41); // Send destination address
+    ROCC_INSTRUCTION_S(0, flags, 0x42); // Send flags
 
     /* We generate all random numbers here, and use them to calculate the
      * expected vectors too.*/
