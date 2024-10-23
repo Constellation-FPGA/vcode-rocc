@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <inttypes.h>
 
 /* This test is NOT intended to be a performance benchmark (for now). This is
  * meant to be a validation test for the extra logic added to make the three
@@ -57,7 +58,10 @@ int main() {
             else /*if(flag & 0x1 == 0x0)*/{
                 expected[i] = false_vec[i];
             }
-            printf("%d: flag bit is %x, true value is %x, false value is %x, dest is %x, expected value is %x\n", i, flag[j] & 0x1, true_vec[i], false_vec[i], dest[i], expected[i]);
+            /* printf("%3d: flag bit is 0b%x\ttrue value = 0x%016" PRIx64 */
+            /*        "\tfalse value = 0x%016" PRIx64 */
+            /*        "\texpected: 0x%016" PRIx64 "\n", */
+            /*        i, flag[j] & 0x1, true_vec[i], false_vec[i], dest[i], expected[i]); */
             flag[j] = flag[j] >> 1;
         }
     }
