@@ -75,11 +75,18 @@ int main() {
         for(int i = 0; i < 1000; i++) {
             if(dest[i] != expected[i]) {
                 arrays_equal = 0;
-                return i+1;
+                printf("FAIL: i=%3d\tdest[i] = 0x%016" PRIx64
+                       "\texpected[i] = 0x%016" PRIx64 "\n",
+                       i, dest[i], expected[i]);
+                printf("      flags = 0x%016" PRIx64" \n", flags[i / FLAG_WIDTH]);
+                printf("      true[i] = 0x%016" PRIx64
+                       "\tfalse[i] = 0x%016" PRIx64 "\n",
+                       true_vec[i], false_vec[i]);
+                return 42;
             }
         }
     }
-    else { return 10; }
+    else { return 77; }
 
     return ((status == 0) && arrays_equal) ? 0 : 4;
 }
