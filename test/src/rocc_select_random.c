@@ -7,7 +7,9 @@
 /* This test is NOT intended to be a performance benchmark (for now). This is
  * meant to be a validation test for the extra logic added to make the three
  * operand execution of VCODE's SELECT work.
- * In the loop where we generate */
+ * In the loop where we generate the random flags, we also generate the random
+ * TRUE/FALSE values based on the generated flags. This stage also doubles as
+ * the host-side building of the expected output vector. */
 
 /** Divide x by y and compute the integer ceiling of the quotient. This must be
  * a macro so that the arrays are allocated at compile-time.*/
