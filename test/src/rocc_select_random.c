@@ -4,10 +4,21 @@
 #include <stdint.h>
 #include <time.h>
 
-// TODO: Rework to use a #define-d number?
-// #define NUM_ELEMENTS 1
-// int64_t a[NUM_ELEMENTS],b[NUM_ELEMENTS],c[NUM_ELEMENTS];
-// ROCC_INSTRUCTION_S(0, NUM_ELEMENTS, 0x40);
+/* This test is NOT intended to be a performance benchmark (for now). This is
+ * meant to be a validation test for the extra logic added to make the three
+ * operand execution of VCODE's SELECT work.
+ * In the loop where we generate */
+
+/** Divide x by y and compute the integer ceiling of the quotient. This must be
+ * a macro so that the arrays are allocated at compile-time.*/
+#define CEIL(x, y) ((((x) + (y)) - 1) / (y))
+
+#define NUM_ELEMENTS 1000
+/* XXX: FLAG_WIDTH _MUST_ match the bit-width the type of the flags vector's
+ * elements! */
+#define FLAG_WIDTH 64
+#define NUM_FLAGS CEIL(NUM_ELEMENTS, FLAG_WIDTH)
+
 int64_t random_int64() {
     int64_t high = (int64_t)rand(); 
     int64_t low = (int64_t)rand();  
@@ -15,20 +26,24 @@ int64_t random_int64() {
 }
 
 int main() {
-    int64_t dest[1000],status;
-    int64_t true_vec[1000];
-    int64_t false_vec[1000];
-    int64_t flag[16];
-    ROCC_INSTRUCTION_S(0, 1000, 0x40);  // Send "length" of vector
-    //ROCC_INSTRUCTION_S(0, &dest, 0x41); // Send destination address
-    //ROCC_INSTRUCTION_S(0, &flag, 0x42); // Send flags
-    // DSS used to block the main core.
-    //ROCC_INSTRUCTION_DSS(0, status, &true_vec, &false_vec, 22); // Wait for result (not sure)
-    /* The value put back into the rd register is IMMEDIATELY stored back into
-     * memory! */
+    int64_t dest[NUM_ELEMENTS],status;
+    int64_t true_vec[NUM_ELEMENTS];
+    int64_t false_vec[NUM_ELEMENTS];
+    int64_t flag[NUM_FLAGS];
+
+    /* We send metadata about the operation to perform to the co-processor
+     * ahead-of-time. We do this for no paritcular reason, other than we can.
+     *
+     * XXX: The vectors SHOULD NOT MOVE in-memory between us sending their
+     * addresses to the coprocessor and us filling them. If they do, then we
+     * must send this information AFTER we initialize them! */
+    ROCC_INSTRUCTION_S(0, NUM_ELEMENTS, 0x40);  // Send "length" of vector
+    ROCC_INSTRUCTION_S(0, &dest, 0x41); // Send destination address
+    ROCC_INSTRUCTION_S(0, &flag, 0x42); // Send flags
+
     // Host-side select: c ? a : b
-    int64_t expected[1000]; 
-    for(int j = 0; j < 16; j++){
+    int64_t expected[NUM_ELEMENTS];
+    for(int j = 0; j < NUM_FLAGS; j++){
         flag[j] = random_int64();
         ROCC_INSTRUCTION_S(0, &flag[j], 0x42);
         for(int i = 64*j; i < 64*(j+1) && i < 1000; i++) {
