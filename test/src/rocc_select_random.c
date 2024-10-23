@@ -42,20 +42,19 @@ int main() {
     ROCC_INSTRUCTION_S(0, &dest, 0x41); // Send destination address
     ROCC_INSTRUCTION_S(0, &flag, 0x42); // Send flags
 
+    /* We generate all random numbers here, and use them to calculate the
+     * expected vectors too.*/
     // Host-side select: c ? a : b
     int64_t expected[NUM_ELEMENTS];
     for(int j = 0; j < NUM_FLAGS; j++){
         flag[j] = random_int64();
-        ROCC_INSTRUCTION_S(0, &flag[j], 0x42);
         for(int i = 64*j; i < 64*(j+1) && i < 1000; i++) {
             true_vec[i] = random_int64();
             false_vec[i] = random_int64();
-            ROCC_INSTRUCTION_DSS(0, status, &true_vec[i], &false_vec[i], 22);
-            ROCC_INSTRUCTION_S(0, &dest[i], 0x41);
             if(flag[j] & 0x1 == 0x1){
                 expected[i] = true_vec[i];
             }
-            else /*if(flag & 0x1 == 0x0)*/{
+            else /*if(flag & 0x1 == 0x0)*/ {
                 expected[i] = false_vec[i];
             }
             /* printf("%3d: flag bit is 0b%x\ttrue value = 0x%016" PRIx64 */
@@ -65,6 +64,11 @@ int main() {
             flag[j] = flag[j] >> 1;
         }
     }
+
+    // DSS used to block the main core.
+    ROCC_INSTRUCTION_DSS(0, status, true_vec, false_vec, 0x16);
+    /* The value put back into the rd register is IMMEDIATELY stored back into
+     * memory! */
 
     int arrays_equal = 1;
     if (status == 0) {
