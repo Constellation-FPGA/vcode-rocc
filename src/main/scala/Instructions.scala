@@ -23,6 +23,7 @@ object Instructions {
   def OR_INT = BitPat("b0010100")
   def XOR_INT = BitPat("b0010101")
   def SELECT_INT = BitPat("b0010110")
+  def I_TO_B_INT = BitPat("b0010111")
 
   // Accelerator configuration instructions. These are usually nonblocking.
   /** Set number of elements to operate over. */
