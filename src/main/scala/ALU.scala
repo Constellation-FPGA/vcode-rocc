@@ -35,6 +35,7 @@ object ALU {
   def FN_XOR = BitPat(20.U(SZ_ALU_FN.W))
   def FN_SELECT = BitPat(21.U(SZ_ALU_FN.W))
   def FN_I_TO_B = BitPat(22.U(SZ_ALU_FN.W))
+  def FN_B_TO_I = BitPat(23.U(SZ_ALU_FN.W))
 }
 
 /** Implementation of an ALU.
@@ -175,6 +176,10 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
       is(22.U){
         // Integer to Boolean
         workingSpace := io.in1.map { case (x) => Mux((x === 0.U), false.B, true.B) }
+      }
+      is(23.U){
+        // Boolean to Integer
+        workingSpace := io.in1.map { case (x) => Mux((x === false.B), 0.U, 1.U) }
       }
     }
   }
