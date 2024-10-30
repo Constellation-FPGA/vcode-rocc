@@ -34,8 +34,7 @@ object ALU {
   def FN_OR = BitPat(19.U(SZ_ALU_FN.W))
   def FN_XOR = BitPat(20.U(SZ_ALU_FN.W))
   def FN_SELECT = BitPat(21.U(SZ_ALU_FN.W))
-  def FN_I_TO_B = BitPat(22.U(SZ_ALU_FN.W))
-  def FN_B_TO_I = BitPat(23.U(SZ_ALU_FN.W))
+  def FN_SCAN_MUL = BitPat(22.U(SZ_ALU_FN.W))
 }
 
 /** Implementation of an ALU.
@@ -74,11 +73,17 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
     RegInit(VecInit.fill(batchSize)(0.U(xLen.W)))
   }
   io.out := workingSpace
+
   val lastBatchResult = workingSpace(0)
 
-  val identity = withReset(io.accelIdle) {
+  val scanPlusIdentity = withReset(io.accelIdle) {
     RegInit(0.U)
   }
+
+  val scanMulIdentity = withReset(io.accelIdle) {
+    RegInit(1.U(xLen.W))
+  }
+
   io.cout := 0.U
 
   when(io.execute) {
@@ -96,9 +101,9 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
         /* FIXME: Can factor out SCAN HW out and just select identity & binary operator
          * rather than the entire thing. Works because .scan()() requires identity
          * as first argument (partial evaluation). */
-        val tmp = io.in1.scan(identity)(_ + _)
+        val tmp = io.in1.scan(scanPlusIdentity)(_ + _)
         workingSpace := tmp.slice(0, batchSize) // .slice(from, to) is [from, to). to is EXCLUSIVE
-        identity := tmp(batchSize) // Grab the last bit, the end of the vector.
+        scanPlusIdentity := tmp(batchSize) // Grab the last bit, the end of the vector.
         // NOTE .scan has .scanLeft & .scanRight variants
       }
       is(3.U){
@@ -174,12 +179,10 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
         selectFlagsCounter := selectFlagsCounter + batchSize.U;
       }
       is(22.U){
-        // Integer to Boolean
-        workingSpace := io.in1.map { case (x) => Mux((x === 0.U), false.B, true.B) }
-      }
-      is(23.U){
-        // Boolean to Integer
-        workingSpace := io.in1.map { case (x) => Mux((x === false.B), 0.U, 1.U) }
+        // *_SCAN INT
+        val tmp = io.in1.scan(scanMulIdentity)(_ * _)
+        workingSpace := tmp.slice(0, batchSize)
+        scanMulIdentity := tmp(batchSize) 
       }
     }
   }
