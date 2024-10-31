@@ -110,7 +110,8 @@ class ReduceDecode(implicit val p: Parameters) extends DecodeConstants {
 class ScanDecode(implicit val p: Parameters) extends DecodeConstants {
   val decodeTable: Array[(BitPat, List[BitPat])] = Array(
     PLUS_SCAN_INT -> List(Y, MEM_OPS_ONE, FN_SCAN_ADD, Y),
-    MUL_SCAN_INT -> List(Y, MEM_OPS_ONE, FN_SCAN_MUL, Y))
+    MUL_SCAN_INT -> List(Y, MEM_OPS_ONE, FN_SCAN_MUL, Y),
+    MAX_SCAN_INT -> List(Y, MEM_OPS_ONE, FN_SCAN_MAX, Y))
 }
 
 class SelectDecode(implicit val p: Parameters) extends DecodeConstants {

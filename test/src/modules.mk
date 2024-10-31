@@ -21,6 +21,7 @@ TEST_SRCS += rocc_add.c host_add.c \
              rocc_select_69.c\
              rocc_select_random.c\
              rocc_mul_scan_int.c\
+             rocc_max_scan_int.c\
              rocc_illegal.c rocc_illegal_nonblocking.c \
              host_div0.c host_ecall.c \
              malloc.c
