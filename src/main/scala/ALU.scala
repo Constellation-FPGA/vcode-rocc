@@ -36,6 +36,7 @@ object ALU {
   def FN_SELECT = BitPat(21.U(SZ_ALU_FN.W))
   def FN_SCAN_MUL = BitPat(22.U(SZ_ALU_FN.W))
   def FN_SCAN_MAX = BitPat(23.U(SZ_ALU_FN.W))
+  def FN_SCAN_MIN = BitPat(24.U(SZ_ALU_FN.W))
 }
 
 /** Implementation of an ALU.
@@ -87,6 +88,10 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
 
   val scanMaxIdentity = withReset(io.accelIdle) {
     RegInit((-(BigInt(1) << (xLen - 1))).S(xLen.W))
+  }
+
+  val scanMinIdentity = withReset(io.accelIdle) {
+    RegInit(((BigInt(1) << (xLen - 1)) - 1).S(xLen.W))
   }
 
   io.cout := 0.U
@@ -194,6 +199,12 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
         val tmp = io.in1.map(_.asSInt).scan(scanMaxIdentity)({(x, y) => Mux(y > x, y, x)})
         workingSpace := tmp.slice(0, batchSize).map(_.asUInt)
         scanMaxIdentity := tmp(batchSize) 
+      }
+      is(24.U){
+        // MIN SCAN INT
+        val tmp = io.in1.map(_.asSInt).scan(scanMinIdentity)({(x, y) => Mux(y < x, y, x)})
+        workingSpace := tmp.slice(0, batchSize).map(_.asUInt)
+        scanMinIdentity := tmp(batchSize) 
       }
     }
   }
