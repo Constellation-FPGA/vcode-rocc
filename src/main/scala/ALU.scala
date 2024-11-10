@@ -39,6 +39,7 @@ object ALU {
   def FN_SCAN_MIN = BitPat(24.U(SZ_ALU_FN.W))
   def FN_SCAN_AND = BitPat(25.U(SZ_ALU_FN.W))
   def FN_SCAN_OR = BitPat(26.U(SZ_ALU_FN.W))
+  def FN_SCAN_XOR = BitPat(27.U(SZ_ALU_FN.W))
 }
 
 /** Implementation of an ALU.
@@ -101,6 +102,10 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
   }
 
   val scanORIdentity = withReset(io.accelIdle) {
+    RegInit(0.U(xLen.W))
+  }
+
+  val scanXORIdentity = withReset(io.accelIdle) {
     RegInit(0.U(xLen.W))
   }
 
@@ -227,6 +232,12 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
         val tmp = io.in1.scan(scanORIdentity)(_ | _)
         workingSpace := tmp.slice(0, batchSize)
         scanORIdentity := tmp(batchSize) 
+      }
+      is(27.U){
+        // XOR SCAN INT
+        val tmp = io.in1.scan(scanXORIdentity)(_ ^ _)
+        workingSpace := tmp.slice(0, batchSize)
+        scanXORIdentity := tmp(batchSize) 
       }
     }
   }
