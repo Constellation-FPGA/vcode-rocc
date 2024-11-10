@@ -27,6 +27,7 @@ object Instructions {
   def MAX_SCAN_INT = BitPat("b0011000")
   def MIN_SCAN_INT = BitPat("b0011001")
   def AND_SCAN_INT = BitPat("b0011010")
+  def OR_SCAN_INT = BitPat("b0011011")
 
   // Accelerator configuration instructions. These are usually nonblocking.
   /** Set number of elements to operate over. */
