@@ -148,6 +148,11 @@ _start:
   sll a2, a0, STKSHIFT
   add tp, tp, a2
 
+  li t0, 0x3fffffffffffffff
+  csrw pmpaddr0, t0
+  li t0, 0xf
+  csrw pmpcfg0, t0
+
   j _init
 
   .align 2
