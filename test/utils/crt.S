@@ -239,6 +239,13 @@ test_block:
 user_deleg_xcpt_handler:
   li a6, 0x1234567898765432
 
+  /* Read the UEPC register so we can skip the illegal instruction we generated. */
+  csrr t0, 0x841
+  /* Our illegal instruction choice is ALWAYS 4 bytes, so can hard-code our
+   * handler here. */
+  addi t0, t0, 4
+  csrw 0x841, t0
+
   uret
 // END user_deleg_xcpt_handler
 
