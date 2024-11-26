@@ -229,8 +229,9 @@ test_block:
   # privilege mode.
   csrw marchid, x0
 
-  # Test program done. Exit Simulation
-  jal handle_trap
+  # Test program done. Exit Simulation with exit code 0
+  li a0, 0
+  jal exit
 
 /* Create a user-level illegal instruction exception handler. All this will do
  * is clobber a register we do not use and return. The point of this test is to
