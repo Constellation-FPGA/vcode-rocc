@@ -265,7 +265,6 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
         val lastBatchResult = io.in1.fold(reduceMulIdentity)((x, y) => x * y)(xLen-1, 0)
         reduceMulIdentity := lastBatchResult
       }*/
-
       is(29.U) {
         // MAX_REDUCE INT
         val reduceMaximum = io.in1.map(_.asSInt).fold(reduceMaxIdentity)((x, y) => Mux(x > y, x, y))
