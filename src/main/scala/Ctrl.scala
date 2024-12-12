@@ -185,7 +185,9 @@ class ControlUnit(val batchSize: Int)(implicit p: Parameters) extends CoreModule
       }
 
       // Where to go once in EXE?
-      when(io.ctrlSigs.aluFn === ALU.FN_RED_ADD) {
+      when(io.ctrlSigs.aluFn === ALU.FN_RED_ADD ||
+           //io.ctrlSigs.aluFn === ALU.FN_RED_MUL ||
+           io.ctrlSigs.aluFn === ALU.FN_RED_MAX) {
         // If this operation is a reduction, we may need to go around again
         // FIXME: Turn this into a function?
         // Decrement our "counter"
