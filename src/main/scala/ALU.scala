@@ -40,8 +40,12 @@ object ALU {
   def FN_SCAN_AND = BitPat(25.U(SZ_ALU_FN.W))
   def FN_SCAN_OR = BitPat(26.U(SZ_ALU_FN.W))
   def FN_SCAN_XOR = BitPat(27.U(SZ_ALU_FN.W))
-  //def FN_RED_MUL = BitPat(28.U(SZ_ALU_FN.W))
+  def FN_RED_MUL = BitPat(28.U(SZ_ALU_FN.W))
   def FN_RED_MAX = BitPat(29.U(SZ_ALU_FN.W))
+  def FN_RED_MIN = BitPat(30.U(SZ_ALU_FN.W))
+  def FN_RED_AND = BitPat(31.U(SZ_ALU_FN.W))
+  def FN_RED_OR = BitPat(32.U(SZ_ALU_FN.W))
+  def FN_RED_XOR = BitPat(33.U(SZ_ALU_FN.W))
 }
 
 /** Implementation of an ALU.
@@ -121,6 +125,14 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
 
   val reduceMaxIdentity = withReset(io.accelIdle) {
     RegInit((-(BigInt(1) << (xLen - 1))).S(xLen.W))
+  }
+
+  val reduceMinIdentity = withReset(io.accelIdle) {
+    RegInit(((BigInt(1) << (xLen - 1)) - 1).S(xLen.W))
+  }
+
+  val reduceANDIdentity = withReset(io.accelIdle) {
+    RegInit(1.U(xLen.W))
   }
 
   io.cout := 0.U
@@ -253,22 +265,33 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
         workingSpace := tmp.slice(0, batchSize)
         scanXORIdentity := tmp(batchSize) 
       }
-      /*is(28.U) {
+      is(28.U) {
         // *_REDUCE INT
-        /*when(batchCounter === 0.U){
-          lastBatchResult := io.in1.reduce(_ * _)(xLen-1, 0)
-        } .otherwise{
-          val product = io.in1.reduce(_ * _)
-          lastBatchResult := (lastBatchResult * product)(xLen-1, 0)
-        }
-        batchCounter := batchCounter + 1.U*/
-        val lastBatchResult = io.in1.fold(reduceMulIdentity)((x, y) => x * y)(xLen-1, 0)
+        lastBatchResult := io.in1.fold(reduceMulIdentity)((x, y) => x * y)(xLen-1, 0)
         reduceMulIdentity := lastBatchResult
-      }*/
+      }
       is(29.U) {
         // MAX_REDUCE INT
         val reduceMaximum = io.in1.map(_.asSInt).fold(reduceMaxIdentity)((x, y) => Mux(x > y, x, y))
         lastBatchResult := Mux(lastBatchResult.asSInt > reduceMaximum, lastBatchResult, reduceMaximum.asUInt)
+      }
+      is(30.U) {
+        // MIN_REDUCE INT
+        val reduceMinimum = io.in1.map(_.asSInt).fold(reduceMinIdentity)((x, y) => Mux(x < y, x, y))
+        lastBatchResult := Mux(lastBatchResult.asSInt < reduceMinimum, lastBatchResult, reduceMinimum.asUInt)
+      }
+      is(31.U) {
+        // AND_REDUCE INT
+        lastBatchResult := io.in1.fold(reduceANDIdentity)((x, y) => x & y)
+        reduceANDIdentity := lastBatchResult
+      }
+      is(32.U) {
+        // OR_REDUCE INT
+        lastBatchResult := lastBatchResult | io.in1.reduce(_ | _)
+      }
+      is(33.U) {
+        // XOR_REDUCE INT
+        lastBatchResult := lastBatchResult ^ io.in1.reduce(_ ^ _)
       }
     }
   }

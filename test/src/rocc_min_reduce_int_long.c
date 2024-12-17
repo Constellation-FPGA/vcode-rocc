@@ -3,14 +3,14 @@
 
 int main() {
     int64_t rocc_computed, status;
-    int64_t a[17] = { 1, 2, 3, 4, -5, 6, 7, -8, 9, 10, -11, 12, 13, 14, 15, 16, 17};
+    int64_t a[17] = { 1, -2, 3, 4, 0, -3, -1, 9, 256, 10, 11, -93, -104, -140, -215, -416, -417};
     ROCC_INSTRUCTION_S(0, 17, 0x40);  // Send "length" of vector
     ROCC_INSTRUCTION_S(0, &rocc_computed, 0x41); // Send destination address
-    ROCC_INSTRUCTION_DS(0, status, &a, 29); // Wait for result
+    ROCC_INSTRUCTION_DS(0, status, &a, 31); // Wait for result
 
-    int64_t expected = 0;
+    int64_t expected = INT64_MAX;
     for(int i = 0; i < 17; i++){
-        expected *= a[i];
+        expected = (a[i] < expected) ? a[i] : expected;
     }
 
     if (status == 0) {

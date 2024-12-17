@@ -105,8 +105,12 @@ class BinOpDecode(implicit val p: Parameters) extends DecodeConstants {
 class ReduceDecode(implicit val p: Parameters) extends DecodeConstants {
   val decodeTable: Array[(BitPat, List[BitPat])] = Array(
     PLUS_RED_INT -> List(Y, MEM_OPS_ONE, FN_RED_ADD, Y),
-    //MUL_RED_INT -> List(Y, MEM_OPS_ONE, FN_RED_MUL, Y),
-    MAX_RED_INT -> List(Y, MEM_OPS_ONE, FN_RED_MAX, Y)
+    MUL_RED_INT -> List(Y, MEM_OPS_ONE, FN_RED_MUL, Y),
+    MAX_RED_INT -> List(Y, MEM_OPS_ONE, FN_RED_MAX, Y),
+    MIN_RED_INT -> List(Y, MEM_OPS_ONE, FN_RED_MIN, Y),
+    AND_RED_INT -> List(Y, MEM_OPS_ONE, FN_RED_AND, Y),
+    OR_RED_INT -> List(Y, MEM_OPS_ONE, FN_RED_OR, Y),
+    XOR_RED_INT -> List(Y, MEM_OPS_ONE, FN_RED_XOR, Y)
     )
 }
 
