@@ -8,6 +8,7 @@ import org.chipsalliance.diplomacy.lazymodule._
 import freechips.rocketchip.rocket._
 import freechips.rocketchip.tilelink._
 import vcoderocc.constants._
+import PermuteUnit._
 
 /** The outer wrapping class for the VCODE accelerator.
   *
@@ -61,7 +62,7 @@ class VCodeAccelImp(outer: VCodeAccel, batchSize: Int) extends LazyRoCCModuleImp
 
   /***************
    * CONTROL UNIT
-   * Control unit connects ALU & Data fetcher together, properly sequencing them
+   * Control unit connects ALU, Permute unit & Data fetcher together, properly sequencing them
    **************/
   val ctrlUnit = Module(new ControlUnit(batchSize))
   // Accelerator control unit controls when we are ready to accept the next
@@ -159,6 +160,7 @@ class VCodeAccelImp(outer: VCodeAccel, batchSize: Int) extends LazyRoCCModuleImp
   /* TODO: Have multiple ALUs, one for each element, thus one per lane?
    * Or have one big ALU handle a whole batchSize simultaneously? */
   // Must more specifically specify MY ALU, because freechips.rocketchip.rocket.ALU is also defined.
+  // ALU processing integer instructions except permutations
   val alu = Module(new vcoderocc.ALU(xLen)(batchSize))
   // FIXME?: Should be a register to hold values if we start the next batch on the ALU immediately
   // val alu_out = RegInit(VecInit.fill(batchSize)(0.U(xLen.W)))
@@ -174,7 +176,22 @@ class VCodeAccelImp(outer: VCodeAccel, batchSize: Int) extends LazyRoCCModuleImp
   aluOut := alu.io.out
   aluCout := alu.io.cout
 
-  dataFetcher.io.dataToWrite.bits := aluOut
+  // ALU processing permute instructions
+  val permute = Module(new vcoderocc.PermuteUnit(xLen)(batchSize))
+  val permuteOut = WireInit(VecInit.fill(batchSize)(0.U(xLen.W)))
+
+  permute.io.fn := ctrlSigs.aluFn
+  permute.io.index := data1
+  permute.io.data := data2
+  permute.io.default := data3
+  permute.io.execute := ctrlUnit.io.shouldExecute
+  permute.io.write := ctrlUnit.io.writebackReady // Not sure
+  permute.io.accelIdle := !ctrlUnit.io.busy
+  permuteOut := permute.io.out
+
+  dataFetcher.io.dataToWrite.bits := Mux(ctrlSigs.aluFn === 34.U,
+                                          permuteOut,
+                                          aluOut)
   dataFetcher.io.dataToWrite.valid := ctrlUnit.io.writebackReady
 
   val responseReady = Wire(Bool())

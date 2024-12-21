@@ -35,6 +35,7 @@ object Instructions {
   def AND_RED_INT = BitPat("b0100000")
   def OR_RED_INT = BitPat("b0100001")
   def XOR_RED_INT = BitPat("b0100010")
+  def PERMUTE_INT = BitPat("b0100011")
 
   // Accelerator configuration instructions. These are usually nonblocking.
   /** Set number of elements to operate over. */

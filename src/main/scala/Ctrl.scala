@@ -191,7 +191,8 @@ class ControlUnit(val batchSize: Int)(implicit p: Parameters) extends CoreModule
            io.ctrlSigs.aluFn === ALU.FN_RED_MIN ||
            io.ctrlSigs.aluFn === ALU.FN_RED_AND ||
            io.ctrlSigs.aluFn === ALU.FN_RED_OR ||
-           io.ctrlSigs.aluFn === ALU.FN_RED_XOR
+           io.ctrlSigs.aluFn === ALU.FN_RED_XOR ||
+           io.ctrlSigs.aluFn === PermuteUnit.FN_PERMUTE
            ) {
         // If this operation is a reduction, we may need to go around again
         // FIXME: Turn this into a function?
@@ -224,24 +225,51 @@ class ControlUnit(val batchSize: Int)(implicit p: Parameters) extends CoreModule
         printf("Ctrl\tExecution done. Writeback results\n")
       }
       when(io.memOpCompleted) {
+        when(io.ctrlSigs.aluFn === ALU.FN_SELECT){
+          when(roundCounter >= (64/batchSize - 1).U){
+            roundCounter := 0.U
+            currentRs3 := currentRs3 + 8.U
+          } .otherwise{
+            roundCounter := roundCounter + 1.U
+          }
+          // Decrement our "counter"
+          val remainingOperands = Mux(operandsToGo <= batchSize.U, 0.U, operandsToGo - batchSize.U)
+          operandsToGo := remainingOperands
+          when(remainingOperands > 0.U) {
+            // We have not yet completed the vector, go back.
+            accelState := State.fetch1
+            // Multiply address by 8 because all values use 64 bits
+            currentRs1 := currentRs1 + (batchSize.U << 3)
+            currentRs2 := currentRs2 + (batchSize.U << 3)
+            //currentRs3 := currentRs3 + (batchSize.U << 3)
+            currentDestAddr := currentDestAddr + (batchSize.U << 3)
+          } .otherwise {
+            // We have finished processing the vector. Move onwards.
+            accelState := State.respond
+            if(p(VCodePrintfEnable)) {
+              printf("Ctrl\tWriteback completed. Accelerator must respond to main core\n")
+            }
+          }
+        } .elsewhen(io.ctrlSigs.aluFn === PermuteUnit.FN_PERMUTE){
         when(roundCounter >= (64/batchSize - 1).U){
-          roundCounter := 0.U
-          currentRs3 := currentRs3 + 8.U
+            roundCounter := 0.U
+            currentRs3 := currentRs3 + 8.U
+            when(operandsToGo > 0.U){
+              // We have not yet completed the vector, go back.
+              accelState := State.fetch1
+            } .otherwise{
+              // We have finished processing the vector. Move onwards.
+              accelState := State.respond
+              if(p(VCodePrintfEnable)) {
+                printf("Ctrl\tWriteback completed. Accelerator must respond to main core\n")
+              }
+            }
+          } .otherwise{
+            roundCounter := roundCounter + 1.U
+            currentDestAddr := currentDestAddr + (batchSize.U << 3)
+            accelState := State.write
+          }
         } .otherwise{
-          roundCounter := roundCounter + 1.U
-        }
-        // Decrement our "counter"
-        val remainingOperands = Mux(operandsToGo <= batchSize.U, 0.U, operandsToGo - batchSize.U)
-        operandsToGo := remainingOperands
-        when(remainingOperands > 0.U) {
-          // We have not yet completed the vector, go back.
-          accelState := State.fetch1
-          // Multiply address by 8 because all values use 64 bits
-          currentRs1 := currentRs1 + (batchSize.U << 3)
-          currentRs2 := currentRs2 + (batchSize.U << 3)
-          //currentRs3 := currentRs3 + (batchSize.U << 3)
-          currentDestAddr := currentDestAddr + (batchSize.U << 3)
-        } .otherwise {
           // We have finished processing the vector. Move onwards.
           accelState := State.respond
           if(p(VCodePrintfEnable)) {
