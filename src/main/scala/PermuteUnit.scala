@@ -31,30 +31,26 @@ class PermuteUnit(val xLen: Int)(val batchSize: Int) extends Module {
     }
     io.out := workingSpace
 
-    val result = RegInit(VecInit(Seq.fill(totalElements)(0.U(xLen.W))))
+    val result = withReset(io.accelIdle) {
+        RegInit(VecInit(Seq.fill(totalElements)(0.U(xLen.W))))
+    }
 
-    val currentBatch = RegInit(0.U(log2Ceil(totalElements/batchSize).W))
+    val currentBatch = withReset(io.accelIdle) {
+        RegInit(0.U(log2Ceil(totalElements).W))
+    }
     
     when(io.execute){
         switch(io.fn){
             is(34.U){
-                for(i <- 0 until batchSize){
-                    val globalIndex = currentBatch * batchSize.U + io.index(i)
-                    result(globalIndex) := io.data(i)
-                    currentBatch := currentBatch + 1.U
-                    /*if(currentBatch >= (totalElements/batchSize) - 1.U){
-                        currentBatch := 0.U
-                    } .otherwise{
-                        currentBatch := currentBatch + 1.U   
-                    }*/
+                for (i <- 0 until batchSize) {
+                    result(io.index(i)) := io.data(i)
                 }
             }
         }
     }
 
     when(io.write){
-        for(i <- 0 until totalElements/batchSize){
-            workingSpace := result.slice(batchSize * i, batchSize * (i + 1))
-        }
+        workingSpace := result.slice(0, batchSize)
+        result := result.drop(batchSize) ++ Seq.fill(batchSize)(0.U(xLen.W))
     }
 }

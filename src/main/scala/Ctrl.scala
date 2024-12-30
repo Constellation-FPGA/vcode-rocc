@@ -210,7 +210,8 @@ class ControlUnit(val batchSize: Int)(implicit p: Parameters) extends CoreModule
           // The reduction's computation is complete, write.
           accelState := State.write
           // Set operandsToGo to 1 to write reduction's single result
-          operandsToGo := 1.U
+          operandsToGo := Mux(io.ctrlSigs.aluFn === PermuteUnit.FN_PERMUTE, 
+                              0.U, 1.U)
         }
       } .otherwise {
         // Execution completed, but this is NOT a reduction
@@ -251,7 +252,7 @@ class ControlUnit(val batchSize: Int)(implicit p: Parameters) extends CoreModule
             }
           }
         } .elsewhen(io.ctrlSigs.aluFn === PermuteUnit.FN_PERMUTE){
-        when(roundCounter >= (64/batchSize - 1).U){
+          when(roundCounter >= (64/batchSize - 1).U){
             roundCounter := 0.U
             currentRs3 := currentRs3 + 8.U
             when(operandsToGo > 0.U){
