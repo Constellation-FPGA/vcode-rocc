@@ -17,10 +17,14 @@ int main() {
         expected[a[i]] = b[i];
     }
 
+    for(int i = 0; i < 10; i++) {
+        printf("i = %d, c = %x, expected = %x\n", i, c[i], expected[i]);
+    }
+
     int arrays_equal = 1;
     if (status == 0) {
         for(int i = 0; i < 10; i++) {
-            printf("i = %d, c = %x, expected = %x\n", i, c[i], expected[i]);
+            //printf("i = %d, c = %x, expected = %x\n", i, c[i], expected[i]);
             if(c[i] != expected[i]) {
                 arrays_equal = 0;
                 return i+1;
