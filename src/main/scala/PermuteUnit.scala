@@ -21,6 +21,7 @@ class PermuteUnit(val xLen: Int)(val batchSize: Int) extends Module {
         val data = Input(Vec(batchSize, UInt(xLen.W)))
         val default = Input(UInt(xLen.W))
         val out = Output(Vec(batchSize, UInt(xLen.W)))
+        val numToFetch = Input(UInt(xLen.W))
         val execute = Input(Bool())
         val write = Input(Bool())
         val accelIdle = Input(Bool())
@@ -34,16 +35,14 @@ class PermuteUnit(val xLen: Int)(val batchSize: Int) extends Module {
     val result = withReset(io.accelIdle) {
         RegInit(VecInit(Seq.fill(totalElements)(0.U(xLen.W))))
     }
-
-    val currentBatch = withReset(io.accelIdle) {
-        RegInit(0.U(log2Ceil(totalElements).W))
-    }
     
     when(io.execute){
         switch(io.fn){
             is(34.U){
                 for (i <- 0 until batchSize) {
-                    result(io.index(i)) := io.data(i)
+                    when(i.U < io.numToFetch){
+                        result(io.index(i)) := io.data(i)
+                    }
                 }
             }
         }

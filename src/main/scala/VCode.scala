@@ -184,6 +184,7 @@ class VCodeAccelImp(outer: VCodeAccel, batchSize: Int) extends LazyRoCCModuleImp
   permute.io.index := data1
   permute.io.data := data2
   permute.io.default := data3
+  permute.io.numToFetch := ctrlUnit.io.numToFetch
   permute.io.execute := ctrlUnit.io.shouldExecute
   permute.io.write := ctrlUnit.io.writebackReady // Not sure
   permute.io.accelIdle := !ctrlUnit.io.busy
