@@ -50,6 +50,8 @@ class PermuteUnit(val xLen: Int)(val batchSize: Int) extends Module {
 
     when(io.write){
         workingSpace := result.slice(0, batchSize)
+        // Drop the first batchSize elements from the result vector, shifting
+        // everything down and "backfill" with zeros.
         result := result.drop(batchSize) ++ Seq.fill(batchSize)(0.U(xLen.W))
     }
 }
