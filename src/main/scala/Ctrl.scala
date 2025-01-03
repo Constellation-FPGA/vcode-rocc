@@ -45,6 +45,7 @@ class ControlUnit(val batchSize: Int)(implicit p: Parameters) extends CoreModule
   // Perhaps a separate module that handles this? class ConfigBank extends Module {}
   val numOperands = RegInit(0.U(xLen.W))
   val operandsToGo = RegInit(0.U(xLen.W))
+  val operandsToGoReg = RegInit(0.U(xLen.W))
 
   /* The rsX registers hold the BASE addresses of vectors and NEVER change!
    * The currentRsX registers hold the BASE addresses of vectors during the
@@ -94,6 +95,7 @@ class ControlUnit(val batchSize: Int)(implicit p: Parameters) extends CoreModule
        io.roccCmd.inst.funct === Instructions.SET_NUM_OPERANDS && io.roccCmd.inst.xs1) {
     numOperands := io.roccCmd.rs1
     operandsToGo := io.roccCmd.rs1
+    operandsToGoReg := io.roccCmd.rs1
     if(p(VCodePrintfEnable)) {
       printf("Config\tSet numOperands to 0x%x\n", io.roccCmd.rs1)
     }
@@ -211,7 +213,7 @@ class ControlUnit(val batchSize: Int)(implicit p: Parameters) extends CoreModule
           accelState := State.write
           // Set operandsToGo to 1 to write reduction's single result
           operandsToGo := Mux(io.ctrlSigs.aluFn === PermuteUnit.FN_PERMUTE, 
-                              0.U, 1.U)
+                              operandsToGoReg, 1.U)
         }
       } .otherwise {
         // Execution completed, but this is NOT a reduction
@@ -252,7 +254,7 @@ class ControlUnit(val batchSize: Int)(implicit p: Parameters) extends CoreModule
             }
           }
         } .elsewhen(io.ctrlSigs.aluFn === PermuteUnit.FN_PERMUTE){
-          when(roundCounter >= (64/batchSize - 1).U){
+          /*when(roundCounter >= (64/batchSize - 1).U){
             roundCounter := 0.U
             currentRs3 := currentRs3 + 8.U
             when(operandsToGo > 0.U){
@@ -264,12 +266,26 @@ class ControlUnit(val batchSize: Int)(implicit p: Parameters) extends CoreModule
               if(p(VCodePrintfEnable)) {
                 printf("Ctrl\tWriteback completed. Accelerator must respond to main core\n")
               }
+            }*/
+            when(roundCounter >= (64/batchSize - 1).U){
+              roundCounter := 0.U
+              currentRs3 := currentRs3 + 8.U
+            } .otherwise{
+              roundCounter := roundCounter + 1.U
+              val remainingOperands = Mux(operandsToGo <= batchSize.U, 0.U, operandsToGo - batchSize.U)
+              operandsToGo := remainingOperands
+              when(remainingOperands > 0.U) {
+                currentDestAddr := currentDestAddr + (batchSize.U << 3)
+                accelState := State.write
+              } .otherwise {
+                // We have finished processing the vector. Move onwards.
+                accelState := State.respond
+                if(p(VCodePrintfEnable)) {
+                  printf("Ctrl\tWriteback completed. Accelerator must respond to main core\n")
+                }
+              }
             }
-          } .otherwise{
-            roundCounter := roundCounter + 1.U
-            currentDestAddr := currentDestAddr + (batchSize.U << 3)
-            accelState := State.write
-          }
+            
         } .otherwise{
           // We have finished processing the vector. Move onwards.
           accelState := State.respond
