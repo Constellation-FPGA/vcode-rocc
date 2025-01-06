@@ -4,6 +4,7 @@ import chisel3._
 import chisel3.util._
 import org.chipsalliance.cde.config.Parameters
 import freechips.rocketchip.tile.CoreModule
+import vcoderocc.DataIO
 
 /** Externally-visible properties of the ALU.
   */
@@ -60,7 +61,7 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
     val in1 = Input(Vec(batchSize, UInt(xLen.W)))
     val in2 = Input(Vec(batchSize, UInt(xLen.W)))
     val in3 = Input(UInt(xLen.W))
-    val out = Output(Vec(batchSize, UInt(xLen.W)))//
+    val out = Output(Vec(batchSize, new DataIO(xLen)))
     val cout = Output(UInt(xLen.W))
     val execute = Input(Bool())
     val accelIdle = Input(Bool())

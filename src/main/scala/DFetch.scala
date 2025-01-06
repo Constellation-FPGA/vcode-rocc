@@ -21,6 +21,11 @@ object MemoryOperation extends ChiselEnum {
   val read, write = Value
 }
 
+class DataIO(xLen: Int) extends Bundle {
+  val addr = Bits(xLen.W)
+  val data = Bits(xLen.W)
+}
+
 /** Module connecting VCode accelerator to main processor's non-blocking L1 data
   * cache.
   *
@@ -57,8 +62,8 @@ class DCacheFetcher(val bufferEntries: Int)(implicit p: Parameters) extends Core
     val opToPerform = Input(MemoryOperation()) // NOTE: The () is important!
     // Actual Data outputs
     // fetched_data is only of interest if a read was performed
-    val fetchedData = Output(Valid(Vec(bufferEntries, Bits(xLen.W))))
-    val dataToWrite = Input(Valid(Vec(bufferEntries, Bits(xLen.W))))
+    val fetchedData = Output(Valid(Vec(bufferEntries, new DataIO(xLen))))
+    val dataToWrite = Input(Valid(Vec(bufferEntries, new DataIO(xLen))))
     /** Flag to tell DCacheFetcher to start loading/storing from/to memory. */
     val start = Input(Bool())
     /** The number of elements to fetch. */

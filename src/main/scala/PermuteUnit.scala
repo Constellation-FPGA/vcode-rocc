@@ -4,6 +4,7 @@ import chisel3._
 import chisel3.util._
 import org.chipsalliance.cde.config.Parameters
 import freechips.rocketchip.tile.CoreModule
+import vcoderocc.DataIO
 
 object PermuteUnit {
     val SZ_PermuteUnit_FN = 7
@@ -20,7 +21,7 @@ class PermuteUnit(val xLen: Int)(val batchSize: Int) extends Module {
         val index = Input(Vec(batchSize, UInt(xLen.W)))
         val data = Input(Vec(batchSize, UInt(xLen.W)))
         val default = Input(UInt(xLen.W))
-        val out = Output(Vec(batchSize, UInt(xLen.W)))
+        val out = Output(Vec(batchSize, new DataIO(xLen)))
         val numToFetch = Input(UInt(xLen.W))
         val execute = Input(Bool())
         val write = Input(Bool())
