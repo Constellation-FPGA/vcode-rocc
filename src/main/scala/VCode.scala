@@ -190,6 +190,8 @@ class VCodeAccelImp(outer: VCodeAccel, batchSize: Int) extends LazyRoCCModuleImp
   permute.io.accelIdle := !ctrlUnit.io.busy
   permuteOut := permute.io.out
 
+  // assert(forall ctrlUnit.io.baseAddr <= dataToWrite.bits.addr &&
+  //               dataToWrite.bits.addr < (ctrlUnit.io.baseAddr + ctrlUnit.io.totalLength * 8))
   dataFetcher.io.dataToWrite.bits := Mux(ctrlSigs.aluFn === 34.U,
                                           permuteOut,
                                           aluOut)
