@@ -120,7 +120,9 @@ class DCacheFetcher(val bufferEntries: Int)(implicit p: Parameters) extends Core
   io.baseAddress.ready := (state === State.idle)
 
   io.fetchedData.valid := allDone
-  io.fetchedData.bits := vals
+  for(i <- 0 until bufferEntries){
+    io.fetchedData.bits(i).data := vals(i)
+  }
 
   val tag = reqsSent
   io.req.bits.tag := tag

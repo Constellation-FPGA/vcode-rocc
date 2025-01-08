@@ -146,11 +146,15 @@ class VCodeAccelImp(outer: VCodeAccel, batchSize: Int) extends LazyRoCCModuleImp
   // FIXME: Only use rs1/rs2 if xs1/xs2 =1, respectively.
   when(dataFetcher.io.fetchedData.valid) {
     when(ctrlUnit.io.rs1Fetch) {
-      data1 := dataFetcher.io.fetchedData.bits
+      for(i <- 0 until batchSize){
+        data1(i) := dataFetcher.io.fetchedData.bits(i).data
+      }
     } .elsewhen(ctrlUnit.io.rs2Fetch){
-      data2 := dataFetcher.io.fetchedData.bits
+      for(i <- 0 until batchSize){
+        data1(i) := dataFetcher.io.fetchedData.bits(i).data
+      }
     }.otherwise {
-      data3 := dataFetcher.io.fetchedData.bits(0)
+      data3 := dataFetcher.io.fetchedData.bits(0).data
     }
   }
 
@@ -164,7 +168,7 @@ class VCodeAccelImp(outer: VCodeAccel, batchSize: Int) extends LazyRoCCModuleImp
   val alu = Module(new vcoderocc.ALU(xLen)(batchSize))
   // FIXME?: Should be a register to hold values if we start the next batch on the ALU immediately
   // val alu_out = RegInit(VecInit.fill(batchSize)(0.U(xLen.W)))
-  val aluOut = WireInit(VecInit.fill(batchSize)(0.U(xLen.W)))
+  val aluOut = WireInit(VecInit.fill(batchSize)(new DataIO(xLen)))
   val aluCout = Wire(UInt())
   // Hook up the ALU to VCode signals
   alu.io.fn := ctrlSigs.aluFn
@@ -178,13 +182,13 @@ class VCodeAccelImp(outer: VCodeAccel, batchSize: Int) extends LazyRoCCModuleImp
 
   // ALU processing permute instructions
   val permute = Module(new vcoderocc.PermuteUnit(xLen)(batchSize))
-  val permuteOut = WireInit(VecInit.fill(batchSize)(0.U(xLen.W)))
+  val permuteOut = WireInit(VecInit.fill(batchSize)(new DataIO(xLen)))
 
   permute.io.fn := ctrlSigs.aluFn
   permute.io.index := data1
   permute.io.data := data2
   permute.io.default := data3
-  permute.io.numToFetch := ctrlUnit.io.numToFetch
+  permute.io.baseAddress := ctrlUnit.io.baseAddress
   permute.io.execute := ctrlUnit.io.shouldExecute
   permute.io.write := ctrlUnit.io.writebackReady // Not sure
   permute.io.accelIdle := !ctrlUnit.io.busy
@@ -192,9 +196,11 @@ class VCodeAccelImp(outer: VCodeAccel, batchSize: Int) extends LazyRoCCModuleImp
 
   // assert(forall ctrlUnit.io.baseAddr <= dataToWrite.bits.addr &&
   //               dataToWrite.bits.addr < (ctrlUnit.io.baseAddr + ctrlUnit.io.totalLength * 8))
-  dataFetcher.io.dataToWrite.bits := Mux(ctrlSigs.aluFn === 34.U,
-                                          permuteOut,
-                                          aluOut)
+  for(i <- 0 until batchSize){
+    dataFetcher.io.dataToWrite.bits(i).data := Mux(ctrlSigs.aluFn === 34.U,
+                                                   permuteOut(i).data,
+                                                   aluOut(i).data)
+  }                              
   dataFetcher.io.dataToWrite.valid := ctrlUnit.io.writebackReady
 
   val responseReady = Wire(Bool())
