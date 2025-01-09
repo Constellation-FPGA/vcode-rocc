@@ -76,10 +76,28 @@ class ControlUnit(val batchSize: Int)(implicit p: Parameters) extends CoreModule
   io.rs2Fetch := accelState === State.fetch2
   io.rs3Fetch := accelState === State.fetch3
 
-  io.baseAddress := Mux(accelState === State.write, currentDestAddr,
-    Mux(accelState === State.fetch1, currentRs1, Mux(accelState === State.fetch2, currentRs2, currentRs3)))
-  /*io.baseAddress := Mux(accelState === State.write, currentDestAddr,
-    Mux(accelState === State.fetch1, currentRs1, currentRs2))*/
+  /* NOTE: We need a "default case" for baseAddress because of limitations in
+   * Firtool. Firtool does not do the exhaustiveness checks required to show
+   * that this switch is ACTUALLY exhaustive, so it reports that io.baseAddress
+   * is partially initialized. */
+  io.baseAddress := 0.U
+  switch (accelState) {
+    is (State.idle, State.respond) {
+      io.baseAddress := 0.U
+    }
+    is (State.fetch1) {
+      io.baseAddress := currentRs1
+    }
+    is (State.fetch2) {
+      io.baseAddress := currentRs2
+    }
+    is (State.fetch3) {
+      io.baseAddress := currentRs3
+    }
+    is (State.exe, State.write) {
+      io.baseAddress := currentDestAddr
+    }
+  }
 
   io.shouldExecute := (accelState === State.exe)
 
