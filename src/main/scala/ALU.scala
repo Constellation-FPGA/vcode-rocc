@@ -86,10 +86,6 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
   }
   io.out := workingSpace
 
-  /*val batchCounter = withReset(io.accelIdle) {
-    RegInit(0.U(log2Down(xLen).W))
-  }*/
-
   val lastBatchResult = workingSpace(0)
 
   val scanPlusIdentity = withReset(io.accelIdle) {
