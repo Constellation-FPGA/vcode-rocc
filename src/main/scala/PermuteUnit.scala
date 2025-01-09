@@ -28,7 +28,7 @@ class PermuteUnit(val xLen: Int)(val batchSize: Int) extends Module {
     })
 
     val workingSpace = withReset(io.accelIdle) {
-        RegInit(VecInit.fill(batchSize)(0.U.asTypeOf(new DataIO(xLen))))
+      RegInit((0.U).asTypeOf(Vec(batchSize, new DataIO(xLen))))
     }
     io.out := workingSpace
 

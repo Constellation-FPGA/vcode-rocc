@@ -81,9 +81,8 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
     selectFlags(i) := io.in3(i.U + selectFlagsCounter)
   }
 
-  // FIXME: This should be RegInit(Bits(xLen.W))?
   val workingSpace = withReset(io.accelIdle) {
-    RegInit(VecInit.fill(batchSize)(new DataIO(xLen)))
+    RegInit((0.U).asTypeOf(Vec(batchSize, new DataIO(xLen))))
   }
   io.out := workingSpace
 

@@ -108,7 +108,7 @@ class DCacheFetcher(val bufferEntries: Int)(implicit p: Parameters) extends Core
   val reqsSent = RegInit(0.U((log2Down(bufferEntries)+1).W))
 
   val vals = withReset(state === State.idle) {
-    RegInit(VecInit.fill(bufferEntries)(0.U(xLen.W)))
+    RegInit((0.U).asTypeOf(Vec(bufferEntries, new DataIO(xLen))))
   }
 
   val waitForResp = RegInit(VecInit.fill(bufferEntries)(false.B))
