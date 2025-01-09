@@ -17,8 +17,8 @@ class PermuteUnit(val xLen: Int)(val batchSize: Int) extends Module {
     import PermuteUnit._ // Import ALU object
     val io = IO(new Bundle {
         val fn = Input(Bits(SZ_PermuteUnit_FN.W))
-        val index = Input(Vec(batchSize, UInt(xLen.W)))
-        val data = Input(Vec(batchSize, UInt(xLen.W)))
+        val index = Input(Vec(batchSize, new DataIO(xLen)))
+        val data = Input(Vec(batchSize, new DataIO(xLen)))
         val default = Input(UInt(xLen.W))
         val out = Output(Vec(batchSize, new DataIO(xLen)))
         val baseAddress = Input(UInt(xLen.W))
@@ -35,8 +35,8 @@ class PermuteUnit(val xLen: Int)(val batchSize: Int) extends Module {
         switch(io.fn){
             is(34.U){
                 for (i <- 0 until batchSize) {
-                    workingSpace(i).data := io.data(i)
-                    workingSpace(i).addr := io.baseAddress + io.index(i) * 8.U
+                    workingSpace(i).data := io.data(i).data
+                    workingSpace(i).addr := io.baseAddress + (io.index(i).data * 8.U)
                 }
             }
         }

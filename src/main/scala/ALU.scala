@@ -58,8 +58,8 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
   val io = IO(new Bundle {
     val fn = Input(Bits(SZ_ALU_FN.W))
     // The two register content values passed over the RoCCCommand are xLen wide
-    val in1 = Input(Vec(batchSize, UInt(xLen.W)))
-    val in2 = Input(Vec(batchSize, UInt(xLen.W)))
+    val in1 = Input(Vec(batchSize, new DataIO(xLen)))
+    val in2 = Input(Vec(batchSize, new DataIO(xLen)))
     val in3 = Input(UInt(xLen.W))
     val out = Output(Vec(batchSize, new DataIO(xLen)))
     val baseAddress = Input(UInt(xLen.W))
