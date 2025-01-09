@@ -129,31 +129,29 @@ class DCacheFetcher(val bufferEntries: Int)(implicit p: Parameters) extends Core
   // I am not a fan of the comparator here... But c'est la vie.
   val shouldSendRequest = io.start && !waitForResp(tag) && (reqsSent < io.amountData)
   io.req.valid := shouldSendRequest
-  // Static shift by 3 as all data is 8-byte aligned
-  val addrToRequest = io.baseAddress.bits + (reqsSent << 3)
-  io.req.bits.addr := addrToRequest
+  /* FIXME: Check that io.req.bits.addr is correct! */
+  /* These default values are to make Firtool's exhaustivity-connection check
+   * pass. */
+  io.req.bits.addr := 0.U
+  io.req.bits.data := DontCare
+  io.req.bits.cmd := DontCare
+  switch (io.opToPerform) {
+    is (MemoryOperation.read) {
+      io.req.bits.addr := io.baseAddress.bits + (reqsSent << 3)
+      io.req.bits.data := 0.U // Does not matter what data is set to for reads
+      io.req.bits.cmd := M_XRD
+    }
+    is (MemoryOperation.write) {
+      io.req.bits.addr := io.dataToWrite.bits(tag).addr
+      io.req.bits.data := io.dataToWrite.bits(tag).data
+      io.req.bits.cmd := M_XWR
+    }
+  }
   io.req.bits.size := log2Ceil(8).U // Always loading 8 bytes
   io.req.bits.signed := false.B
   io.req.bits.phys := false.B
   io.req.bits.dprv := io.mstatus.dprv
   io.req.bits.dv := io.mstatus.dv
-  io.req.bits.cmd := Mux(io.opToPerform === MemoryOperation.read, M_XRD, M_XWR)
-  io.req.bits.data := Mux(io.opToPerform === MemoryOperation.read,
-    0.U, // Does not matter what we set data to for a read.
-    io.dataToWrite.bits(tag))
-  // switch(io.opToPerform) {
-  //   is(MemoryOperation.read) {
-  //     io.req.bits.data := 0.U // Does not matter what we set data to.
-  //     io.req.bits.cmd := M_XRD
-  //   }
-  //   is(MemoryOperation.write) {
-  //     if(p(VCodePrintfEnable)) {
-  //       printf("DFetch\tTag 0x%x will WRITE 0x%x\n", tag, io.dataToWrite.bits(tag))
-  //     }
-  //     io.req.bits.data := io.dataToWrite.bits(tag)
-  //     io.req.bits.cmd := M_XWR
-  //   }
-  // }
   // TODO: What do these new ones do?
   io.req.bits.mask := false.B
   io.req.bits.no_resp := false.B
@@ -217,8 +215,9 @@ class DCacheFetcher(val bufferEntries: Int)(implicit p: Parameters) extends Core
           if(p(VCodePrintfEnable)) {
             printf("DFetch\tstart: %d\tbaseAddress_valid: %d\n",
               io.start, io.baseAddress.valid)
-            printf("DFetch\tShould submit new request for address 0x%x with tag 0x%x? %d\n",
-              addrToRequest, tag, shouldSendRequest)
+            printf("DFetch\tShould submit new request for address 0x%%x with tag 0x%x? %d\n",
+              // addrToRequest,
+              tag, shouldSendRequest)
             printf("DFetch\tdprv: %d\tdv: %d\n", io.mstatus.dprv, io.mstatus.dv)
           }
 
