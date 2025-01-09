@@ -175,8 +175,8 @@ class VCodeAccelImp(outer: VCodeAccel, batchSize: Int) extends LazyRoCCModuleImp
   // ALU processing permute instructions
   val permute = Module(new vcoderocc.PermuteUnit(xLen)(batchSize))
   permute.io.fn := ctrlSigs.aluFn
-  permute.io.index := data1
-  permute.io.data := data2
+  permute.io.data := data1
+  permute.io.index := data2
   permute.io.default := data3
   permute.io.baseAddress := ctrlUnit.io.baseAddress
   permute.io.execute := ctrlUnit.io.shouldExecute
