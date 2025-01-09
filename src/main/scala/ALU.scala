@@ -82,7 +82,7 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
 
   // FIXME: This should be RegInit(Bits(xLen.W))?
   val workingSpace = withReset(io.accelIdle) {
-    RegInit(VecInit.fill(batchSize)(0.U(xLen.W)))
+    RegInit(VecInit.fill(batchSize)(new DataIO(xLen)))
   }
   io.out := workingSpace
 
@@ -136,7 +136,13 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
     switch(io.fn) {
       is(0.U) {
         // ADD/SUB
-        workingSpace := io.in1.zip(io.in2).map{ case (x, y) => x + y }
+        /* TODO: Ideally the address calculation is a completely parallel
+         * indexed map.
+         * (i) = thisBatchBaseAddr + (i * 8), where thisBatchBaseAddr comes from
+         * some part of the control unit to control where this batch should
+         * output */
+        workingSpace.addr := io.in1.zip(io.in2).map{ case (x, y) => x + y }
+        workingSpace.data := io.in1.zip(io.in2).map{ case (x, y) => x + y }
       }
       is(1.U) {
         // +_REDUCE INT
