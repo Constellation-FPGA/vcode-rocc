@@ -23,7 +23,6 @@ class PermuteUnit(val xLen: Int)(val batchSize: Int) extends Module {
         val out = Output(Vec(batchSize, new DataIO(xLen)))
         val baseAddress = Input(UInt(xLen.W))
         val execute = Input(Bool())
-        val write = Input(Bool())
         val accelIdle = Input(Bool())
     })
 

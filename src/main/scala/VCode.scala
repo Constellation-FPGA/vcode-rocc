@@ -180,7 +180,6 @@ class VCodeAccelImp(outer: VCodeAccel, batchSize: Int) extends LazyRoCCModuleImp
   permute.io.default := data3
   permute.io.baseAddress := ctrlUnit.io.baseAddress
   permute.io.execute := ctrlUnit.io.shouldExecute
-  permute.io.write := ctrlUnit.io.writebackReady // Not sure
   permute.io.accelIdle := !ctrlUnit.io.busy
 
   // assert(forall ctrlUnit.io.baseAddr <= dataToWrite.bits.addr &&
