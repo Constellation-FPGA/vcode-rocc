@@ -173,8 +173,6 @@ class DCacheFetcher(val bufferEntries: Int)(implicit p: Parameters) extends Core
         // We have fetched everything we needed to fetch. We are done.
         if(p(VCodePrintfEnable)) {
           printf("DFetch\tFetched all the data. Fetcher returns to idle. Do next thing\n")
-          printf("DFetch\tdata1: 0x%x\tdata2: 0x%x\n",
-            vals(0.U), vals(1.U))
         }
         state := State.idle
 
@@ -193,7 +191,7 @@ class DCacheFetcher(val bufferEntries: Int)(implicit p: Parameters) extends Core
             printf("DFetch\tGot cache response for tag 0x%x!\n", io.resp.bits.tag)
             printf("DFetch\tTag 0x%x data: 0x%x\n", io.resp.bits.tag, io.resp.bits.data)
           }
-          vals(io.resp.bits.tag) := io.resp.bits.data
+          vals(io.resp.bits.tag).data := io.resp.bits.data
           when(waitForResp(io.resp.bits.tag)) {
             // If we were waiting for a response on this tag, and we now have
             // that tags response, then we increase the amount we fetch.
