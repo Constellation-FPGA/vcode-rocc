@@ -62,7 +62,6 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
     val in2 = Input(Vec(batchSize, UInt(xLen.W)))
     val in3 = Input(UInt(xLen.W))
     val out = Output(Vec(batchSize, new DataIO(xLen)))
-    val cout = Output(UInt(xLen.W))
     val execute = Input(Bool())
     val accelIdle = Input(Bool())
   })
@@ -136,8 +135,6 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
   val reduceANDIdentity = withReset(io.accelIdle) {
     RegInit(1.U(xLen.W))
   }
-
-  io.cout := 0.U
 
   when(io.execute) {
     switch(io.fn) {
