@@ -62,6 +62,7 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
     val in2 = Input(Vec(batchSize, UInt(xLen.W)))
     val in3 = Input(UInt(xLen.W))
     val out = Output(Vec(batchSize, new DataIO(xLen)))
+    val baseAddress = Input(UInt(xLen.W))
     val execute = Input(Bool())
     val accelIdle = Input(Bool())
   })
