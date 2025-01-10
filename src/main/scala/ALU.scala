@@ -256,7 +256,14 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
       }
       is(12.U){
         // GREATER OR EQUAL
-        workingSpace := io.in1.zip(io.in2).map{ case (x, y) => x >= y }
+        val indexedPairs = io.in1.zip(io.in2).zipWithIndex
+        workingSpace := indexedPairs.map{ case ((x, y), i) => {
+          val result = Wire(new DataIO(xLen))
+          result.addr := io.baseAddress + (i.U * 8.U)
+          result.data := x.data >= y.data
+          result
+          }
+        }
       }
       is(13.U){
         // EQUAL
