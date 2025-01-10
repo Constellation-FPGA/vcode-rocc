@@ -367,9 +367,17 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
       }
       is(22.U){
         // *_SCAN INT
-        val tmp = io.in1.scan(scanMulIdentity)(_ * _)
-        workingSpace := tmp.slice(0, batchSize)
-        scanMulIdentity := tmp(batchSize) 
+        val batchData = io.in1.map{ case d => d.data }
+        val scanTmp = batchData.scan(scanMulIdentity)(_ * _)
+        val results = scanTmp.zipWithIndex.map{ case(d, idx) => {
+          val result = Wire(new DataIO(xLen))
+          result.addr := io.baseAddress + (idx.U * 8.U)
+          result.data := d
+          result
+          }
+        }
+        workingSpace := results.slice(0, batchSize)
+        scanMulIdentity := results(batchSize).data
       }
       is(23.U){
         // MAX SCAN INT
