@@ -79,8 +79,9 @@ class DCacheFetcher(val bufferEntries: Int)(implicit p: Parameters) extends Core
   assert(io.amountData <= bufferEntries.U,
     "DCacheFetcher: Amount of data to handle > internal buffer!")
 
-  /*assert(io.amountData > 0.U,
-    "DCacheFetcher: You cannot read/write 0 entries worth of data!")*/
+  def implies(p: Bool, q: Bool): Bool = !p || q
+  assert(implies(io.start, io.amountData > 0.U),
+    "DCacheFetcher: You cannot read/write 0 entries worth of data!")
 
   object State extends ChiselEnum {
     val idle, running = Value
