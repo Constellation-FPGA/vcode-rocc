@@ -355,10 +355,14 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
       }
       is(21.U){
         // SELECT
-        workingSpace := selectFlags.lazyZip(io.in1)
-          .lazyZip(io.in2)
-          .toVector
-          .map({ case (s, t, f) => Mux(s, t, f) })
+        val selectData = selectFlags.lazyZip(io.in1).lazyZip(io.in2).toVector
+        workingSpace := selectData.zipWithIndex.map{ case((s, t, f), i) => {
+          val result = Wire(new DataIO(xLen))
+          result.addr := io.baseAddress + (i.U * 8.U)
+          result.data := Mux(s, t.data, f.data)
+          result
+          }
+        }
         selectFlagsCounter := selectFlagsCounter + batchSize.U;
       }
       is(22.U){
