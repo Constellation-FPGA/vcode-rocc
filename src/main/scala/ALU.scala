@@ -321,8 +321,15 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
         }
       }
       is(18.U){
-        // AND (bitwise or boolean)
-        workingSpace := io.in1.zip(io.in2).map{ case (x, y) => x & y }
+        // AND (bitwise and boolean)
+        val indexedPairs = io.in1.zip(io.in2).zipWithIndex
+        workingSpace := indexedPairs.map{ case ((x, y), i) => {
+          val result = Wire(new DataIO(xLen))
+          result.addr := io.baseAddress + (i.U * 8.U)
+          result.data := x.data & y.data(18, 0)
+          result
+          }
+        }
       }
       is(19.U){
         // OR (bitwise or boolean)
