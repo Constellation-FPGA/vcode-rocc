@@ -433,7 +433,9 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
       }
       is(33.U) {
         // XOR_REDUCE INT
-        lastBatchResult := lastBatchResult ^ io.in1.reduce(_ ^ _)
+        lastBatchResult.addr := io.baseAddress
+        val batchData = io.in1.map{ case d => d.data }
+        lastBatchResult.data := lastBatchResult.data ^ batchData.reduce(_ ^ _)
       }
     }
   }
