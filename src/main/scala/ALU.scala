@@ -413,8 +413,11 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
       }
       is(30.U) {
         // MIN_REDUCE INT
-        val reduceMinimum = io.in1.map(_.asSInt).fold(reduceMinIdentity)((x, y) => Mux(x < y, x, y))
-        lastBatchResult := Mux(lastBatchResult.asSInt < reduceMinimum, lastBatchResult, reduceMinimum.asUInt)
+        lastBatchResult.addr := io.baseAddress
+        val batchData = io.in1.map{ case d => d.data }
+        val reduceMaximum = batchData.map(_.asSInt).fold(reduceMinIdentity)((x, y) => Mux(x < y, x, y))
+        lastBatchResult.data := Mux(lastBatchResult.data.asSInt < reduceMaximum,
+          lastBatchResult.data, reduceMaximum.asUInt)
       }
       is(31.U) {
         // AND_REDUCE INT
