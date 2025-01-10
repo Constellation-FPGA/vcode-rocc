@@ -160,10 +160,22 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
         /* FIXME: Can factor out SCAN HW out and just select identity & binary operator
          * rather than the entire thing. Works because .scan()() requires identity
          * as first argument (partial evaluation). */
-        val tmp = io.in1.scan(scanPlusIdentity)(_ + _)
-        workingSpace := tmp.slice(0, batchSize) // .slice(from, to) is [from, to). to is EXCLUSIVE
-        scanPlusIdentity := tmp(batchSize) // Grab the last bit, the end of the vector.
+        val batchData = io.in1.map{ case d => d.data }
+        val scanTmp = batchData.scan(scanPlusIdentity)(_ + _)
         // NOTE .scan has .scanLeft & .scanRight variants
+        /* NOTE: Technically we compute an extra index for the element
+         * we pull out. */
+        val scanResults = scanTmp.zipWithIndex.map{ case (d, idx) => {
+          val result = Wire(new DataIO(xLen))
+          result.addr := io.baseAddress + (idx.U * 8.U)
+          result.data := d
+          result
+          }
+        }
+        // .slice(from, to) is [from, to). to is EXCLUSIVE
+        workingSpace := scanResults.slice(0, batchSize)
+        // Grab the last bit, the end of the vector.
+        scanPlusIdentity := scanResults(batchSize).data
       }
       is(3.U){
         // SUB
