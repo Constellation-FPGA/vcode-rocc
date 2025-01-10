@@ -241,11 +241,11 @@ class ControlUnit(val batchSize: Int)(implicit p: Parameters) extends CoreModule
         printf("Ctrl\tExecution done. Writeback results\n")
       }
       when(io.memOpCompleted) {
-        when(io.ctrlSigs.aluFn === ALU.FN_SELECT){
-          when(roundCounter >= (64/batchSize - 1).U){
+        when(io.ctrlSigs.aluFn === ALU.FN_SELECT) {
+          when(roundCounter >= (64/batchSize - 1).U) {
             roundCounter := 0.U
             currentRs3 := currentRs3 + 8.U
-          } .otherwise{
+          } .otherwise {
             roundCounter := roundCounter + 1.U
           }
         }
