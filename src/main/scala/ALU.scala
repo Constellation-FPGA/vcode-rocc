@@ -421,8 +421,9 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
       }
       is(31.U) {
         // AND_REDUCE INT
-        lastBatchResult := io.in1.fold(reduceANDIdentity)((x, y) => x & y)
-        reduceANDIdentity := lastBatchResult
+        lastBatchResult.addr := io.baseAddress
+        val batchData = io.in1.map{ case d => d.data }
+        lastBatchResult.data := lastBatchResult.data & batchData.reduce(_ & _)
       }
       is(32.U) {
         // OR_REDUCE INT
