@@ -395,9 +395,17 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
       }
       is(24.U){
         // MIN SCAN INT
-        val tmp = io.in1.map(_.asSInt).scan(scanMinIdentity)({(x, y) => Mux(y < x, y, x)})
-        workingSpace := tmp.slice(0, batchSize).map(_.asUInt)
-        scanMinIdentity := tmp(batchSize) 
+        val batchData = io.in1.map{ case d => d.data.asSInt }
+        val scanTmp = batchData.scan(scanMinIdentity)({(x, y) => Mux(y < x, y, x)})
+        val results = scanTmp.zipWithIndex.map{ case(d, idx) => {
+          val result = Wire(new DataIO(xLen))
+          result.addr := io.baseAddress + (idx.U * 8.U)
+          result.data := d.asUInt
+          result
+          }
+        }
+        workingSpace := results.slice(0, batchSize)
+        scanMinIdentity := results(batchSize).data.asSInt
       }
       is(25.U){
         // AND SCAN INT
