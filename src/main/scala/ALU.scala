@@ -399,8 +399,9 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
       }
       is(28.U) {
         // *_REDUCE INT
-        lastBatchResult := io.in1.fold(reduceMulIdentity)((x, y) => x * y)(xLen-1, 0)
-        reduceMulIdentity := lastBatchResult
+        lastBatchResult.addr := io.baseAddress
+        val batchData = io.in1.map{ case d => d.data }
+        lastBatchResult.data := batchData.fold(reduceMulIdentity)((x, y) => x * y)
       }
       is(29.U) {
         // MAX_REDUCE INT
