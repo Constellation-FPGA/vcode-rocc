@@ -47,7 +47,6 @@ object ALU {
   def FN_RED_AND = BitPat(31.U(SZ_ALU_FN.W))
   def FN_RED_OR = BitPat(32.U(SZ_ALU_FN.W))
   def FN_RED_XOR = BitPat(33.U(SZ_ALU_FN.W))
-  //def FN_PERMUTE = BitPat(34.U(SZ_ALU_FN.W))
 }
 
 /** Implementation of an ALU.
@@ -294,14 +293,6 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
         // XOR_REDUCE INT
         lastBatchResult := lastBatchResult ^ io.in1.reduce(_ ^ _)
       }
-      /*is(34.U) {
-        // PERMUTE INT
-        for(batch <- 0 until (64/batchSize)){
-          for(i <- 0 until batchSize){
-            workingSpace(io.in1(i)) := io.in2(i)
-          }
-        }
-      }*/
     }
   }
 }
