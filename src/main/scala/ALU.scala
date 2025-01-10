@@ -151,7 +151,9 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
       }
       is(1.U) {
         // +_REDUCE INT
-        lastBatchResult := lastBatchResult + io.in1.reduce(_ + _)
+        lastBatchResult.addr := io.baseAddress
+        val batchData = io.in1.map{ case d => d.data }
+        lastBatchResult.data := lastBatchResult.data + batchData.reduce(_ + _)
         // NOTE: .reduce could be replaced by reduceTree
       }
       is(2.U) { // +_SCAN INT

@@ -225,8 +225,9 @@ class ControlUnit(val batchSize: Int)(implicit p: Parameters) extends CoreModule
           currentRs2 := currentRs2 + (batchSize.U << 3)
           //currentRs3 := currentRs3 + (batchSize.U << 3)
         } .otherwise {
-          // The reduction's computation is complete, write.
+          /* The reduction's computation is complete, write exactly 1 value. */
           accelState := State.write
+          operandsToGo := 1.U
         }
       } .otherwise {
         // Execution completed, but this is NOT a reduction
