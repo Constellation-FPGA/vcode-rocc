@@ -11,6 +11,7 @@ object PermuteUnit {
 
     def FN_DEFAULT = BitPat.dontCare(SZ_PermuteUnit_FN)
     def FN_PERMUTE = BitPat(34.U(SZ_PermuteUnit_FN.W))
+    def FN_DPERMUTE = BitPat(35.U(SZ_PermuteUnit_FN.W))
 }
 
 class PermuteUnit(val xLen: Int)(val batchSize: Int) extends Module {
@@ -26,10 +27,39 @@ class PermuteUnit(val xLen: Int)(val batchSize: Int) extends Module {
         val accelIdle = Input(Bool())
     })
 
+    /*val resetValuePERMUTE = VecInit(Seq.tabulate(batchSize) { i =>
+        val entry = Wire(new DataIO(xLen))
+        entry.data := 0.U
+        entry.addr := 0.U
+        entry
+    })
+
+    val resetValueDPERMUTE = VecInit(Seq.tabulate(batchSize) { i =>
+        val entry = Wire(new DataIO(xLen))
+        entry.data := io.default
+        entry.addr := io.baseAddress + (i.U * 8.U)
+        entry
+    })
+
+    val selectedResetValue = WireDefault(resetValuePERMUTE)
+    when (io.fn === 35.U) {
+        selectedResetValue := resetValueDPERMUTE
+    }
+
+    val workingSpace = RegInit(selectedResetValue)*/
+
     val workingSpace = withReset(io.accelIdle) {
       RegInit((0.U).asTypeOf(Vec(batchSize, new DataIO(xLen))))
     }
-    io.out := workingSpace
+    val workingSpaceDPERMUTE = withReset(io.accelIdle) {
+        RegInit(VecInit(Seq.tabulate(batchSize) { i =>
+            val entry = Wire(new DataIO(xLen))
+            entry.data := io.default
+            entry.addr := io.baseAddress + (i.U * 8.U)
+            entry
+        }))
+    }
+    io.out := Mux(io.fn === 35.U, workingSpaceDPERMUTE, workingSpace)
 
     when(io.execute){
         switch(io.fn){
@@ -37,6 +67,12 @@ class PermuteUnit(val xLen: Int)(val batchSize: Int) extends Module {
                 for (i <- 0 until batchSize) {
                     workingSpace(i).data := io.data(i).data
                     workingSpace(i).addr := io.baseAddress + (io.index(i).data * 8.U)
+                }
+            }
+            is(35.U){
+                for (i <- 0 until batchSize) {
+                    workingSpaceDPERMUTE(i).data := io.data(i).data
+                    workingSpaceDPERMUTE(i).addr := io.baseAddress + (io.index(i).data * 8.U)
                 }
             }
         }

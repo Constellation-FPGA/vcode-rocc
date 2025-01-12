@@ -133,7 +133,8 @@ class SelectDecode(implicit val p: Parameters) extends DecodeConstants {
 
 class PermuteDecode (implicit val p: Parameters) extends DecodeConstants {
   val decodeTable: Array[(BitPat, List[BitPat])] = Array(
-    PERMUTE_INT -> List(Y, MEM_OPS_TWO, FN_PERMUTE, Y))
+    PERMUTE_INT -> List(Y, MEM_OPS_TWO, FN_PERMUTE, Y),
+    DPERMUTE_INT -> List(Y, MEM_OPS_THREE, FN_DPERMUTE, Y))
 }
 
 /** Decode table for accelerator control instructions.
