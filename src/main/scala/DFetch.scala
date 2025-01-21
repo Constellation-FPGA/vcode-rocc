@@ -55,7 +55,7 @@ class DCacheFetcher(val bufferEntries: Int)(implicit p: Parameters) extends Core
   /* For now, we only support "raw" loading and storing.
    * Only using M_XRD and M_XWR */
   val io = IO(new Bundle {
-    val ctrlSigs = Input(new CtrlSigs)
+    val ctrlSigs = Input(new CtrlSigs(xLen))
     /** The base address from which to operate on (load from/store to). */
     val baseAddress = Flipped(Decoupled(Bits(xLen.W)))
     val mstatus = Input(new MStatus)

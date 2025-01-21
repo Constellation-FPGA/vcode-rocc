@@ -56,7 +56,7 @@ class VCodeAccelImp(outer: VCodeAccel, batchSize: Int) extends LazyRoCCModuleImp
    * Decode instruction, yielding control signals
    **************/
   val decoder = Module(new Decoder)
-  val ctrlSigs = Wire(new CtrlSigs())
+  val ctrlSigs = Wire(new CtrlSigs(xLen))
   decoder.io.roccInst := roccCmd.inst
   ctrlSigs := decoder.io.ctrlSigs
 

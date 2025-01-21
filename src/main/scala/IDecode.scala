@@ -4,7 +4,7 @@ import chisel3._
 import chisel3.util._
 import chisel3.experimental.BundleLiterals._
 import org.chipsalliance.cde.config.Parameters
-import freechips.rocketchip.tile.HasCoreParameters
+import freechips.rocketchip.tile.{HasCoreParameters, TileKey}
 import Instructions._
 import vcoderocc.constants._
 import ALU._
@@ -28,18 +28,19 @@ sealed trait DecodeConstants extends HasCoreParameters { // TODO: Not sure if ex
 /** Control signals in the processor.
   * These are set during decoding.
   */
-class CtrlSigs extends Bundle {
+class CtrlSigs(xLen: Int) extends Bundle {
   /* All control signals used in this coprocessor
    * See rocket-chip's rocket/IDecode.scala#IntCtrlSigs#default */
   val legal = Bool() // Example control signal.
   val numMemFetches = Bits(SZ_MEM_OPS)
   val aluFn = Bits(SZ_ALU_FN.W)
+  val identityVal = UInt(xLen.W)
   val isMemOp = Bool()
 
   /** List of default control signal values
     * @return List of default control signal values. */
   def defaultDecodeCtrlSigs: List[BitPat] =
-    List(N, MEM_OPS_X, FN_X, N)
+    List(N, MEM_OPS_X, FN_X, BitPat.dontCare(xLen), N)
 
   /** Decodes an instruction to its control signals.
     * @param inst The instruction bit pattern to be decoded.
@@ -51,7 +52,7 @@ class CtrlSigs extends Bundle {
     val decoder = freechips.rocketchip.rocket.DecodeLogic(inst, defaultDecodeCtrlSigs, decodeTable)
     /* Make sequence ordered how signals are ordered.
      * See rocket-chip's rocket/IDecode.scala#IntCtrlSigs#decode#sigs */
-    val ctrlSigs = Seq(legal, numMemFetches, aluFn, isMemOp)
+    val ctrlSigs = Seq(legal, numMemFetches, aluFn, identityVal, isMemOp)
     /* Decoder is a minimized truth-table. We partially apply the map here,
      * which allows us to apply an instruction to get its control signals back.
      * We then zip that with the sequence of names for the control signals. */
@@ -61,6 +62,11 @@ class CtrlSigs extends Bundle {
 }
 
 object CtrlSigs {
+  /* FIXME: This xLen is hard-coded for this object. Exactly what its value is
+   * does not matter all too much, since the CtrlSigs OBJECT is only use by
+   * Scala-level unit tests. */
+  val xLen: Int = 64
+
   /** Convert a signal pattern (List/Seq/Array) of BitPat representing the output
     * from the decode table, and convert them to name-addressable control
     * signals.
@@ -70,12 +76,13 @@ object CtrlSigs {
   def convert(signalPattern: Iterable[BitPat]): CtrlSigs = {
     // This map destructures the signalPattern and assigns the elements to each
     // name in this sequence.
-    val Seq(legal, numMemFetches, aluFn, isMemOp) = signalPattern.map{ case (x: BitPat) => x }
+    val Seq(legal, numMemFetches, aluFn, identityVal, isMemOp) = signalPattern.map{ case (x: BitPat) => x }
 
-    (new CtrlSigs()).Lit(
+    (new CtrlSigs(xLen)).Lit(
       _.legal -> BitPat.bitPatToUInt(legal).asBool,
       _.numMemFetches -> BitPat.bitPatToUInt(numMemFetches),
       _.aluFn -> aluFn.value.U, // NOTE: BitPat of unknowns BitPat("b???") will be converted to 0s by this!
+      _.identityVal -> BitPat.bitPatToUInt(identityVal),
       _.isMemOp -> BitPat.bitPatToUInt(isMemOp).asBool
     )
   }
@@ -89,56 +96,60 @@ object CtrlSigs {
   */
 final class BinOpDecode(implicit val p: Parameters) extends DecodeConstants {
   val decodeTable: Array[(BitPat, List[BitPat])] = Array(
-    PLUS_INT-> List(Y, MEM_OPS_TWO, FN_ADD, Y),
-    SUB_INT -> List(Y, MEM_OPS_TWO, FN_SUB, Y),
-    MUL_INT -> List(Y, MEM_OPS_TWO, FN_MUL, Y),
-    DIV_INT -> List(Y, MEM_OPS_TWO, FN_DIV, Y),
-    MOD_INT -> List(Y, MEM_OPS_TWO, FN_MOD, Y),
-    LESS_INT -> List(Y, MEM_OPS_TWO, FN_LESS, Y),
-    LESS_EQUAL_INT -> List(Y, MEM_OPS_TWO, FN_LESS_EQUAL, Y),
-    GREATER_INT -> List(Y, MEM_OPS_TWO, FN_GREATER, Y),
-    GREATER_EQUAL_INT -> List(Y, MEM_OPS_TWO, FN_GREATER_EQUAL, Y),
-    EQUAL_INT -> List(Y, MEM_OPS_TWO, FN_EQUAL, Y),
-    UNEQUAL_INT -> List(Y, MEM_OPS_TWO, FN_UNEQUAL, Y),
-    LSHIFT_INT -> List(Y, MEM_OPS_TWO, FN_LSHIFT, Y),
-    RSHIFT_INT -> List(Y, MEM_OPS_TWO, FN_RSHIFT, Y),
-    NOT_INT -> List(Y, MEM_OPS_ONE, FN_NOT, Y),
-    AND_INT -> List(Y, MEM_OPS_TWO, FN_AND, Y),
-    OR_INT -> List(Y, MEM_OPS_TWO, FN_OR, Y),
-    XOR_INT -> List(Y, MEM_OPS_TWO, FN_XOR, Y))
+    PLUS_INT-> List(Y, MEM_OPS_TWO, FN_ADD, BitPat(0.U), Y),
+    SUB_INT -> List(Y, MEM_OPS_TWO, FN_SUB, BitPat(0.U), Y),
+    MUL_INT -> List(Y, MEM_OPS_TWO, FN_MUL, BitPat(1.U), Y),
+    DIV_INT -> List(Y, MEM_OPS_TWO, FN_DIV, BitPat(1.U), Y),
+    MOD_INT -> List(Y, MEM_OPS_TWO, FN_MOD, BitPat(1.U), Y),
+    LESS_INT -> List(Y, MEM_OPS_TWO, FN_LESS, BitPat(false.B), Y),
+    LESS_EQUAL_INT -> List(Y, MEM_OPS_TWO, FN_LESS_EQUAL, BitPat(false.B), Y),
+    GREATER_INT -> List(Y, MEM_OPS_TWO, FN_GREATER, BitPat(false.B), Y),
+    GREATER_EQUAL_INT -> List(Y, MEM_OPS_TWO, FN_GREATER_EQUAL, BitPat(false.B), Y),
+    EQUAL_INT -> List(Y, MEM_OPS_TWO, FN_EQUAL, BitPat(false.B), Y),
+    UNEQUAL_INT -> List(Y, MEM_OPS_TWO, FN_UNEQUAL, BitPat(false.B), Y),
+    LSHIFT_INT -> List(Y, MEM_OPS_TWO, FN_LSHIFT, BitPat(0.U), Y),
+    RSHIFT_INT -> List(Y, MEM_OPS_TWO, FN_RSHIFT, BitPat(0.U), Y),
+    NOT_INT -> List(Y, MEM_OPS_ONE, FN_NOT, BitPat(false.B), Y),
+    AND_INT -> List(Y, MEM_OPS_TWO, FN_AND, BitPat(true.B), Y),
+    OR_INT -> List(Y, MEM_OPS_TWO, FN_OR, BitPat(false.B), Y),
+    XOR_INT -> List(Y, MEM_OPS_TWO, FN_XOR, BitPat(false.B), Y))
 }
 
 final class ReduceDecode(implicit val p: Parameters) extends DecodeConstants {
   val decodeTable: Array[(BitPat, List[BitPat])] = Array(
-    PLUS_RED_INT -> List(Y, MEM_OPS_ONE, FN_RED_ADD, Y),
-    MUL_RED_INT -> List(Y, MEM_OPS_ONE, FN_RED_MUL, Y),
-    MAX_RED_INT -> List(Y, MEM_OPS_ONE, FN_RED_MAX, Y),
-    MIN_RED_INT -> List(Y, MEM_OPS_ONE, FN_RED_MIN, Y),
-    AND_RED_INT -> List(Y, MEM_OPS_ONE, FN_RED_AND, Y),
-    OR_RED_INT -> List(Y, MEM_OPS_ONE, FN_RED_OR, Y),
-    XOR_RED_INT -> List(Y, MEM_OPS_ONE, FN_RED_XOR, Y)
+    PLUS_RED_INT -> List(Y, MEM_OPS_ONE, FN_RED_ADD, BitPat(0.U), Y),
+    MUL_RED_INT -> List(Y, MEM_OPS_ONE, FN_RED_MUL, BitPat(1.U), Y),
+    MAX_RED_INT -> List(Y, MEM_OPS_ONE, FN_RED_MAX,
+      BitPat(sIntMin(xLen).asUInt), Y),
+    MIN_RED_INT -> List(Y, MEM_OPS_ONE, FN_RED_MIN,
+      BitPat(sIntMax(xLen).asUInt), Y),
+    AND_RED_INT -> List(Y, MEM_OPS_ONE, FN_RED_AND, BitPat(true.B), Y),
+    OR_RED_INT -> List(Y, MEM_OPS_ONE, FN_RED_OR, BitPat(false.B), Y),
+    XOR_RED_INT -> List(Y, MEM_OPS_ONE, FN_RED_XOR, BitPat(false.B), Y)
     )
 }
 
 final class ScanDecode(implicit val p: Parameters) extends DecodeConstants {
   val decodeTable: Array[(BitPat, List[BitPat])] = Array(
-    PLUS_SCAN_INT -> List(Y, MEM_OPS_ONE, FN_SCAN_ADD, Y),
-    MUL_SCAN_INT -> List(Y, MEM_OPS_ONE, FN_SCAN_MUL, Y),
-    MAX_SCAN_INT -> List(Y, MEM_OPS_ONE, FN_SCAN_MAX, Y),
-    MIN_SCAN_INT -> List(Y, MEM_OPS_ONE, FN_SCAN_MIN, Y),
-    AND_SCAN_INT -> List(Y, MEM_OPS_ONE, FN_SCAN_AND, Y),
-    OR_SCAN_INT -> List(Y, MEM_OPS_ONE, FN_SCAN_OR, Y),
-    XOR_SCAN_INT -> List(Y, MEM_OPS_ONE, FN_SCAN_XOR, Y))
+    PLUS_SCAN_INT -> List(Y, MEM_OPS_ONE, FN_SCAN_ADD, BitPat(0.U), Y),
+    MUL_SCAN_INT -> List(Y, MEM_OPS_ONE, FN_SCAN_MUL, BitPat(1.U), Y),
+    MAX_SCAN_INT -> List(Y, MEM_OPS_ONE, FN_SCAN_MAX,
+      BitPat(sIntMin(xLen).asUInt), Y),
+    MIN_SCAN_INT -> List(Y, MEM_OPS_ONE, FN_SCAN_MIN,
+      BitPat(sIntMax(xLen).asUInt), Y),
+    AND_SCAN_INT -> List(Y, MEM_OPS_ONE, FN_SCAN_AND, BitPat(true.B), Y),
+    OR_SCAN_INT -> List(Y, MEM_OPS_ONE, FN_SCAN_OR, BitPat(false.B), Y),
+    XOR_SCAN_INT -> List(Y, MEM_OPS_ONE, FN_SCAN_XOR, BitPat(false.B), Y))
 }
 
 final class SelectDecode(implicit val p: Parameters) extends DecodeConstants {
   val decodeTable: Array[(BitPat, List[BitPat])] = Array(
-    SELECT_INT -> List(Y, MEM_OPS_THREE, FN_SELECT, Y))
+    SELECT_INT -> List(Y, MEM_OPS_THREE, FN_SELECT, BitPat.dontCare(xLen), Y))
 }
 
 final class PermuteDecode (implicit val p: Parameters) extends DecodeConstants {
   val decodeTable: Array[(BitPat, List[BitPat])] = Array(
-    PERMUTE_INT -> List(Y, MEM_OPS_TWO, FN_PERMUTE, Y))
+    PERMUTE_INT -> List(Y, MEM_OPS_TWO, FN_PERMUTE, BitPat.dontCare(xLen), Y))
 }
 
 /** Decode table for accelerator control instructions.
@@ -150,15 +161,17 @@ final class PermuteDecode (implicit val p: Parameters) extends DecodeConstants {
   */
 final class CtrlOpDecode(implicit val p: Parameters) extends DecodeConstants {
   val decodeTable: Array[(BitPat, List[BitPat])] = Array(
-    SET_NUM_OPERANDS -> List(Y, MEM_OPS_ZERO, FN_X, N),
-    SET_DEST_ADDR -> List(Y, MEM_OPS_ZERO, FN_X, N),
-    SET_THIRD_OPERAND -> List(Y, MEM_OPS_ZERO, FN_X, N))
+    SET_NUM_OPERANDS -> List(Y, MEM_OPS_ZERO, FN_X, BitPat.dontCare(xLen), N),
+    SET_DEST_ADDR -> List(Y, MEM_OPS_ZERO, FN_X, BitPat.dontCare(xLen), N),
+    SET_THIRD_OPERAND -> List(Y, MEM_OPS_ZERO, FN_X, BitPat.dontCare(xLen), N))
 }
 
 /** A class holding a decode table for all possible RoCC instructions that are
   * supported by the accelerator, and a small helper to find the control signals
   * of a provided RoCC instruction's funct7 code. */
 class DecodeTable(implicit val p: Parameters) {
+  val xLen = p(TileKey).core.xLen
+
   /** The decode table for all types of operators. */
   def table = {
     Seq(new BinOpDecode) ++
@@ -172,7 +185,7 @@ class DecodeTable(implicit val p: Parameters) {
   /** Given an operation/funct7 code, find the control signals for that
     * particular RoCC instruction. */
   def findCtrlSigs(op: BitPat): CtrlSigs = {
-    val ctrlSigs = new CtrlSigs
+    val ctrlSigs = new CtrlSigs(xLen)
     var sigs: List[BitPat] = ctrlSigs.defaultDecodeCtrlSigs
     // Try to find matching operation -> signal mapping in decode table
     for (opSigs <- table) {
