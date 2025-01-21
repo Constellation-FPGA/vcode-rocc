@@ -195,6 +195,7 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
       is(3.U){
         // SUB
         workingSpace := elementWiseMap(io.in1, io.in2, _ - _)
+        io.out.valid := true.B
       }
       is(4.U){
         // MUL
@@ -232,50 +233,62 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
       is(9.U){
         // LESS
         workingSpace := elementWiseMap(io.in1, io.in2, _ < _)
+        io.out.valid := true.B
       }
       is(10.U){
         // LESS OR EQUAL
         workingSpace := elementWiseMap(io.in1, io.in2, _ <= _)
+        io.out.valid := true.B
       }
       is(11.U){
         // GREATER
         workingSpace := elementWiseMap(io.in1, io.in2, _ > _)
+        io.out.valid := true.B
       }
       is(12.U){
         // GREATER OR EQUAL
         workingSpace := elementWiseMap(io.in1, io.in2, _ >= _)
+        io.out.valid := true.B
       }
       is(13.U){
         // EQUAL
         workingSpace := elementWiseMap(io.in1, io.in2, _ === _)
+        io.out.valid := true.B
       }
       is(14.U){
         // UNEQUAL
         workingSpace := elementWiseMap(io.in1, io.in2, _ =/= _)
+        io.out.valid := true.B
       }
       is(15.U){
         // LEFT SHIFT
         workingSpace := elementWiseMap(io.in1, io.in2, (x, y) => x << y(18, 0))
+        io.out.valid := true.B
       }
       is(16.U){
         // RIGHT SHIFT
         workingSpace := elementWiseMap(io.in1, io.in2, (x, y) => x >> y(18, 0))
+        io.out.valid := true.B
       }
       is(17.U){
         // NOT (bitwise for ints)
         workingSpace := elementWiseMap(io.in1, io.in2, (x, _y) => ~x)
+        io.out.valid := true.B
       }
       is(18.U){
         // AND (bitwise and boolean)
         workingSpace := elementWiseMap(io.in1, io.in2, _ & _)
+        io.out.valid := true.B
       }
       is(19.U){
         // OR (bitwise or boolean)
         workingSpace := elementWiseMap(io.in1, io.in2, _ | _)
+        io.out.valid := true.B
       }
       is(20.U){
         // XOR (bitwise xor boolean)
         workingSpace := elementWiseMap(io.in1, io.in2, _ ^ _)
+        io.out.valid := true.B
       }
       is(21.U){
         // SELECT
