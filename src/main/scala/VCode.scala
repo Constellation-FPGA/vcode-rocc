@@ -184,9 +184,11 @@ class VCodeAccelImp(outer: VCodeAccel, batchSize: Int) extends LazyRoCCModuleImp
 
   // assert(forall ctrlUnit.io.baseAddr <= dataToWrite.bits.addr &&
   //               dataToWrite.bits.addr < (ctrlUnit.io.baseAddr + ctrlUnit.io.totalLength * 8))
-  /* FIXME: Mark each of the instructions as being part of an "instruction
-   * class". Then we can match against the /kind/ of instruction it is. */
-  dataFetcher.io.dataToWrite.bits := Mux(ctrlSigs.aluFn === PermuteUnit.FN_PERMUTE, permute.io.out, alu.io.out)
+  /* FIXME: Mark each of the instructions * as being part of an "instruction
+   * class". Then we can match against the /kind/ of instruction * it is. */
+  dataFetcher.io.dataToWrite.bits := Mux(ctrlSigs.aluFn === PermuteUnit.FN_PERMUTE,
+    permute.io.out.bits,
+    alu.io.out.bits)
   dataFetcher.io.dataToWrite.valid := ctrlUnit.io.writebackReady
 
   val responseReady = Wire(Bool())

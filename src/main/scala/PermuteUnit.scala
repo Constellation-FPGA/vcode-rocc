@@ -20,7 +20,7 @@ class PermuteUnit(val xLen: Int)(val batchSize: Int) extends Module {
         val index = Input(Vec(batchSize, new DataIO(xLen)))
         val data = Input(Vec(batchSize, new DataIO(xLen)))
         val default = Input(new DataIO(xLen))
-        val out = Output(Vec(batchSize, new DataIO(xLen)))
+        val out = Output(Valid(Vec(batchSize, new DataIO(xLen))))
         val baseAddress = Input(UInt(xLen.W))
         val execute = Input(Bool())
         val accelIdle = Input(Bool())
@@ -29,7 +29,8 @@ class PermuteUnit(val xLen: Int)(val batchSize: Int) extends Module {
     val workingSpace = withReset(io.accelIdle) {
       RegInit((0.U).asTypeOf(Vec(batchSize, new DataIO(xLen))))
     }
-    io.out := workingSpace
+    io.out.bits := workingSpace
+    io.out.valid := false.B
 
     when(io.execute){
         switch(io.fn){
