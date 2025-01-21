@@ -41,6 +41,10 @@ class PermuteUnit(val xLen: Int)(val batchSize: Int) extends Module {
                     workingSpace(i).data := io.data(i).data
                     workingSpace(i).addr := io.baseAddress + (io.index(i).data * 8.U)
                 }
+                /* A permute is "essentially" an O(1) operation on this scale,
+                 * since we know the index and we know the base address. A
+                 * permute turns into just a left-shift and an addition. */
+                io.out.valid := true.B
             }
         }
     }

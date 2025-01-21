@@ -133,12 +133,16 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
       is(0.U) {
         // ADD
         workingSpace := elementWiseMap(io.in1, io.in2, _ + _)
+        // Addition/Subtraction only take 1 clock cycle to complete.
+        // Or at least the + operator is not too terrible in synthesis.
+        io.out.valid := true.B
       }
       is(1.U) {
         // +_REDUCE INT
         val result = reduction(io.in1, _ + _)
         lastBatchResult := result
         identity := result.data
+        io.out.valid := true.B
       }
       is(2.U) { // +_SCAN INT
         val batchData = io.in1.map{ case d => d.data }
@@ -157,10 +161,12 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
         workingSpace := scanResults.slice(0, batchSize)
         // Grab the last bit, the end of the vector.
         identity := scanResults(batchSize).data
+        io.out.valid := true.B
       }
       is(3.U){
         // SUB
         workingSpace := elementWiseMap(io.in1, io.in2, _ - _)
+        io.out.valid := true.B
       }
       is(4.U){
         // MUL
@@ -198,50 +204,62 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
       is(9.U){
         // LESS
         workingSpace := elementWiseMap(io.in1, io.in2, _ < _)
+        io.out.valid := true.B
       }
       is(10.U){
         // LESS OR EQUAL
         workingSpace := elementWiseMap(io.in1, io.in2, _ <= _)
+        io.out.valid := true.B
       }
       is(11.U){
         // GREATER
         workingSpace := elementWiseMap(io.in1, io.in2, _ > _)
+        io.out.valid := true.B
       }
       is(12.U){
         // GREATER OR EQUAL
         workingSpace := elementWiseMap(io.in1, io.in2, _ >= _)
+        io.out.valid := true.B
       }
       is(13.U){
         // EQUAL
         workingSpace := elementWiseMap(io.in1, io.in2, _ === _)
+        io.out.valid := true.B
       }
       is(14.U){
         // UNEQUAL
         workingSpace := elementWiseMap(io.in1, io.in2, _ =/= _)
+        io.out.valid := true.B
       }
       is(15.U){
         // LEFT SHIFT
         workingSpace := elementWiseMap(io.in1, io.in2, (x, y) => x << y(5, 0))
+        io.out.valid := true.B
       }
       is(16.U){
         // RIGHT SHIFT
         workingSpace := elementWiseMap(io.in1, io.in2, (x, y) => x >> y(5, 0))
+        io.out.valid := true.B
       }
       is(17.U){
         // NOT (bitwise for ints)
         workingSpace := elementWiseMap(io.in1, io.in2, (x, _y) => ~x)
+        io.out.valid := true.B
       }
       is(18.U){
         // AND (bitwise and boolean)
         workingSpace := elementWiseMap(io.in1, io.in2, _ & _)
+        io.out.valid := true.B
       }
       is(19.U){
         // OR (bitwise or boolean)
         workingSpace := elementWiseMap(io.in1, io.in2, _ | _)
+        io.out.valid := true.B
       }
       is(20.U){
         // XOR (bitwise xor boolean)
         workingSpace := elementWiseMap(io.in1, io.in2, _ ^ _)
+        io.out.valid := true.B
       }
       is(21.U){
         // SELECT
@@ -254,6 +272,7 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
           }
         }
         selectFlagsCounter := selectFlagsCounter + batchSize.U;
+        io.out.valid := true.B
       }
       is(22.U){
         // *_SCAN INT
@@ -310,6 +329,7 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
         }
         workingSpace := results.slice(0, batchSize)
         identity := results(batchSize).data
+        io.out.valid := true.B
       }
       is(26.U){
         // OR SCAN INT
@@ -324,6 +344,7 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
         }
         workingSpace := results.slice(0, batchSize)
         identity := results(batchSize).data
+        io.out.valid := true.B
       }
       is(27.U){
         // XOR SCAN INT
@@ -338,6 +359,7 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
         }
         workingSpace := results.slice(0, batchSize)
         identity := results(batchSize).data
+        io.out.valid := true.B
       }
       is(28.U) {
         // *_REDUCE INT
@@ -375,18 +397,21 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
         val result = reduction(io.in1, _ & _)
         lastBatchResult := result
         identity := result.data
+        io.out.valid := true.B
       }
       is(32.U) {
         // OR_REDUCE INT
         val result = reduction(io.in1, _ | _)
         lastBatchResult := result
         identity := result.data
+        io.out.valid := true.B
       }
       is(33.U) {
         // XOR_REDUCE INT
         val result = reduction(io.in1, _ ^ _)
         lastBatchResult := result
         identity := result.data
+        io.out.valid := true.B
       }
     }
   }
