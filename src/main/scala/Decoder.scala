@@ -2,13 +2,15 @@ package vcoderocc
 
 import chisel3._
 import chisel3.util._
-import freechips.rocketchip.tile.RoCCInstruction
+import freechips.rocketchip.tile.{RoCCInstruction, TileKey}
 import org.chipsalliance.cde.config.Parameters
 
 class Decoder(implicit p: Parameters) extends Module {
+  val xLen = p(TileKey).core.xLen
+
   val io = IO(new Bundle {
     val roccInst = Input(new RoCCInstruction())
-    val ctrlSigs = Output(new CtrlSigs())
+    val ctrlSigs = Output(new CtrlSigs(xLen))
   })
 
   /* Create the decode table at the top-level of the implementation
@@ -20,5 +22,5 @@ class Decoder(implicit p: Parameters) extends Module {
    * DECODE
    **************/
   // Decode instruction, yielding control signals
-  io.ctrlSigs := Wire(new CtrlSigs()).decode(io.roccInst.funct, decodeTable)
+  io.ctrlSigs := Wire(new CtrlSigs(xLen)).decode(io.roccInst.funct, decodeTable)
 }

@@ -12,7 +12,7 @@ object SourceOperand extends ChiselEnum {
 class ControlUnit(val batchSize: Int)(implicit p: Parameters) extends CoreModule()(p) {
   val io = IO(new Bundle {
     val roccCmd = Input(new RoCCCommand())
-    val ctrlSigs = Input(new CtrlSigs())
+    val ctrlSigs = Input(new CtrlSigs(xLen))
     val cmdValid = Input(Bool())
     val busy = Output(Bool())
     val accelReady = Output(Bool())
