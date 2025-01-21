@@ -80,6 +80,9 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
     selectFlags(i) := io.in3.data(i.U + selectFlagsCounter)
   }
 
+  /* XXX: If we allow a pipelined divider to exit early, then workingSpace
+   * should have type Vec(Valid(DataIO)). Then io.out.valid will need to be an
+   * andR across all elements's valid flag in workingSpace. */
   val workingSpace = withReset(io.accelIdle) {
     RegInit((0.U).asTypeOf(Vec(batchSize, new DataIO(xLen))))
   }
@@ -149,6 +152,9 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
           result
           }
         }
+        // Addition/Subtraction only take 1 clock cycle to complete.
+        // Or at least the + operator is not too terrible in synthesis.
+        io.out.valid := true.B
       }
       is(1.U) {
         // +_REDUCE INT
