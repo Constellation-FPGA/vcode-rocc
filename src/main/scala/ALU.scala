@@ -135,23 +135,31 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
     RegInit(1.U(xLen.W))
   }
 
+  /** Perform a paired element-wise binary operation to two `DataIO` vectors.
+    */
+  def elementWiseMap(xs: Vec[DataIO], ys: Vec[DataIO],
+                     op: (UInt, UInt) => UInt): Vec[DataIO] = {
+    val indexedPairs = xs.zip(ys).zipWithIndex
+    val results = WireInit((0.U).asTypeOf(Vec(batchSize, new DataIO(xLen))))
+    /* The address calculation should be a completely parallel indexed map.
+     * (i) = thisBatchBaseAddr + (i * 8), where thisBatchBaseAddr comes from
+     * some part of the control unit to control where this batch should
+     * output */
+    results := indexedPairs.map{ case ((x, y), i) => {
+      val result = Wire(new DataIO(xLen))
+      result.addr := io.baseAddress + (i.U * 8.U)
+      result.data := op(x.data, y.data)
+      result
+      }
+    }
+    results
+  }
+
   when(io.execute) {
     switch(io.fn) {
       is(0.U) {
-        // ADD/SUB
-        /* TODO: Ideally the address calculation is a completely parallel
-         * indexed map.
-         * (i) = thisBatchBaseAddr + (i * 8), where thisBatchBaseAddr comes from
-         * some part of the control unit to control where this batch should
-         * output */
-        val indexedPairs = io.in1.zip(io.in2).zipWithIndex
-        workingSpace := indexedPairs.map{ case ((x, y), i) => {
-          val result = Wire(new DataIO(xLen))
-          result.addr := io.baseAddress + (i.U * 8.U)
-          result.data := x.data + y.data
-          result
-          }
-        }
+        // ADD
+        workingSpace := elementWiseMap(io.in1, io.in2, _ + _)
         // Addition/Subtraction only take 1 clock cycle to complete.
         // Or at least the + operator is not too terrible in synthesis.
         io.out.valid := true.B
@@ -186,14 +194,7 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
       }
       is(3.U){
         // SUB
-        val indexedPairs = io.in1.zip(io.in2).zipWithIndex
-        workingSpace := indexedPairs.map{ case ((x, y), i) => {
-          val result = Wire(new DataIO(xLen))
-          result.addr := io.baseAddress + (i.U * 8.U)
-          result.data := x.data - y.data
-          result
-          }
-        }
+        workingSpace := elementWiseMap(io.in1, io.in2, _ - _)
       }
       is(4.U){
         // MUL
@@ -230,135 +231,51 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
       }
       is(9.U){
         // LESS
-        val indexedPairs = io.in1.zip(io.in2).zipWithIndex
-        workingSpace := indexedPairs.map{ case ((x, y), i) => {
-          val result = Wire(new DataIO(xLen))
-          result.addr := io.baseAddress + (i.U * 8.U)
-          result.data := x.data < y.data
-          result
-          }
-        }
+        workingSpace := elementWiseMap(io.in1, io.in2, _ < _)
       }
       is(10.U){
         // LESS OR EQUAL
-        val indexedPairs = io.in1.zip(io.in2).zipWithIndex
-        workingSpace := indexedPairs.map{ case ((x, y), i) => {
-          val result = Wire(new DataIO(xLen))
-          result.addr := io.baseAddress + (i.U * 8.U)
-          result.data := x.data <= y.data
-          result
-          }
-        }
+        workingSpace := elementWiseMap(io.in1, io.in2, _ <= _)
       }
       is(11.U){
         // GREATER
-        val indexedPairs = io.in1.zip(io.in2).zipWithIndex
-        workingSpace := indexedPairs.map{ case ((x, y), i) => {
-          val result = Wire(new DataIO(xLen))
-          result.addr := io.baseAddress + (i.U * 8.U)
-          result.data := x.data > y.data
-          result
-          }
-        }
+        workingSpace := elementWiseMap(io.in1, io.in2, _ > _)
       }
       is(12.U){
         // GREATER OR EQUAL
-        val indexedPairs = io.in1.zip(io.in2).zipWithIndex
-        workingSpace := indexedPairs.map{ case ((x, y), i) => {
-          val result = Wire(new DataIO(xLen))
-          result.addr := io.baseAddress + (i.U * 8.U)
-          result.data := x.data >= y.data
-          result
-          }
-        }
+        workingSpace := elementWiseMap(io.in1, io.in2, _ >= _)
       }
       is(13.U){
         // EQUAL
-        val indexedPairs = io.in1.zip(io.in2).zipWithIndex
-        workingSpace := indexedPairs.map{ case ((x, y), i) => {
-          val result = Wire(new DataIO(xLen))
-          result.addr := io.baseAddress + (i.U * 8.U)
-          result.data := x.data === y.data
-          result
-          }
-        }
+        workingSpace := elementWiseMap(io.in1, io.in2, _ === _)
       }
       is(14.U){
         // UNEQUAL
-        val indexedPairs = io.in1.zip(io.in2).zipWithIndex
-        workingSpace := indexedPairs.map{ case ((x, y), i) => {
-          val result = Wire(new DataIO(xLen))
-          result.addr := io.baseAddress + (i.U * 8.U)
-          result.data := x.data =/= y.data
-          result
-          }
-        }
+        workingSpace := elementWiseMap(io.in1, io.in2, _ =/= _)
       }
       is(15.U){
         // LEFT SHIFT
-        val indexedPairs = io.in1.zip(io.in2).zipWithIndex
-        workingSpace := indexedPairs.map{ case ((x, y), i) => {
-          val result = Wire(new DataIO(xLen))
-          result.addr := io.baseAddress + (i.U * 8.U)
-          result.data := x.data << y.data(18, 0)
-          result
-          }
-        }
+        workingSpace := elementWiseMap(io.in1, io.in2, (x, y) => x << y(18, 0))
       }
       is(16.U){
         // RIGHT SHIFT
-        val indexedPairs = io.in1.zip(io.in2).zipWithIndex
-        workingSpace := indexedPairs.map{ case ((x, y), i) => {
-          val result = Wire(new DataIO(xLen))
-          result.addr := io.baseAddress + (i.U * 8.U)
-          result.data := x.data >> y.data(18, 0)
-          result
-          }
-        }
+        workingSpace := elementWiseMap(io.in1, io.in2, (x, y) => x >> y(18, 0))
       }
       is(17.U){
         // NOT (bitwise for ints)
-        val indexedPairs = io.in1.zip(io.in2).zipWithIndex
-        workingSpace := indexedPairs.map{ case ((x, y), i) => {
-          val result = Wire(new DataIO(xLen))
-          result.addr := io.baseAddress + (i.U * 8.U)
-          result.data := ~x.data
-          result
-          }
-        }
+        workingSpace := elementWiseMap(io.in1, io.in2, (x, _y) => ~x)
       }
       is(18.U){
         // AND (bitwise and boolean)
-        val indexedPairs = io.in1.zip(io.in2).zipWithIndex
-        workingSpace := indexedPairs.map{ case ((x, y), i) => {
-          val result = Wire(new DataIO(xLen))
-          result.addr := io.baseAddress + (i.U * 8.U)
-          result.data := x.data & y.data(18, 0)
-          result
-          }
-        }
+        workingSpace := elementWiseMap(io.in1, io.in2, _ & _)
       }
       is(19.U){
         // OR (bitwise or boolean)
-        val indexedPairs = io.in1.zip(io.in2).zipWithIndex
-        workingSpace := indexedPairs.map{ case ((x, y), i) => {
-          val result = Wire(new DataIO(xLen))
-          result.addr := io.baseAddress + (i.U * 8.U)
-          result.data := x.data | y.data(18, 0)
-          result
-          }
-        }
+        workingSpace := elementWiseMap(io.in1, io.in2, _ | _)
       }
       is(20.U){
         // XOR (bitwise xor boolean)
-        val indexedPairs = io.in1.zip(io.in2).zipWithIndex
-        workingSpace := indexedPairs.map{ case ((x, y), i) => {
-          val result = Wire(new DataIO(xLen))
-          result.addr := io.baseAddress + (i.U * 8.U)
-          result.data := x.data ^ y.data(18, 0)
-          result
-          }
-        }
+        workingSpace := elementWiseMap(io.in1, io.in2, _ ^ _)
       }
       is(21.U){
         // SELECT
