@@ -27,9 +27,9 @@ class CtrlSigs extends Bundle {
   /* All control signals used in this coprocessor
    * See rocket-chip's rocket/IDecode.scala#IntCtrlSigs#default */
   val legal = Bool() // Example control signal.
+  val numMemFetches = Bits(SZ_MEM_OPS)
   val aluFn = Bits(SZ_ALU_FN.W)
   val isMemOp = Bool()
-  val numMemFetches = Bits(SZ_MEM_OPS)
 
   /** List of default control signal values
     * @return List of default control signal values. */
