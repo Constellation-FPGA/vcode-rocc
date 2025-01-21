@@ -14,7 +14,7 @@ import NumOperatorOperands._
 /** Trait holding an abstract (non-instantiated) mapping between the instruction
   * bit pattern and its control signals.
   */
-trait DecodeConstants extends HasCoreParameters { // TODO: Not sure if extends needed
+sealed trait DecodeConstants extends HasCoreParameters { // TODO: Not sure if extends needed
   /** Array of pairs (table) mapping between instruction bit patterns and control
     * signals. */
   val decodeTable: Array[(BitPat, List[BitPat])]
@@ -82,7 +82,7 @@ object CtrlSigs {
   * @param p Implicit parameter of key-value pairs that can globally alter the
   * parameters of the design during elaboration.
   */
-class BinOpDecode(implicit val p: Parameters) extends DecodeConstants {
+final class BinOpDecode(implicit val p: Parameters) extends DecodeConstants {
   val decodeTable: Array[(BitPat, List[BitPat])] = Array(
     PLUS_INT-> List(Y, MEM_OPS_TWO, FN_ADD, Y),
     SUB_INT -> List(Y, MEM_OPS_TWO, FN_SUB, Y),
@@ -103,7 +103,7 @@ class BinOpDecode(implicit val p: Parameters) extends DecodeConstants {
     XOR_INT -> List(Y, MEM_OPS_TWO, FN_XOR, Y))
 }
 
-class ReduceDecode(implicit val p: Parameters) extends DecodeConstants {
+final class ReduceDecode(implicit val p: Parameters) extends DecodeConstants {
   val decodeTable: Array[(BitPat, List[BitPat])] = Array(
     PLUS_RED_INT -> List(Y, MEM_OPS_ONE, FN_RED_ADD, Y),
     MUL_RED_INT -> List(Y, MEM_OPS_ONE, FN_RED_MUL, Y),
@@ -115,7 +115,7 @@ class ReduceDecode(implicit val p: Parameters) extends DecodeConstants {
     )
 }
 
-class ScanDecode(implicit val p: Parameters) extends DecodeConstants {
+final class ScanDecode(implicit val p: Parameters) extends DecodeConstants {
   val decodeTable: Array[(BitPat, List[BitPat])] = Array(
     PLUS_SCAN_INT -> List(Y, MEM_OPS_ONE, FN_SCAN_ADD, Y),
     MUL_SCAN_INT -> List(Y, MEM_OPS_ONE, FN_SCAN_MUL, Y),
@@ -126,12 +126,12 @@ class ScanDecode(implicit val p: Parameters) extends DecodeConstants {
     XOR_SCAN_INT -> List(Y, MEM_OPS_ONE, FN_SCAN_XOR, Y))
 }
 
-class SelectDecode(implicit val p: Parameters) extends DecodeConstants {
+final class SelectDecode(implicit val p: Parameters) extends DecodeConstants {
   val decodeTable: Array[(BitPat, List[BitPat])] = Array(
     SELECT_INT -> List(Y, MEM_OPS_THREE, FN_SELECT, Y))
 }
 
-class PermuteDecode (implicit val p: Parameters) extends DecodeConstants {
+final class PermuteDecode (implicit val p: Parameters) extends DecodeConstants {
   val decodeTable: Array[(BitPat, List[BitPat])] = Array(
     PERMUTE_INT -> List(Y, MEM_OPS_TWO, FN_PERMUTE, Y))
 }
@@ -143,7 +143,7 @@ class PermuteDecode (implicit val p: Parameters) extends DecodeConstants {
   * @param p Implicit parameter of key-value pairs that can globally alter the
   * parameters of the design during elaboration.
   */
-class CtrlOpDecode(implicit val p: Parameters) extends DecodeConstants {
+final class CtrlOpDecode(implicit val p: Parameters) extends DecodeConstants {
   val decodeTable: Array[(BitPat, List[BitPat])] = Array(
     SET_NUM_OPERANDS -> List(Y, MEM_OPS_ZERO, FN_X, N),
     SET_DEST_ADDR -> List(Y, MEM_OPS_ZERO, FN_X, N),
