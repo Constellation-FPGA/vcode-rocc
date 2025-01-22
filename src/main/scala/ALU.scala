@@ -4,6 +4,7 @@ import chisel3._
 import chisel3.util._
 import org.chipsalliance.cde.config.Parameters
 import freechips.rocketchip.tile.CoreModule
+import freechips.rocketchip.rocket.{ALUFN, MulDivParams, MulDiv}
 import vcoderocc.DataIO
 
 /** Externally-visible properties of the ALU.
@@ -92,6 +93,33 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
 
   val lastBatchResult = workingSpace(0)
 
+  /* Create a pipelined INTEGER multiplier/divider. */
+  val mulDivParams = new MulDivParams() // Use default parameters
+  val muldivBank = for (i <- 0 until batchSize) yield {
+    val muldiv = Module(new MulDiv(mulDivParams, width = xLen,
+      // nXpr = batchSize, // The number of expressions in-flight?
+      // aluFn = aluFn
+    ))
+    /* XXX: Choice of FN_MUL here is arbitrary. We need some default value for
+     * the connection, before we override it in each ALU function below. */
+    muldiv.io.req.bits.fn := ALUFN().FN_MUL
+    // All VCODE operations are double-word (64-bit)
+    muldiv.io.req.bits.dw := true.B
+    muldiv.io.req.bits.in1 := io.in1(i).data
+    muldiv.io.req.bits.in2 := io.in2(i).data
+    /* We don't use the tag bits for anything here. */
+    muldiv.io.req.bits.tag := 0.U
+    /* Multiplier inputs are valid when the ALU should start executing. */
+    muldiv.io.req.valid := io.execute
+    /* The multipliers never have back pressure exerted on them. We (the ALU)
+     * are always ready to accept a muldiv unit's computed data response, when
+     * the ALU is supposed to be computing things.. */
+    muldiv.io.resp.ready := io.execute
+    /* No muldiv unit should ever receive a kill. */
+    muldiv.io.kill := false.B
+    /* NOTE: muldiv MUST BE RETURNED from this for-yield's lambda! */
+    muldiv
+  }
 
   val identity = withReset(io.accelIdle) {
     RegInit(io.identityVal)
