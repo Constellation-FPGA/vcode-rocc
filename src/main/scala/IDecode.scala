@@ -18,6 +18,11 @@ sealed trait DecodeConstants extends HasCoreParameters { // TODO: Not sure if ex
   /** Array of pairs (table) mapping between instruction bit patterns and control
     * signals. */
   val decodeTable: Array[(BitPat, List[BitPat])]
+
+  def uIntMin(xLen: Int): UInt = 0.U(xLen.W)
+  def uIntMax(xLen: Int): UInt = ~(0.U(xLen.W))
+  def sIntMin(xLen: Int): SInt = (-(BigInt(1) << (xLen - 1))).S(xLen.W)
+  def sIntMax(xLen: Int): SInt = ((BigInt(1) << (xLen - 1)) - 1).S(xLen.W)
 }
 
 /** Control signals in the processor.
