@@ -33,6 +33,8 @@ class PermuteUnit(val xLen: Int)(val batchSize: Int) extends Module {
 
     when(io.execute){
         switch(io.fn){
+            /* Permutation works by moving the input data to a different
+             * address in the output based on the provided index. */
             is(34.U){
                 for (i <- 0 until batchSize) {
                     workingSpace(i).data := io.data(i).data
