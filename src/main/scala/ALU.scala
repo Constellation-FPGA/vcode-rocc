@@ -77,6 +77,7 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
    * this kind of code.
    * When looking at the generated code on Scastie, it amounts to 3 assigns,
    * which is pretty much exactly what we want. */
+  /* FIXME: Explode the bools, then dynamically slice the resulting vector. */
   val selectFlags = WireInit(VecInit(Seq.fill(batchSize)(false.B)))
   for (i <- 0 until batchSize) {
     selectFlags(i) := io.in3.data(i.U + selectFlagsCounter)
