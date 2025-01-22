@@ -4,6 +4,7 @@ import chisel3._
 import chisel3.util._
 import org.chipsalliance.cde.config.Parameters
 import freechips.rocketchip.tile.CoreModule
+import freechips.rocketchip.rocket.{MulDivParams, MulDiv} //, MultiplierReq, MultiplierResp}
 import vcoderocc.DataIO
 
 /** Externally-visible properties of the ALU.
@@ -92,6 +93,12 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
 
   val lastBatchResult = workingSpace(0)
 
+  /* Create a pipelined INTEGER multiplier/divider. */
+  val mulDivParams = new MulDivParams() // Use default parameters
+  /* TODO: An array of muldivs, one for each batch element. */
+  // val muldiv = Module(new MulDiv(mulDivParams, width = xLen,
+  //   // nXpr = batchSize, // The number of expressions in-flight?
+  //   aluFn = aluFn))
 
   val identity = withReset(io.accelIdle) {
     RegInit(io.identityVal)
