@@ -60,6 +60,7 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
     val in1 = Input(Vec(batchSize, new DataIO(xLen)))
     val in2 = Input(Vec(batchSize, new DataIO(xLen)))
     val in3 = Input(new DataIO(xLen))
+    val identityVal = Input(Bits(xLen.W))
     val out = Output(Vec(batchSize, new DataIO(xLen)))
     val baseAddress = Input(UInt(xLen.W))
     val execute = Input(Bool())
@@ -87,48 +88,9 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
 
   val lastBatchResult = workingSpace(0)
 
-  val scanPlusIdentity = withReset(io.accelIdle) {
-    RegInit(0.U)
-  }
 
-  val scanMulIdentity = withReset(io.accelIdle) {
-    RegInit(1.U(xLen.W))
-  }
-
-  val scanMaxIdentity = withReset(io.accelIdle) {
-    RegInit((-(BigInt(1) << (xLen - 1))).S(xLen.W))
-  }
-
-  val scanMinIdentity = withReset(io.accelIdle) {
-    RegInit(((BigInt(1) << (xLen - 1)) - 1).S(xLen.W))
-  }
-
-  val scanANDIdentity = withReset(io.accelIdle) {
-    RegInit(1.U(xLen.W))
-  }
-
-  val scanORIdentity = withReset(io.accelIdle) {
-    RegInit(0.U(xLen.W))
-  }
-
-  val scanXORIdentity = withReset(io.accelIdle) {
-    RegInit(0.U(xLen.W))
-  }
-
-  val reduceMulIdentity = withReset(io.accelIdle) {
-    RegInit(1.U(xLen.W))
-  }
-
-  val reduceMaxIdentity = withReset(io.accelIdle) {
-    RegInit((-(BigInt(1) << (xLen - 1))).S(xLen.W))
-  }
-
-  val reduceMinIdentity = withReset(io.accelIdle) {
-    RegInit(((BigInt(1) << (xLen - 1)) - 1).S(xLen.W))
-  }
-
-  val reduceANDIdentity = withReset(io.accelIdle) {
-    RegInit(1.U(xLen.W))
+  val identity = withReset(io.accelIdle) {
+    RegInit(io.identityVal)
   }
 
   when(io.execute) {
@@ -153,15 +115,15 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
         // +_REDUCE INT
         lastBatchResult.addr := io.baseAddress
         val batchData = io.in1.map{ case d => d.data }
-        lastBatchResult.data := lastBatchResult.data + batchData.reduce(_ + _)
         // NOTE: .reduce could be replaced by reduceTree
+        val result = identity + batchData.reduce(_ + _)
+        lastBatchResult.data := result
+        identity := result
+        // lastBatchResult := reduction(io.in1, _ + _)
       }
       is(2.U) { // +_SCAN INT
-        /* FIXME: Can factor out SCAN HW out and just select identity & binary operator
-         * rather than the entire thing. Works because .scan()() requires identity
-         * as first argument (partial evaluation). */
         val batchData = io.in1.map{ case d => d.data }
-        val scanTmp = batchData.scan(scanPlusIdentity)(_ + _)
+        val scanTmp = batchData.scan(identity)(_ + _)
         // NOTE .scan has .scanLeft & .scanRight variants
         /* NOTE: Technically we compute an extra index for the element
          * we pull out. */
@@ -175,7 +137,7 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
         // .slice(from, to) is [from, to). to is EXCLUSIVE
         workingSpace := scanResults.slice(0, batchSize)
         // Grab the last bit, the end of the vector.
-        scanPlusIdentity := scanResults(batchSize).data
+        identity := scanResults(batchSize).data
       }
       is(3.U){
         // SUB
@@ -368,7 +330,7 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
       is(22.U){
         // *_SCAN INT
         val batchData = io.in1.map{ case d => d.data }
-        val scanTmp = batchData.scan(scanMulIdentity)(_ * _)
+        val scanTmp = batchData.scan(identity)(_ * _)
         val results = scanTmp.zipWithIndex.map{ case(d, idx) => {
           val result = Wire(new DataIO(xLen))
           result.addr := io.baseAddress + (idx.U * 8.U)
@@ -377,12 +339,12 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
           }
         }
         workingSpace := results.slice(0, batchSize)
-        scanMulIdentity := results(batchSize).data
+        identity := results(batchSize).data
       }
       is(23.U){
         // MAX SCAN INT
         val batchData = io.in1.map{ case d => d.data.asSInt }
-        val scanTmp = batchData.scan(scanMaxIdentity)({(x, y) => Mux(y > x, y, x)})
+        val scanTmp = batchData.scan(identity.asSInt) {(x, y) => Mux(y > x, y, x)}
         val results = scanTmp.zipWithIndex.map{ case(d, idx) => {
           val result = Wire(new DataIO(xLen))
           result.addr := io.baseAddress + (idx.U * 8.U)
@@ -391,12 +353,12 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
           }
         }
         workingSpace := results.slice(0, batchSize)
-        scanMaxIdentity := results(batchSize).data.asSInt
+        identity := results(batchSize).data
       }
       is(24.U){
         // MIN SCAN INT
         val batchData = io.in1.map{ case d => d.data.asSInt }
-        val scanTmp = batchData.scan(scanMinIdentity)({(x, y) => Mux(y < x, y, x)})
+        val scanTmp = batchData.scan(identity.asSInt) {(x, y) => Mux(y < x, y, x)}
         val results = scanTmp.zipWithIndex.map{ case(d, idx) => {
           val result = Wire(new DataIO(xLen))
           result.addr := io.baseAddress + (idx.U * 8.U)
@@ -405,12 +367,12 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
           }
         }
         workingSpace := results.slice(0, batchSize)
-        scanMinIdentity := results(batchSize).data.asSInt
+        identity := results(batchSize).data
       }
       is(25.U){
         // AND SCAN INT
         val batchData = io.in1.map{ case d => d.data }
-        val scanTmp = batchData.scan(scanANDIdentity)(_ & _)
+        val scanTmp = batchData.scan(identity)(_ & _)
         val results = scanTmp.zipWithIndex.map{ case(d, idx) => {
           val result = Wire(new DataIO(xLen))
           result.addr := io.baseAddress + (idx.U * 8.U)
@@ -419,12 +381,12 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
           }
         }
         workingSpace := results.slice(0, batchSize)
-        scanANDIdentity := results(batchSize).data
+        identity := results(batchSize).data
       }
       is(26.U){
         // OR SCAN INT
-        val batchData = io.in1.map{ case d => d.data }
-        val scanTmp = batchData.scan(scanORIdentity)(_ | _)
+        val batchData = io.in1.map { case d => d.data }
+        val scanTmp = batchData.scan(identity)(_ | _)
         val results = scanTmp.zipWithIndex.map{ case(d, idx) => {
           val result = Wire(new DataIO(xLen))
           result.addr := io.baseAddress + (idx.U * 8.U)
@@ -433,12 +395,12 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
           }
         }
         workingSpace := results.slice(0, batchSize)
-        scanORIdentity := results(batchSize).data
+        identity := results(batchSize).data
       }
       is(27.U){
         // XOR SCAN INT
-        val batchData = io.in1.map{ case d => d.data }
-        val scanTmp = batchData.scan(scanXORIdentity)(_ ^ _)
+        val batchData = io.in1.map { case d => d.data }
+        val scanTmp = batchData.scan(identity)(_ ^ _)
         val results = scanTmp.zipWithIndex.map{ case(d, idx) => {
           val result = Wire(new DataIO(xLen))
           result.addr := io.baseAddress + (idx.U * 8.U)
@@ -447,53 +409,65 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
           }
         }
         workingSpace := results.slice(0, batchSize)
-        scanXORIdentity := results(batchSize).data
+        identity := results(batchSize).data
       }
       is(28.U) {
         // *_REDUCE INT
         lastBatchResult.addr := io.baseAddress
         val batchData = io.in1.map{ case d => d.data }
-        val result = batchData.fold(reduceMulIdentity)((x, y) => x * y)
+        val result = identity * batchData.reduce(_ * _)
         lastBatchResult.data := result
-        reduceMulIdentity := result
+        identity := result(xLen, 0) // Slice: (64, 0]
+        io.out.valid := true.B
       }
       is(29.U) {
         // MAX_REDUCE INT
         lastBatchResult.addr := io.baseAddress
-        val batchData = io.in1.map{ case d => d.data }
-        val reduceMaximum = batchData.map(_.asSInt).fold(reduceMaxIdentity)((x, y) => Mux(x > y, x, y))
+        val batchData = io.in1.map{ case d => d.data.asSInt }
+        val reduceMaximum = batchData.fold(identity.asSInt)((x, y) => Mux(x > y, x, y))
         val result = Mux(lastBatchResult.data.asSInt > reduceMaximum,
           lastBatchResult.data, reduceMaximum.asUInt)
         lastBatchResult.data := result
-        reduceMaxIdentity := result.asSInt
+        identity := result.asUInt
+        io.out.valid := true.B
       }
       is(30.U) {
         // MIN_REDUCE INT
         lastBatchResult.addr := io.baseAddress
-        val batchData = io.in1.map{ case d => d.data }
-        val reduceMaximum = batchData.map(_.asSInt).fold(reduceMinIdentity)((x, y) => Mux(x < y, x, y))
+        val batchData = io.in1.map{ case d => d.data.asSInt }
+        val reduceMaximum = batchData.fold(identity.asSInt)((x, y) => Mux(x < y, x, y))
         val result = Mux(lastBatchResult.data.asSInt < reduceMaximum,
           lastBatchResult.data, reduceMaximum.asUInt)
         lastBatchResult.data := result
-        reduceMinIdentity := result.asSInt
+        identity := result.asUInt
+        io.out.valid := true.B
       }
       is(31.U) {
         // AND_REDUCE INT
         lastBatchResult.addr := io.baseAddress
         val batchData = io.in1.map{ case d => d.data }
-        lastBatchResult.data := lastBatchResult.data & batchData.reduce(_ & _)
+        val result = identity & batchData.reduce(_ & _)
+        lastBatchResult.data := result
+        identity := result
+        // lastBatchResult := reduction(io.in1, _ & _)
       }
       is(32.U) {
         // OR_REDUCE INT
         lastBatchResult.addr := io.baseAddress
         val batchData = io.in1.map{ case d => d.data }
-        lastBatchResult.data := lastBatchResult.data | batchData.reduce(_ | _)
+        val result = identity | batchData.reduce(_ | _)
+        lastBatchResult.data := result
+        identity := result
+        // lastBatchResult := reduction(io.in1, _ | _)
       }
       is(33.U) {
         // XOR_REDUCE INT
         lastBatchResult.addr := io.baseAddress
         val batchData = io.in1.map{ case d => d.data }
-        lastBatchResult.data := lastBatchResult.data ^ batchData.reduce(_ ^ _)
+        val result = identity ^ batchData.reduce(_ ^ _)
+        lastBatchResult.data := result
+        identity := result
+        // lastBatchResult := reduction(io.in1, _ ^ _)
       }
     }
   }
