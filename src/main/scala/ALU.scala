@@ -59,7 +59,7 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
     // The two register content values passed over the RoCCCommand are xLen wide
     val in1 = Input(Vec(batchSize, new DataIO(xLen)))
     val in2 = Input(Vec(batchSize, new DataIO(xLen)))
-    val in3 = Input(UInt(xLen.W))
+    val in3 = Input(new DataIO(xLen))
     val out = Output(Vec(batchSize, new DataIO(xLen)))
     val baseAddress = Input(UInt(xLen.W))
     val execute = Input(Bool())
@@ -77,7 +77,7 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
    * which is pretty much exactly what we want. */
   val selectFlags = WireInit(VecInit(Seq.fill(batchSize)(false.B)))
   for (i <- 0 until batchSize) {
-    selectFlags(i) := io.in3(i.U + selectFlagsCounter)
+    selectFlags(i) := io.in3.data(i.U + selectFlagsCounter)
   }
 
   val workingSpace = withReset(io.accelIdle) {

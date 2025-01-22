@@ -142,7 +142,7 @@ class VCodeAccelImp(outer: VCodeAccel, batchSize: Int) extends LazyRoCCModuleImp
 
   val data1 = RegInit((0.U).asTypeOf(Vec(batchSize, new DataIO(xLen))))
   val data2 = RegInit((0.U).asTypeOf(Vec(batchSize, new DataIO(xLen))))
-  val data3 = RegInit(0.U(xLen.W))
+  val data3 = RegInit((0.U).asTypeOf(new DataIO(xLen)))
   // FIXME: Only use rs1/rs2 if xs1/xs2 =1, respectively.
   when(dataFetcher.io.fetchedData.valid) {
     /* TODO: Use SourceOperand here! */
@@ -150,8 +150,8 @@ class VCodeAccelImp(outer: VCodeAccel, batchSize: Int) extends LazyRoCCModuleImp
       data1 := dataFetcher.io.fetchedData.bits
     } .elsewhen(ctrlUnit.io.rs2Fetch){
       data2 := dataFetcher.io.fetchedData.bits
-    }.otherwise {
-      data3 := dataFetcher.io.fetchedData.bits(0).data
+    } .otherwise {
+      data3 := dataFetcher.io.fetchedData.bits(0)
     }
   }
 
