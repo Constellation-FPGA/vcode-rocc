@@ -163,7 +163,6 @@ class VCodeAccelImp(outer: VCodeAccel, batchSize: Int) extends LazyRoCCModuleImp
   // FIXME?: Should be a register to hold values if we start the next batch on the ALU immediately
   // val alu_out = RegInit(VecInit.fill(batchSize)(0.U(xLen.W)))
   val aluOut = WireInit(VecInit.fill(batchSize)(0.U(xLen.W)))
-  val aluCout = Wire(UInt())
   // Hook up the ALU to VCode signals
   alu.io.fn := ctrlSigs.aluFn
   alu.io.in1 := data1
@@ -172,7 +171,6 @@ class VCodeAccelImp(outer: VCodeAccel, batchSize: Int) extends LazyRoCCModuleImp
   alu.io.execute := ctrlUnit.io.shouldExecute
   alu.io.accelIdle := !ctrlUnit.io.busy // ctrlUnit.io.accelReady is also valid.
   aluOut := alu.io.out
-  aluCout := alu.io.cout
 
   dataFetcher.io.dataToWrite.bits := aluOut
   dataFetcher.io.dataToWrite.valid := ctrlUnit.io.writebackReady

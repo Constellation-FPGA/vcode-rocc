@@ -60,7 +60,6 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
     val in2 = Input(Vec(batchSize, UInt(xLen.W)))
     val in3 = Input(UInt(xLen.W))
     val out = Output(Vec(batchSize, UInt(xLen.W)))
-    val cout = Output(UInt(xLen.W))
     val execute = Input(Bool())
     val accelIdle = Input(Bool())
   })
@@ -84,10 +83,6 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
     RegInit(VecInit.fill(batchSize)(0.U(xLen.W)))
   }
   io.out := workingSpace
-
-  /*val batchCounter = withReset(io.accelIdle) {
-    RegInit(0.U(log2Down(xLen).W))
-  }*/
 
   val lastBatchResult = workingSpace(0)
 
@@ -134,8 +129,6 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
   val reduceANDIdentity = withReset(io.accelIdle) {
     RegInit(1.U(xLen.W))
   }
-
-  io.cout := 0.U
 
   when(io.execute) {
     switch(io.fn) {
@@ -233,37 +226,37 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
         // *_SCAN INT
         val tmp = io.in1.scan(scanMulIdentity)(_ * _)
         workingSpace := tmp.slice(0, batchSize)
-        scanMulIdentity := tmp(batchSize) 
+        scanMulIdentity := tmp(batchSize)
       }
       is(23.U){
         // MAX SCAN INT
         val tmp = io.in1.map(_.asSInt).scan(scanMaxIdentity)({(x, y) => Mux(y > x, y, x)})
         workingSpace := tmp.slice(0, batchSize).map(_.asUInt)
-        scanMaxIdentity := tmp(batchSize) 
+        scanMaxIdentity := tmp(batchSize)
       }
       is(24.U){
         // MIN SCAN INT
         val tmp = io.in1.map(_.asSInt).scan(scanMinIdentity)({(x, y) => Mux(y < x, y, x)})
         workingSpace := tmp.slice(0, batchSize).map(_.asUInt)
-        scanMinIdentity := tmp(batchSize) 
+        scanMinIdentity := tmp(batchSize)
       }
       is(25.U){
         // AND SCAN INT
         val tmp = io.in1.scan(scanANDIdentity)(_ & _)
         workingSpace := tmp.slice(0, batchSize)
-        scanANDIdentity := tmp(batchSize) 
+        scanANDIdentity := tmp(batchSize)
       }
       is(26.U){
         // OR SCAN INT
         val tmp = io.in1.scan(scanORIdentity)(_ | _)
         workingSpace := tmp.slice(0, batchSize)
-        scanORIdentity := tmp(batchSize) 
+        scanORIdentity := tmp(batchSize)
       }
       is(27.U){
         // XOR SCAN INT
         val tmp = io.in1.scan(scanXORIdentity)(_ ^ _)
         workingSpace := tmp.slice(0, batchSize)
-        scanXORIdentity := tmp(batchSize) 
+        scanXORIdentity := tmp(batchSize)
       }
       is(28.U) {
         // *_REDUCE INT
