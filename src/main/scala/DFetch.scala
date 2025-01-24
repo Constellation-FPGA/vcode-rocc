@@ -21,6 +21,11 @@ object MemoryOperation extends ChiselEnum {
   val read, write = Value
 }
 
+class DataIO(xLen: Int) extends Bundle {
+  val addr = Bits(xLen.W)
+  val data = Bits(xLen.W)
+}
+
 /** Module connecting VCode accelerator to main processor's non-blocking L1 data
   * cache.
   *
