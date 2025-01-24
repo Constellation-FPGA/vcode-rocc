@@ -160,9 +160,6 @@ class VCodeAccelImp(outer: VCodeAccel, batchSize: Int) extends LazyRoCCModuleImp
    * Or have one big ALU handle a whole batchSize simultaneously? */
   // Must more specifically specify MY ALU, because freechips.rocketchip.rocket.ALU is also defined.
   val alu = Module(new vcoderocc.ALU(xLen)(batchSize))
-  // FIXME?: Should be a register to hold values if we start the next batch on the ALU immediately
-  // val alu_out = RegInit(VecInit.fill(batchSize)(0.U(xLen.W)))
-  val aluOut = WireInit(VecInit.fill(batchSize)(0.U(xLen.W)))
   // Hook up the ALU to VCode signals
   alu.io.fn := ctrlSigs.aluFn
   alu.io.in1 := data1
@@ -170,9 +167,8 @@ class VCodeAccelImp(outer: VCodeAccel, batchSize: Int) extends LazyRoCCModuleImp
   alu.io.in3 := data3
   alu.io.execute := ctrlUnit.io.shouldExecute
   alu.io.accelIdle := !ctrlUnit.io.busy // ctrlUnit.io.accelReady is also valid.
-  aluOut := alu.io.out
 
-  dataFetcher.io.dataToWrite.bits := aluOut
+  dataFetcher.io.dataToWrite.bits := alu.io.out
   dataFetcher.io.dataToWrite.valid := ctrlUnit.io.writebackReady
 
   val responseReady = Wire(Bool())
