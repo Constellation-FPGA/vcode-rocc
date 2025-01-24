@@ -191,8 +191,7 @@ class ControlUnit(val batchSize: Int)(implicit p: Parameters) extends CoreModule
            io.ctrlSigs.aluFn === ALU.FN_RED_MIN ||
            io.ctrlSigs.aluFn === ALU.FN_RED_AND ||
            io.ctrlSigs.aluFn === ALU.FN_RED_OR ||
-           io.ctrlSigs.aluFn === ALU.FN_RED_XOR
-           ) {
+           io.ctrlSigs.aluFn === ALU.FN_RED_XOR) {
         // If this operation is a reduction, we may need to go around again
         // FIXME: Turn this into a function?
         // Decrement our "counter"
@@ -204,11 +203,9 @@ class ControlUnit(val batchSize: Int)(implicit p: Parameters) extends CoreModule
           // Multiply address by 8 because all values use 64 bits
           currentRs1 := currentRs1 + (batchSize.U << 3)
           currentRs2 := currentRs2 + (batchSize.U << 3)
-          //currentRs3 := currentRs3 + (batchSize.U << 3)
         } .otherwise {
-          // The reduction's computation is complete, write.
+          /* The reduction's computation is complete, write exactly 1 value. */
           accelState := State.write
-          // Set operandsToGo to 1 to write reduction's single result
           operandsToGo := 1.U
         }
       } .otherwise {
@@ -239,7 +236,6 @@ class ControlUnit(val batchSize: Int)(implicit p: Parameters) extends CoreModule
           // Multiply address by 8 because all values use 64 bits
           currentRs1 := currentRs1 + (batchSize.U << 3)
           currentRs2 := currentRs2 + (batchSize.U << 3)
-          //currentRs3 := currentRs3 + (batchSize.U << 3)
           currentDestAddr := currentDestAddr + (batchSize.U << 3)
         } .otherwise {
           // We have finished processing the vector. Move onwards.
