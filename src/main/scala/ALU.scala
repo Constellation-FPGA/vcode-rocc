@@ -4,6 +4,7 @@ import chisel3._
 import chisel3.util._
 import org.chipsalliance.cde.config.Parameters
 import freechips.rocketchip.tile.CoreModule
+import vcoderocc.DataIO
 
 /** Externally-visible properties of the ALU.
   */
@@ -56,10 +57,10 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
   val io = IO(new Bundle {
     val fn = Input(Bits(SZ_ALU_FN.W))
     // The two register content values passed over the RoCCCommand are xLen wide
-    val in1 = Input(Vec(batchSize, UInt(xLen.W)))
-    val in2 = Input(Vec(batchSize, UInt(xLen.W)))
+    val in1 = Input(Vec(batchSize, new DataIO(xLen)))
+    val in2 = Input(Vec(batchSize, new DataIO(xLen)))
     val in3 = Input(UInt(xLen.W))
-    val out = Output(Vec(batchSize, UInt(xLen.W)))
+    val out = Output(Vec(batchSize, new DataIO(xLen)))
     val baseAddress = Input(UInt(xLen.W))
     val execute = Input(Bool())
     val accelIdle = Input(Bool())
@@ -79,9 +80,8 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
     selectFlags(i) := io.in3(i.U + selectFlagsCounter)
   }
 
-  // FIXME: This should be RegInit(Bits(xLen.W))?
   val workingSpace = withReset(io.accelIdle) {
-    RegInit(VecInit.fill(batchSize)(0.U(xLen.W)))
+    RegInit((0.U).asTypeOf(Vec(batchSize, new DataIO(xLen))))
   }
   io.out := workingSpace
 
@@ -135,157 +135,359 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
     switch(io.fn) {
       is(0.U) {
         // ADD/SUB
-        workingSpace := io.in1.zip(io.in2).map{ case (x, y) => x + y }
+        /* TODO: Ideally the address calculation is a completely parallel
+         * indexed map.
+         * (i) = thisBatchBaseAddr + (i * 8), where thisBatchBaseAddr comes from
+         * some part of the control unit to control where this batch should
+         * output */
+        val indexedPairs = io.in1.zip(io.in2).zipWithIndex
+        workingSpace := indexedPairs.map{ case ((x, y), i) => {
+          val result = Wire(new DataIO(xLen))
+          result.addr := io.baseAddress + (i.U * 8.U)
+          result.data := x.data + y.data
+          result
+          }
+        }
       }
       is(1.U) {
         // +_REDUCE INT
-        lastBatchResult := lastBatchResult + io.in1.reduce(_ + _)
+        lastBatchResult.addr := io.baseAddress
+        val batchData = io.in1.map{ case d => d.data }
+        lastBatchResult.data := lastBatchResult.data + batchData.reduce(_ + _)
         // NOTE: .reduce could be replaced by reduceTree
       }
       is(2.U) { // +_SCAN INT
         /* FIXME: Can factor out SCAN HW out and just select identity & binary operator
          * rather than the entire thing. Works because .scan()() requires identity
          * as first argument (partial evaluation). */
-        val tmp = io.in1.scan(scanPlusIdentity)(_ + _)
-        workingSpace := tmp.slice(0, batchSize) // .slice(from, to) is [from, to). to is EXCLUSIVE
-        scanPlusIdentity := tmp(batchSize) // Grab the last bit, the end of the vector.
+        val batchData = io.in1.map{ case d => d.data }
+        val scanTmp = batchData.scan(scanPlusIdentity)(_ + _)
         // NOTE .scan has .scanLeft & .scanRight variants
+        /* NOTE: Technically we compute an extra index for the element
+         * we pull out. */
+        val scanResults = scanTmp.zipWithIndex.map{ case (d, idx) => {
+          val result = Wire(new DataIO(xLen))
+          result.addr := io.baseAddress + (idx.U * 8.U)
+          result.data := d
+          result
+          }
+        }
+        // .slice(from, to) is [from, to). to is EXCLUSIVE
+        workingSpace := scanResults.slice(0, batchSize)
+        // Grab the last bit, the end of the vector.
+        scanPlusIdentity := scanResults(batchSize).data
       }
       is(3.U){
         // SUB
-        workingSpace := io.in1.zip(io.in2).map{ case (x, y) => x - y }
+        val indexedPairs = io.in1.zip(io.in2).zipWithIndex
+        workingSpace := indexedPairs.map{ case ((x, y), i) => {
+          val result = Wire(new DataIO(xLen))
+          result.addr := io.baseAddress + (i.U * 8.U)
+          result.data := x.data - y.data
+          result
+          }
+        }
       }
       is(4.U){
         // MUL
-        workingSpace := io.in1.zip(io.in2).map{ case (x, y) => x * y }
+        val indexedPairs = io.in1.zip(io.in2).zipWithIndex
+        workingSpace := indexedPairs.map{ case ((x, y), i) => {
+          val result = Wire(new DataIO(xLen))
+          result.addr := io.baseAddress + (i.U * 8.U)
+          result.data := x.data * y.data
+          result
+          }
+        }
       }
       is(7.U){
         // DIV
-        workingSpace := io.in1.zip(io.in2).map{ case (x, y) => x / y }
+        val indexedPairs = io.in1.zip(io.in2).zipWithIndex
+        workingSpace := indexedPairs.map{ case ((x, y), i) => {
+          val result = Wire(new DataIO(xLen))
+          result.addr := io.baseAddress + (i.U * 8.U)
+          result.data := x.data / y.data
+          result
+          }
+        }
       }
       is(8.U){
         // MOD
-        workingSpace := io.in1.zip(io.in2).map{ case (x, y) => x % y }
+        val indexedPairs = io.in1.zip(io.in2).zipWithIndex
+        workingSpace := indexedPairs.map{ case ((x, y), i) => {
+          val result = Wire(new DataIO(xLen))
+          result.addr := io.baseAddress + (i.U * 8.U)
+          result.data := x.data % y.data
+          result
+          }
+        }
       }
       is(9.U){
         // LESS
-        workingSpace := io.in1.zip(io.in2).map{ case (x, y) => x < y }
+        val indexedPairs = io.in1.zip(io.in2).zipWithIndex
+        workingSpace := indexedPairs.map{ case ((x, y), i) => {
+          val result = Wire(new DataIO(xLen))
+          result.addr := io.baseAddress + (i.U * 8.U)
+          result.data := x.data < y.data
+          result
+          }
+        }
       }
       is(10.U){
         // LESS OR EQUAL
-        workingSpace := io.in1.zip(io.in2).map{ case (x, y) => x <= y }
+        val indexedPairs = io.in1.zip(io.in2).zipWithIndex
+        workingSpace := indexedPairs.map{ case ((x, y), i) => {
+          val result = Wire(new DataIO(xLen))
+          result.addr := io.baseAddress + (i.U * 8.U)
+          result.data := x.data <= y.data
+          result
+          }
+        }
       }
       is(11.U){
         // GREATER
-        workingSpace := io.in1.zip(io.in2).map{ case (x, y) => x > y }
+        val indexedPairs = io.in1.zip(io.in2).zipWithIndex
+        workingSpace := indexedPairs.map{ case ((x, y), i) => {
+          val result = Wire(new DataIO(xLen))
+          result.addr := io.baseAddress + (i.U * 8.U)
+          result.data := x.data > y.data
+          result
+          }
+        }
       }
       is(12.U){
         // GREATER OR EQUAL
-        workingSpace := io.in1.zip(io.in2).map{ case (x, y) => x >= y }
+        val indexedPairs = io.in1.zip(io.in2).zipWithIndex
+        workingSpace := indexedPairs.map{ case ((x, y), i) => {
+          val result = Wire(new DataIO(xLen))
+          result.addr := io.baseAddress + (i.U * 8.U)
+          result.data := x.data >= y.data
+          result
+          }
+        }
       }
       is(13.U){
         // EQUAL
-        workingSpace := io.in1.zip(io.in2).map{ case (x, y) => x === y }
+        val indexedPairs = io.in1.zip(io.in2).zipWithIndex
+        workingSpace := indexedPairs.map{ case ((x, y), i) => {
+          val result = Wire(new DataIO(xLen))
+          result.addr := io.baseAddress + (i.U * 8.U)
+          result.data := x.data === y.data
+          result
+          }
+        }
       }
       is(14.U){
         // UNEQUAL
-        workingSpace := io.in1.zip(io.in2).map{ case (x, y) => x =/= y }
+        val indexedPairs = io.in1.zip(io.in2).zipWithIndex
+        workingSpace := indexedPairs.map{ case ((x, y), i) => {
+          val result = Wire(new DataIO(xLen))
+          result.addr := io.baseAddress + (i.U * 8.U)
+          result.data := x.data =/= y.data
+          result
+          }
+        }
       }
       is(15.U){
         // LEFT SHIFT
-        workingSpace := io.in1.zip(io.in2).map{ case (x, y) => x << y(18,0) }
+        val indexedPairs = io.in1.zip(io.in2).zipWithIndex
+        workingSpace := indexedPairs.map{ case ((x, y), i) => {
+          val result = Wire(new DataIO(xLen))
+          result.addr := io.baseAddress + (i.U * 8.U)
+          result.data := x.data << y.data(18, 0)
+          result
+          }
+        }
       }
       is(16.U){
         // RIGHT SHIFT
-        workingSpace := io.in1.zip(io.in2).map{ case (x, y) => x >> y(18,0) }
+        val indexedPairs = io.in1.zip(io.in2).zipWithIndex
+        workingSpace := indexedPairs.map{ case ((x, y), i) => {
+          val result = Wire(new DataIO(xLen))
+          result.addr := io.baseAddress + (i.U * 8.U)
+          result.data := x.data >> y.data(18, 0)
+          result
+          }
+        }
       }
       is(17.U){
         // NOT (bitwise for ints)
-        workingSpace := io.in1.map { case (x) => ~x }
+        val indexedPairs = io.in1.zip(io.in2).zipWithIndex
+        workingSpace := indexedPairs.map{ case ((x, y), i) => {
+          val result = Wire(new DataIO(xLen))
+          result.addr := io.baseAddress + (i.U * 8.U)
+          result.data := ~x.data
+          result
+          }
+        }
       }
       is(18.U){
-        // AND (bitwise or boolean)
-        workingSpace := io.in1.zip(io.in2).map{ case (x, y) => x & y }
+        // AND (bitwise and boolean)
+        val indexedPairs = io.in1.zip(io.in2).zipWithIndex
+        workingSpace := indexedPairs.map{ case ((x, y), i) => {
+          val result = Wire(new DataIO(xLen))
+          result.addr := io.baseAddress + (i.U * 8.U)
+          result.data := x.data & y.data(18, 0)
+          result
+          }
+        }
       }
       is(19.U){
         // OR (bitwise or boolean)
-        workingSpace := io.in1.zip(io.in2).map{ case (x, y) => x | y }
+        val indexedPairs = io.in1.zip(io.in2).zipWithIndex
+        workingSpace := indexedPairs.map{ case ((x, y), i) => {
+          val result = Wire(new DataIO(xLen))
+          result.addr := io.baseAddress + (i.U * 8.U)
+          result.data := x.data | y.data(18, 0)
+          result
+          }
+        }
       }
       is(20.U){
-        // XOR (bitwise or boolean)
-        workingSpace := io.in1.zip(io.in2).map{ case (x, y) => x ^ y }
+        // XOR (bitwise xor boolean)
+        val indexedPairs = io.in1.zip(io.in2).zipWithIndex
+        workingSpace := indexedPairs.map{ case ((x, y), i) => {
+          val result = Wire(new DataIO(xLen))
+          result.addr := io.baseAddress + (i.U * 8.U)
+          result.data := x.data ^ y.data(18, 0)
+          result
+          }
+        }
       }
       is(21.U){
         // SELECT
-        workingSpace := selectFlags.lazyZip(io.in1)
-          .lazyZip(io.in2)
-          .toVector
-          .map({ case (s, t, f) => Mux(s, t, f) })
+        val selectData = selectFlags.lazyZip(io.in1).lazyZip(io.in2).toVector
+        workingSpace := selectData.zipWithIndex.map{ case((s, t, f), i) => {
+          val result = Wire(new DataIO(xLen))
+          result.addr := io.baseAddress + (i.U * 8.U)
+          result.data := Mux(s, t.data, f.data)
+          result
+          }
+        }
         selectFlagsCounter := selectFlagsCounter + batchSize.U;
       }
       is(22.U){
         // *_SCAN INT
-        val tmp = io.in1.scan(scanMulIdentity)(_ * _)
-        workingSpace := tmp.slice(0, batchSize)
-        scanMulIdentity := tmp(batchSize)
+        val batchData = io.in1.map{ case d => d.data }
+        val scanTmp = batchData.scan(scanMulIdentity)(_ * _)
+        val results = scanTmp.zipWithIndex.map{ case(d, idx) => {
+          val result = Wire(new DataIO(xLen))
+          result.addr := io.baseAddress + (idx.U * 8.U)
+          result.data := d
+          result
+          }
+        }
+        workingSpace := results.slice(0, batchSize)
+        scanMulIdentity := results(batchSize).data
       }
       is(23.U){
         // MAX SCAN INT
-        val tmp = io.in1.map(_.asSInt).scan(scanMaxIdentity)({(x, y) => Mux(y > x, y, x)})
-        workingSpace := tmp.slice(0, batchSize).map(_.asUInt)
-        scanMaxIdentity := tmp(batchSize)
+        val batchData = io.in1.map{ case d => d.data.asSInt }
+        val scanTmp = batchData.scan(scanMaxIdentity)({(x, y) => Mux(y > x, y, x)})
+        val results = scanTmp.zipWithIndex.map{ case(d, idx) => {
+          val result = Wire(new DataIO(xLen))
+          result.addr := io.baseAddress + (idx.U * 8.U)
+          result.data := d.asUInt
+          result
+          }
+        }
+        workingSpace := results.slice(0, batchSize)
+        scanMaxIdentity := results(batchSize).data.asSInt
       }
       is(24.U){
         // MIN SCAN INT
-        val tmp = io.in1.map(_.asSInt).scan(scanMinIdentity)({(x, y) => Mux(y < x, y, x)})
-        workingSpace := tmp.slice(0, batchSize).map(_.asUInt)
-        scanMinIdentity := tmp(batchSize)
+        val batchData = io.in1.map{ case d => d.data.asSInt }
+        val scanTmp = batchData.scan(scanMinIdentity)({(x, y) => Mux(y < x, y, x)})
+        val results = scanTmp.zipWithIndex.map{ case(d, idx) => {
+          val result = Wire(new DataIO(xLen))
+          result.addr := io.baseAddress + (idx.U * 8.U)
+          result.data := d.asUInt
+          result
+          }
+        }
+        workingSpace := results.slice(0, batchSize)
+        scanMinIdentity := results(batchSize).data.asSInt
       }
       is(25.U){
         // AND SCAN INT
-        val tmp = io.in1.scan(scanANDIdentity)(_ & _)
-        workingSpace := tmp.slice(0, batchSize)
-        scanANDIdentity := tmp(batchSize)
+        val batchData = io.in1.map{ case d => d.data }
+        val scanTmp = batchData.scan(scanANDIdentity)(_ & _)
+        val results = scanTmp.zipWithIndex.map{ case(d, idx) => {
+          val result = Wire(new DataIO(xLen))
+          result.addr := io.baseAddress + (idx.U * 8.U)
+          result.data := d
+          result
+          }
+        }
+        workingSpace := results.slice(0, batchSize)
+        scanANDIdentity := results(batchSize).data
       }
       is(26.U){
         // OR SCAN INT
-        val tmp = io.in1.scan(scanORIdentity)(_ | _)
-        workingSpace := tmp.slice(0, batchSize)
-        scanORIdentity := tmp(batchSize)
+        val batchData = io.in1.map{ case d => d.data }
+        val scanTmp = batchData.scan(scanORIdentity)(_ | _)
+        val results = scanTmp.zipWithIndex.map{ case(d, idx) => {
+          val result = Wire(new DataIO(xLen))
+          result.addr := io.baseAddress + (idx.U * 8.U)
+          result.data := d
+          result
+          }
+        }
+        workingSpace := results.slice(0, batchSize)
+        scanORIdentity := results(batchSize).data
       }
       is(27.U){
         // XOR SCAN INT
-        val tmp = io.in1.scan(scanXORIdentity)(_ ^ _)
-        workingSpace := tmp.slice(0, batchSize)
-        scanXORIdentity := tmp(batchSize)
+        val batchData = io.in1.map{ case d => d.data }
+        val scanTmp = batchData.scan(scanXORIdentity)(_ ^ _)
+        val results = scanTmp.zipWithIndex.map{ case(d, idx) => {
+          val result = Wire(new DataIO(xLen))
+          result.addr := io.baseAddress + (idx.U * 8.U)
+          result.data := d
+          result
+          }
+        }
+        workingSpace := results.slice(0, batchSize)
+        scanXORIdentity := results(batchSize).data
       }
       is(28.U) {
         // *_REDUCE INT
-        lastBatchResult := io.in1.fold(reduceMulIdentity)((x, y) => x * y)(xLen-1, 0)
-        reduceMulIdentity := lastBatchResult
+        lastBatchResult.addr := io.baseAddress
+        val batchData = io.in1.map{ case d => d.data }
+        lastBatchResult.data := batchData.fold(reduceMulIdentity)((x, y) => x * y)
       }
       is(29.U) {
         // MAX_REDUCE INT
-        val reduceMaximum = io.in1.map(_.asSInt).fold(reduceMaxIdentity)((x, y) => Mux(x > y, x, y))
-        lastBatchResult := Mux(lastBatchResult.asSInt > reduceMaximum, lastBatchResult, reduceMaximum.asUInt)
+        lastBatchResult.addr := io.baseAddress
+        val batchData = io.in1.map{ case d => d.data }
+        val reduceMaximum = batchData.map(_.asSInt).fold(reduceMaxIdentity)((x, y) => Mux(x > y, x, y))
+        lastBatchResult.data := Mux(lastBatchResult.data.asSInt > reduceMaximum,
+          lastBatchResult.data, reduceMaximum.asUInt)
       }
       is(30.U) {
         // MIN_REDUCE INT
-        val reduceMinimum = io.in1.map(_.asSInt).fold(reduceMinIdentity)((x, y) => Mux(x < y, x, y))
-        lastBatchResult := Mux(lastBatchResult.asSInt < reduceMinimum, lastBatchResult, reduceMinimum.asUInt)
+        lastBatchResult.addr := io.baseAddress
+        val batchData = io.in1.map{ case d => d.data }
+        val reduceMaximum = batchData.map(_.asSInt).fold(reduceMinIdentity)((x, y) => Mux(x < y, x, y))
+        lastBatchResult.data := Mux(lastBatchResult.data.asSInt < reduceMaximum,
+          lastBatchResult.data, reduceMaximum.asUInt)
       }
       is(31.U) {
         // AND_REDUCE INT
-        lastBatchResult := io.in1.fold(reduceANDIdentity)((x, y) => x & y)
-        reduceANDIdentity := lastBatchResult
+        lastBatchResult.addr := io.baseAddress
+        val batchData = io.in1.map{ case d => d.data }
+        lastBatchResult.data := lastBatchResult.data & batchData.reduce(_ & _)
       }
       is(32.U) {
         // OR_REDUCE INT
-        lastBatchResult := lastBatchResult | io.in1.reduce(_ | _)
+        lastBatchResult.addr := io.baseAddress
+        val batchData = io.in1.map{ case d => d.data }
+        lastBatchResult.data := lastBatchResult.data | batchData.reduce(_ | _)
       }
       is(33.U) {
         // XOR_REDUCE INT
-        lastBatchResult := lastBatchResult ^ io.in1.reduce(_ ^ _)
+        lastBatchResult.addr := io.baseAddress
+        val batchData = io.in1.map{ case d => d.data }
+        lastBatchResult.data := lastBatchResult.data ^ batchData.reduce(_ ^ _)
       }
     }
   }
