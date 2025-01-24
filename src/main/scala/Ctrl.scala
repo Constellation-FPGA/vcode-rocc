@@ -256,7 +256,12 @@ class ControlUnit(val batchSize: Int)(implicit p: Parameters) extends CoreModule
           // Multiply address by 8 because all values use 64 bits
           currentRs1 := currentRs1 + (batchSize.U << 3)
           currentRs2 := currentRs2 + (batchSize.U << 3)
-          currentDestAddr := currentDestAddr + (batchSize.U << 3)
+          /* Permute instructions are weird and keep their base address the
+           * same throughout their entire execution. All other instructions move
+           * their destination address forward. */
+          when (io.ctrlSigs.aluFn =/= PermuteUnit.FN_PERMUTE) {
+            currentDestAddr := currentDestAddr + (batchSize.U << 3)
+          }
         } .otherwise {
           // We have finished processing the vector. Move onwards.
           accelState := State.respond

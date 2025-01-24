@@ -8,6 +8,7 @@ import org.chipsalliance.diplomacy.lazymodule._
 import freechips.rocketchip.rocket._
 import freechips.rocketchip.tilelink._
 import vcoderocc.constants._
+import PermuteUnit._
 
 /** The outer wrapping class for the VCODE accelerator.
   *
@@ -61,7 +62,7 @@ class VCodeAccelImp(outer: VCodeAccel, batchSize: Int) extends LazyRoCCModuleImp
 
   /***************
    * CONTROL UNIT
-   * Control unit connects ALU & Data fetcher together, properly sequencing them
+   * Control unit connects ALU, Permute unit & Data fetcher together, properly sequencing them
    **************/
   val ctrlUnit = Module(new ControlUnit(batchSize))
   // Accelerator control unit controls when we are ready to accept the next
@@ -160,6 +161,7 @@ class VCodeAccelImp(outer: VCodeAccel, batchSize: Int) extends LazyRoCCModuleImp
   /* TODO: Have multiple ALUs, one for each element, thus one per lane?
    * Or have one big ALU handle a whole batchSize simultaneously? */
   // Must more specifically specify MY ALU, because freechips.rocketchip.rocket.ALU is also defined.
+  // ALU processing integer instructions except permutations
   val alu = Module(new vcoderocc.ALU(xLen)(batchSize))
   // Hook up the ALU to VCode signals
   alu.io.fn := ctrlSigs.aluFn
@@ -170,9 +172,21 @@ class VCodeAccelImp(outer: VCodeAccel, batchSize: Int) extends LazyRoCCModuleImp
   alu.io.execute := ctrlUnit.io.shouldExecute
   alu.io.accelIdle := !ctrlUnit.io.busy // ctrlUnit.io.accelReady is also valid.
 
+  // Execution unit processing PERMUTE instructions
+  val permute = Module(new vcoderocc.PermuteUnit(xLen)(batchSize))
+  permute.io.fn := ctrlSigs.aluFn
+  permute.io.data := data1
+  permute.io.index := data2
+  permute.io.default := data3
+  permute.io.baseAddress := ctrlUnit.io.baseAddress
+  permute.io.execute := ctrlUnit.io.shouldExecute
+  permute.io.accelIdle := !ctrlUnit.io.busy
+
   // assert(forall ctrlUnit.io.baseAddr <= dataToWrite.bits.addr &&
   //               dataToWrite.bits.addr < (ctrlUnit.io.baseAddr + ctrlUnit.io.totalLength * 8))
-  dataFetcher.io.dataToWrite.bits := alu.io.out
+  /* FIXME: Mark each of the instructions as being part of an "instruction
+   * class". Then we can match against the /kind/ of instruction it is. */
+  dataFetcher.io.dataToWrite.bits := Mux(ctrlSigs.aluFn === PermuteUnit.FN_PERMUTE, permute.io.out, alu.io.out)
   dataFetcher.io.dataToWrite.valid := ctrlUnit.io.writebackReady
 
   val responseReady = Wire(Bool())

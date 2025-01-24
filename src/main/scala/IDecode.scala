@@ -8,6 +8,7 @@ import freechips.rocketchip.tile.HasCoreParameters
 import Instructions._
 import vcoderocc.constants._
 import ALU._
+import PermuteUnit._
 import NumOperatorOperands._
 
 /** Trait holding an abstract (non-instantiated) mapping between the instruction
@@ -130,6 +131,11 @@ class SelectDecode(implicit val p: Parameters) extends DecodeConstants {
     SELECT_INT -> List(Y, MEM_OPS_THREE, FN_SELECT, Y))
 }
 
+class PermuteDecode (implicit val p: Parameters) extends DecodeConstants {
+  val decodeTable: Array[(BitPat, List[BitPat])] = Array(
+    PERMUTE_INT -> List(Y, MEM_OPS_TWO, FN_PERMUTE, Y))
+}
+
 /** Decode table for accelerator control instructions.
   * These tend to be non-blocking instructions that have no memory operands and
   * may or may not use the ALU.
@@ -154,6 +160,7 @@ class DecodeTable(implicit val p: Parameters) {
     Seq(new ReduceDecode) ++
     Seq(new ScanDecode) ++
     Seq(new SelectDecode) ++
+    Seq(new PermuteDecode) ++
     Seq(new CtrlOpDecode)
   } flatMap(_.decodeTable)
 

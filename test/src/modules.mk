@@ -32,6 +32,7 @@ TEST_SRCS += rocc_add.c host_add.c \
              rocc_and_reduce_int.c rocc_and_reduce_int_long.c\
              rocc_or_reduce_int.c rocc_or_reduce_int_long.c\
              rocc_xor_reduce_int.c rocc_xor_reduce_int_long.c\
+             rocc_permute_int.c\
              rocc_illegal.c rocc_illegal_nonblocking.c \
              host_div0.c host_ecall.c \
              malloc.c
