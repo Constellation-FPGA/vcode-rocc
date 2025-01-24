@@ -168,6 +168,8 @@ class VCodeAccelImp(outer: VCodeAccel, batchSize: Int) extends LazyRoCCModuleImp
   alu.io.execute := ctrlUnit.io.shouldExecute
   alu.io.accelIdle := !ctrlUnit.io.busy // ctrlUnit.io.accelReady is also valid.
 
+  // assert(forall ctrlUnit.io.baseAddr <= dataToWrite.bits.addr &&
+  //               dataToWrite.bits.addr < (ctrlUnit.io.baseAddr + ctrlUnit.io.totalLength * 8))
   dataFetcher.io.dataToWrite.bits := alu.io.out
   dataFetcher.io.dataToWrite.valid := ctrlUnit.io.writebackReady
 
