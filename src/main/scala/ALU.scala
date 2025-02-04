@@ -453,23 +453,29 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
         // *_REDUCE INT
         lastBatchResult.addr := io.baseAddress
         val batchData = io.in1.map{ case d => d.data }
-        lastBatchResult.data := batchData.fold(reduceMulIdentity)((x, y) => x * y)
+        val result = batchData.fold(reduceMulIdentity)((x, y) => x * y)
+        lastBatchResult.data := result
+        reduceMulIdentity := result
       }
       is(29.U) {
         // MAX_REDUCE INT
         lastBatchResult.addr := io.baseAddress
         val batchData = io.in1.map{ case d => d.data }
         val reduceMaximum = batchData.map(_.asSInt).fold(reduceMaxIdentity)((x, y) => Mux(x > y, x, y))
-        lastBatchResult.data := Mux(lastBatchResult.data.asSInt > reduceMaximum,
+        val result = Mux(lastBatchResult.data.asSInt > reduceMaximum,
           lastBatchResult.data, reduceMaximum.asUInt)
+        lastBatchResult.data := result
+        reduceMaxIdentity := result.asSInt
       }
       is(30.U) {
         // MIN_REDUCE INT
         lastBatchResult.addr := io.baseAddress
         val batchData = io.in1.map{ case d => d.data }
         val reduceMaximum = batchData.map(_.asSInt).fold(reduceMinIdentity)((x, y) => Mux(x < y, x, y))
-        lastBatchResult.data := Mux(lastBatchResult.data.asSInt < reduceMaximum,
+        val result = Mux(lastBatchResult.data.asSInt < reduceMaximum,
           lastBatchResult.data, reduceMaximum.asUInt)
+        lastBatchResult.data := result
+        reduceMinIdentity := result.asSInt
       }
       is(31.U) {
         // AND_REDUCE INT
