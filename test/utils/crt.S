@@ -155,16 +155,19 @@ _start:
   add tp, tp, a2
 
   .align 2
-  # Set M Previous Privilege to User, so mret goes back to user.
-  # Reset bits 12:11 to 00
-#define MSTATUS_MPP_U 0xFFFFFFFFFFFFE7FF
+  # Set M Previous Privilege to supervisor.
+  # Set bits 12:11 to 01
+#define MSTATUS_MPP_S 0xFFFFFFFFFFFFE7FF
+#define S_MODE 0x0800
   csrr t0, mstatus
-  li t1, MSTATUS_MPP_U
+  li t1, MSTATUS_MPP_S
   and t0, t0, t1
+  li t1, S_MODE
+  or t0, t0, t1
   csrw mstatus, t0
 
   # Set M Exception Program Counter to our test block
-  la t0, test_block
+  la t0, supervisor_block
   csrw mepc, t0
 
   # Delegate the illegal instruction exception
@@ -186,13 +189,6 @@ _start:
   csrw 0x5c0, t0
   csrr t1, 0x5c0
 
-  /* Set Rocket's UIE to 1 so make Pipelined Interrupts behave right.
-   * NOTE: This is a SUPER MASSIVE hack right now! */
-#define MSTATUS_UIE 0x0000000000000001
-  csrr t0, mstatus
-  ori t0, t0, MSTATUS_UIE
-  csrw mstatus, t0
-
   // We expect to jump to handle_trap and exit.
   // jal handle_trap // Should make us exit.
 
@@ -207,8 +203,8 @@ _start:
   # happen.
   csrw mcause, zero
 
-  # mret to User-level, using the value in mepc to set the PC where the CPU should
-  # begin executing after the switch.
+  # mret to supervisor-level, using the value in mepc to set the PC where the
+  # CPU should begin executing after the switch.
   # Nothing directly after the mret will execute!
   mret
 
@@ -220,16 +216,38 @@ _start:
 
   .align 2
 
-test_block:
+supervisor_block:
   li a3, 0xdeadbeeffeedbead
-  # ecall
+  // ecall
 
   # Create an illegal instruction exception. Pipelined exceptions should have us
   # jump to the handler that was installed earlier, without changing our
   # privilege mode.
-  csrw marchid, x0
+  // csrw marchid, x0
+  /* Set Rocket's UIE to 1 so make Pipelined Interrupts behave right.
+   * NOTE: This is a SUPER MASSIVE hack right now! */
 
+// #define SSTATUS_UIE 0x0000000000000001
+  csrr t0, sstatus
+  ori t0, t0, SSTATUS_UIE
+  csrw sstatus, t0
+
+  la t0, user_block
+  csrw sepc, t0
+
+  # Set S Previous Privilege to User, so mret goes back to user.
+  # Reset bits 12:11 to 00
+#define SSTATUS_SPP_U 0xFFFFFFFFFFFFE7FF
+  csrr t0, sstatus
+  li t1, SSTATUS_SPP_U
+  and t0, t0, t1
+  csrw sstatus, t0
+
+  sret
+
+user_block:
   # Test program done. Exit Simulation with exit code 0
+  li a3, 0xcafefeed0073f9d9
   li a0, 0
   jal exit
 
@@ -252,7 +270,7 @@ user_deleg_xcpt_handler:
 
   .align 2
 trap_entry:
-  ecall
+  // ecall
   addi sp, sp, -272
 
   # Use an M-mode-only instruction to see if we are actually in U-mode after our
