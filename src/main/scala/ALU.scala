@@ -403,12 +403,23 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
       }
       is(28.U) {
         // *_REDUCE INT
-        lastBatchResult.addr := io.baseAddress
         val batchData = io.in1.map{ case d => d.data }
-        val result = identity * batchData.reduce(_ * _)
-        lastBatchResult.data := result
-        identity := result(xLen, 0) // Slice: (64, 0]
-        io.out.valid := true.B
+        muldivBank(0).io.req.bits.in1 := identity
+        muldivBank(0).io.req.bits.in2 := batchData(0)
+        muldivBank(0).io.req.bits.fn := ALUFN().FN_MUL
+        for (i <- 1 until batchSize) yield {
+          muldivBank(i).io.req.bits.in1 := muldivBank(i-1).io.resp.bits.data
+          muldivBank(i).io.req.bits.in2 := batchData(i)
+          muldivBank(i).io.req.bits.fn := ALUFN().FN_MUL
+          muldivBank(i).io.req.valid := muldivBank(i-1).io.resp.valid
+        }
+
+        lastBatchResult.addr := io.baseAddress
+        when (muldivBank(batchSize-1).io.resp.valid) {
+          lastBatchResult.data := muldivBank(batchSize-1).io.resp.bits.data
+          identity := muldivBank(batchSize-1).io.resp.bits.data
+        }
+        io.out.valid := muldivBank(batchSize-1).io.resp.valid
       }
       is(29.U) {
         // MAX_REDUCE INT
