@@ -332,16 +332,28 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
       is(22.U){
         // *_SCAN INT
         val batchData = io.in1.map{ case d => d.data }
-        val scanTmp = batchData.scan(identity)(_ * _)
-        val results = scanTmp.zipWithIndex.map{ case(d, idx) => {
-          val result = Wire(new DataIO(xLen))
-          result.addr := io.baseAddress + (idx.U * 8.U)
-          result.data := d
-          result
-          }
+        /* First, hook up working space addresses, because those are easy. */
+        for (i <- 0 until batchSize) {
+          workingSpace(i).addr := io.baseAddress + (i.U * 8.U)
         }
-        workingSpace := results.slice(0, batchSize)
-        identity := results(batchSize).data
+
+        /* Now wire the muldiv bank up to perform the scan. */
+        muldivBank(0).io.req.bits.in1 := identity
+        muldivBank(0).io.req.bits.in2 := batchData(0)
+        muldivBank(0).io.req.bits.fn := ALUFN().FN_MUL
+        workingSpace(0).data := identity
+        for (i <- 1 until batchSize) {
+          muldivBank(i).io.req.bits.in1 := muldivBank(i-1).io.resp.bits.data
+          muldivBank(i).io.req.bits.in2 := batchData(i)
+          muldivBank(i).io.req.bits.fn := ALUFN().FN_MUL
+          muldivBank(i).io.req.valid := muldivBank(i-1).io.resp.valid
+          workingSpace(i).data := muldivBank(i-1).io.resp.bits.data
+        }
+
+        when (muldivBank(batchSize-1).io.resp.valid) {
+          identity := muldivBank(batchSize-1).io.resp.bits.data
+        }
+        io.out.valid := muldivBank(batchSize-1).io.resp.valid
       }
       is(23.U){
         // MAX SCAN INT
