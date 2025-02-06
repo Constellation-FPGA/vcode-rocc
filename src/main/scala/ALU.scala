@@ -96,6 +96,11 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
 
   /* Create a pipelined INTEGER multiplier/divider. */
   val mulDivParams = new MulDivParams() // Use default parameters
+  /* We must only raise the input data's valid signal when we JUST START
+   * executing, and we must only raise it for a single cycle. */
+  val muldivEnable = withReset(!io.execute) {
+    io.execute && !RegNext(io.execute)
+  }
   val muldivBank = for (i <- 0 until batchSize) yield {
     val muldiv = Module(new MulDiv(mulDivParams, width = xLen,
       // nXpr = batchSize, // The number of expressions in-flight?
@@ -111,7 +116,7 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
     /* We don't use the tag bits for anything here. */
     muldiv.io.req.bits.tag := 0.U
     /* Multiplier inputs are valid when the ALU should start executing. */
-    muldiv.io.req.valid := io.execute
+    muldiv.io.req.valid := muldivEnable
     /* The multipliers never have back pressure exerted on them. We (the ALU)
      * are always ready to accept a muldiv unit's computed data response, when
      * the ALU is supposed to be computing things.. */
