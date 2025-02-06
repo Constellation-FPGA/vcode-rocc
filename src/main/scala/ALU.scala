@@ -93,6 +93,23 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
 
   val lastBatchResult = workingSpace(0)
 
+  /* The pipelined module banks require that their .valid input only be raised
+   * for a SINGLE clock cycle. We want the ALU to receive a single sign that it
+   * should be executing (hence the io.execute). So we use this register to
+   * raise the input data's valid signal when we JUST START executing, and we
+   * must only raise it for a single cycle. The combinational value is passed
+   * through with no change, but is then held low for the rest of the time.
+   * The order of operations is:
+   * 1. io.execute = false.B -> Reset this register.
+   * 2. io.execute = true.B -> Start the ALU, pipelineStart returns true.B.
+   * 3. Next clock cycle (io.execute remains true.B through execution) this
+   *    register returns false.B.
+   * 4. Eventually the ALU finished, which makes the control unit take
+   *    io.execute down to false.B, returning us to step 1. */
+  val pipelineStart = withReset(!io.execute) {
+    io.execute && !RegNext(io.execute)
+  }
+
   /* Create a pipelined INTEGER multiplier/divider. */
   val mulDivParams = new MulDivParams() // Use default parameters
   val muldivBank = for (i <- 0 until batchSize) yield {
@@ -110,7 +127,7 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
     /* We don't use the tag bits for anything here. */
     muldiv.io.req.bits.tag := 0.U
     /* Multiplier inputs are valid when the ALU should start executing. */
-    muldiv.io.req.valid := io.execute
+    muldiv.io.req.valid := pipelineStart
     /* The multipliers never have back pressure exerted on them. We (the ALU)
      * are always ready to accept a muldiv unit's computed data response, when
      * the ALU is supposed to be computing things.. */
