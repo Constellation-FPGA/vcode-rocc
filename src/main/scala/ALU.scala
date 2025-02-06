@@ -369,6 +369,7 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
         }
         workingSpace := results.slice(0, batchSize)
         identity := results(batchSize).data
+        io.out.valid := true.B
       }
       is(26.U){
         // OR SCAN INT
@@ -383,6 +384,7 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
         }
         workingSpace := results.slice(0, batchSize)
         identity := results(batchSize).data
+        io.out.valid := true.B
       }
       is(27.U){
         // XOR SCAN INT
@@ -397,6 +399,7 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
         }
         workingSpace := results.slice(0, batchSize)
         identity := results(batchSize).data
+        io.out.valid := true.B
       }
       is(28.U) {
         // *_REDUCE INT
