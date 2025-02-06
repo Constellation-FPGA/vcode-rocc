@@ -4,7 +4,7 @@ import chisel3._
 import chisel3.util._
 import org.chipsalliance.cde.config.Parameters
 import freechips.rocketchip.tile.CoreModule
-import freechips.rocketchip.rocket.{MulDivParams, MulDiv} //, MultiplierReq, MultiplierResp}
+import freechips.rocketchip.rocket.{ALUFN, MulDivParams, MulDiv}
 import vcoderocc.DataIO
 
 /** Externally-visible properties of the ALU.
@@ -96,10 +96,31 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
 
   /* Create a pipelined INTEGER multiplier/divider. */
   val mulDivParams = new MulDivParams() // Use default parameters
-  /* TODO: An array of muldivs, one for each batch element. */
-  // val muldiv = Module(new MulDiv(mulDivParams, width = xLen,
-  //   // nXpr = batchSize, // The number of expressions in-flight?
-  //   aluFn = aluFn))
+  val muldivBank = for (i <- 0 until batchSize) yield {
+    val muldiv = Module(new MulDiv(mulDivParams, width = xLen,
+      // nXpr = batchSize, // The number of expressions in-flight?
+      // aluFn = aluFn
+    ))
+    /* XXX: Choice of FN_MUL here is arbitrary. We need some default value for
+     * the connection, before we override it in each ALU function below. */
+    muldiv.io.req.bits.fn := ALUFN().FN_MUL
+    // All VCODE operations are double-word (64-bit)
+    muldiv.io.req.bits.dw := true.B
+    muldiv.io.req.bits.in1 := io.in1(i).data
+    muldiv.io.req.bits.in2 := io.in2(i).data
+    /* We don't use the tag bits for anything here. */
+    muldiv.io.req.bits.tag := 0.U
+    /* Multiplier inputs are valid when the ALU should start executing. */
+    muldiv.io.req.valid := io.execute
+    /* The multipliers never have back pressure exerted on them. We (the ALU)
+     * are always ready to accept a muldiv unit's computed data response, when
+     * the ALU is supposed to be computing things.. */
+    muldiv.io.resp.ready := io.execute
+    /* No muldiv unit should ever receive a kill. */
+    muldiv.io.kill := false.B
+    /* NOTE: muldiv MUST BE RETURNED from this for-yield's lambda! */
+    muldiv
+  }
 
   val identity = withReset(io.accelIdle) {
     RegInit(io.identityVal)
@@ -185,34 +206,41 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
         // MUL
         val indexedPairs = io.in1.zip(io.in2).zipWithIndex
         workingSpace := indexedPairs.map{ case ((x, y), i) => {
+          val muldivBankReady = VecInit(muldivBank.map { _.io.req.ready }).reduce(_ & _)
+          muldivBank(i).io.req.bits.fn := ALUFN().FN_MUL
           val result = Wire(new DataIO(xLen))
           result.addr := io.baseAddress + (i.U * 8.U)
-          result.data := x.data * y.data
+          result.data := muldivBank(i).io.resp.bits.data
           result
           }
         }
+        io.out.valid := VecInit(muldivBank.map { _.io.resp.valid }).reduce(_ & _)
       }
       is(7.U){
         // DIV
         val indexedPairs = io.in1.zip(io.in2).zipWithIndex
         workingSpace := indexedPairs.map{ case ((x, y), i) => {
+          muldivBank(i).io.req.bits.fn := ALUFN().FN_DIV
           val result = Wire(new DataIO(xLen))
           result.addr := io.baseAddress + (i.U * 8.U)
-          result.data := x.data / y.data
+          result.data := muldivBank(i).io.resp.bits.data
           result
           }
         }
+        io.out.valid := VecInit(muldivBank.map { _.io.resp.valid }).reduce(_ & _)
       }
       is(8.U){
         // MOD
         val indexedPairs = io.in1.zip(io.in2).zipWithIndex
         workingSpace := indexedPairs.map{ case ((x, y), i) => {
+          muldivBank(i).io.req.bits.fn := ALUFN().FN_REM
           val result = Wire(new DataIO(xLen))
           result.addr := io.baseAddress + (i.U * 8.U)
-          result.data := x.data % y.data
+          result.data := muldivBank(i).io.resp.bits.data
           result
           }
         }
+        io.out.valid := VecInit(muldivBank.map { _.io.resp.valid }).reduce(_ & _)
       }
       is(9.U){
         // LESS
