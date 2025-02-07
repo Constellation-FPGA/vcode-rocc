@@ -318,6 +318,7 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
           }
         }
         selectFlagsCounter := selectFlagsCounter + batchSize.U;
+        io.out.valid := true.B
       }
       is(22.U){
         // *_SCAN INT
