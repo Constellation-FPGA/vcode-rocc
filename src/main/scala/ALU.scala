@@ -430,10 +430,8 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
         }
 
         lastBatchResult.addr := io.baseAddress
-        when (muldivBank(batchSize-1).io.resp.valid) {
-          lastBatchResult.data := muldivBank(batchSize-1).io.resp.bits.data
-          identity := muldivBank(batchSize-1).io.resp.bits.data
-        }
+        lastBatchResult.data := muldivBank(batchSize-1).io.resp.bits.data
+        identity := muldivBank(batchSize-1).io.resp.bits.data
         io.out.valid := muldivBank(batchSize-1).io.resp.valid
       }
       is(29.U) {
