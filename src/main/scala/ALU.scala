@@ -182,9 +182,6 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
         io.out.valid := true.B
       }
       is(2.U) { // +_SCAN INT
-        /* FIXME: Can factor out SCAN HW out and just select identity & binary operator
-         * rather than the entire thing. Works because .scan()() requires identity
-         * as first argument (partial evaluation). */
         val batchData = io.in1.map{ case d => d.data }
         val scanTmp = batchData.scan(identity)(_ + _)
         // NOTE .scan has .scanLeft & .scanRight variants
