@@ -276,12 +276,12 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
       }
       is(15.U){
         // LEFT SHIFT
-        workingSpace := elementWiseMap(io.in1, io.in2, (x, y) => x << y(18, 0))
+        workingSpace := elementWiseMap(io.in1, io.in2, (x, y) => x << y(5, 0))
         io.out.valid := true.B
       }
       is(16.U){
         // RIGHT SHIFT
-        workingSpace := elementWiseMap(io.in1, io.in2, (x, y) => x >> y(18, 0))
+        workingSpace := elementWiseMap(io.in1, io.in2, (x, y) => x >> y(5, 0))
         io.out.valid := true.B
       }
       is(17.U){
