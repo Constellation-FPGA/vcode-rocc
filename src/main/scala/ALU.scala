@@ -293,7 +293,7 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
         workingSpace := indexedPairs.map{ case ((x, y), i) => {
           val result = Wire(new DataIO(xLen))
           result.addr := io.baseAddress + (i.U * 8.U)
-          result.data := x.data << y.data(18, 0)
+          result.data := x.data << y.data(5, 0)
           result
           }
         }
@@ -304,7 +304,7 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
         workingSpace := indexedPairs.map{ case ((x, y), i) => {
           val result = Wire(new DataIO(xLen))
           result.addr := io.baseAddress + (i.U * 8.U)
-          result.data := x.data >> y.data(18, 0)
+          result.data := x.data >> y.data(5, 0)
           result
           }
         }
