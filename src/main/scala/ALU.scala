@@ -494,3 +494,59 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
     }
   }
 }
+
+object ComparatorOp extends ChiselEnum {
+  val min, max = Value
+}
+
+/* TODO: Get proper subtyping on the comparator classes. We can only compare
+ * classes T that are subclasses of Num, namely T <: Num */
+final class ComparatorReq(dataBits: Int) extends Bundle {
+  val fn = ComparatorOp()
+  val in1 = SInt(dataBits.W)
+  val in2 = SInt(dataBits.W)
+}
+
+final class ComparatorResp(dataBits: Int) extends Bundle {
+  val data = SInt(dataBits.W)
+}
+
+/** A simple comparator that produces its value one clock cycle delayed.
+* This is intended for pipelining. */
+final class Comparator(val xLen: Int) extends Module {
+  val io = IO(new Bundle {
+    val req = Input(Valid(new ComparatorReq(xLen)))
+    val resp = Output(Valid(new ComparatorResp(xLen)))
+  })
+  /* Rename/Alias in1's & in2's bit data for ease of reading the module. */
+  val x = io.req.bits.in1
+  val y = io.req.bits.in2
+
+  val result = Wire(new ComparatorResp(xLen))
+
+  /* We expect that a single xLen comparison can be done in a single clock
+   * cycle, but comparison is still relatively slow compared to other operations.
+   * So if you have a very high clock frequency or many comparisons strung
+   * together in a chain, you will end up experiencing timing violations when you
+   * synthesize the design for that clock frequency.
+   * By "overriding" Chisel's default .min and .max methods and attaching
+   * pipeline registers between them, you should be able to do comparisons even
+   * faster.
+   * NOTE: There is a theoretical limit here as determined by the target
+   * platform. Often comparisons are done on just a few bits in parallel and the
+   * results are combined later. Different platforms that have native HW
+   * support for this, will have different native widths, which will affect how
+   * you have to pipeline your design. */
+  result.data := DontCare
+  switch (io.req.bits.fn) {
+    is (ComparatorOp.min) {
+      result.data := x.min(y)
+    }
+    is (ComparatorOp.max) {
+      result.data := x.max(y)
+    }
+  }
+
+  io.resp.valid := RegNext(io.req.valid)
+  io.resp.bits := RegNext(result)
+}
