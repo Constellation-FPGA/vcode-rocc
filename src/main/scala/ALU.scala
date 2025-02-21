@@ -358,7 +358,7 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
       is(23.U){
         // MAX SCAN INT
         val batchData = io.in1.map{ case d => d.data.asSInt }
-        val scanTmp = batchData.scan(identity.asSInt) {(x, y) => Mux(y > x, y, x)}
+        val scanTmp = batchData.scan(identity.asSInt) {(x, y) => x.max(y)}
         val results = scanTmp.zipWithIndex.map{ case(d, idx) => {
           val result = Wire(new DataIO(xLen))
           result.addr := io.baseAddress + (idx.U * 8.U)
@@ -372,7 +372,7 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
       is(24.U){
         // MIN SCAN INT
         val batchData = io.in1.map{ case d => d.data.asSInt }
-        val scanTmp = batchData.scan(identity.asSInt) {(x, y) => Mux(y < x, y, x)}
+        val scanTmp = batchData.scan(identity.asSInt) {(x, y) => x.min(y)}
         val results = scanTmp.zipWithIndex.map{ case(d, idx) => {
           val result = Wire(new DataIO(xLen))
           result.addr := io.baseAddress + (idx.U * 8.U)
