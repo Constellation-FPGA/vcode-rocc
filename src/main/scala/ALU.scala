@@ -320,9 +320,12 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
       is(22.U){
         // *_SCAN INT
         val batchData = io.in1.map{ case d => d.data }
+        /* First, hook up working space addresses, because those are easy. */
         for (i <- 0 until batchSize) {
           workingSpace(i).addr := io.baseAddress + (i.U * 8.U)
         }
+
+        /* Now wire the muldiv bank up to perform the scan. */
         muldivBank(0).io.req.bits.in1 := identity
         muldivBank(0).io.req.bits.in2 := batchData(0)
         muldivBank(0).io.req.bits.fn := ALUFN().FN_MUL
