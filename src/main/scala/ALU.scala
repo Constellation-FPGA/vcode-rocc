@@ -356,6 +356,7 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
         }
         workingSpace := results.slice(0, batchSize)
         identity := results(batchSize).data
+        io.out.valid := true.B
       }
       is(24.U){
         // MIN SCAN INT
@@ -370,6 +371,7 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
         }
         workingSpace := results.slice(0, batchSize)
         identity := results(batchSize).data
+        io.out.valid := true.B
       }
       is(25.U){
         // AND SCAN INT
