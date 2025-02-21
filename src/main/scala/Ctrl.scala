@@ -259,7 +259,8 @@ class ControlUnit(val batchSize: Int)(implicit p: Parameters) extends CoreModule
           /* Permute instructions are weird and keep their base address the
            * same throughout their entire execution. All other instructions move
            * their destination address forward. */
-          when (io.ctrlSigs.aluFn =/= PermuteUnit.FN_PERMUTE) {
+          when (io.ctrlSigs.aluFn =/= PermuteUnit.FN_PERMUTE &&
+                io.ctrlSigs.aluFn =/= PermuteUnit.FN_FPERMUTE) {
             currentDestAddr := currentDestAddr + (batchSize.U << 3)
           }
         } .otherwise {
