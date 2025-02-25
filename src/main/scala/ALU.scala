@@ -220,34 +220,41 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
         // MUL
         val indexedPairs = io.in1.zip(io.in2).zipWithIndex
         workingSpace := indexedPairs.map{ case ((x, y), i) => {
+          val muldivBankReady = VecInit(muldivBank.map { _.io.req.ready }).reduce(_ & _)
+          muldivBank(i).io.req.bits.fn := ALUFN().FN_MUL
           val result = Wire(new DataIO(xLen))
           result.addr := io.baseAddress + (i.U * 8.U)
-          result.data := x.data * y.data
+          result.data := muldivBank(i).io.resp.bits.data
           result
           }
         }
+        io.out.valid := VecInit(muldivBank.map { _.io.resp.valid }).reduce(_ & _)
       }
       is(7.U){
         // DIV
         val indexedPairs = io.in1.zip(io.in2).zipWithIndex
         workingSpace := indexedPairs.map{ case ((x, y), i) => {
+          muldivBank(i).io.req.bits.fn := ALUFN().FN_DIV
           val result = Wire(new DataIO(xLen))
           result.addr := io.baseAddress + (i.U * 8.U)
-          result.data := x.data / y.data
+          result.data := muldivBank(i).io.resp.bits.data
           result
           }
         }
+        io.out.valid := VecInit(muldivBank.map { _.io.resp.valid }).reduce(_ & _)
       }
       is(8.U){
         // MOD
         val indexedPairs = io.in1.zip(io.in2).zipWithIndex
         workingSpace := indexedPairs.map{ case ((x, y), i) => {
+          muldivBank(i).io.req.bits.fn := ALUFN().FN_REM
           val result = Wire(new DataIO(xLen))
           result.addr := io.baseAddress + (i.U * 8.U)
-          result.data := x.data % y.data
+          result.data := muldivBank(i).io.resp.bits.data
           result
           }
         }
+        io.out.valid := VecInit(muldivBank.map { _.io.resp.valid }).reduce(_ & _)
       }
       is(9.U){
         // LESS
