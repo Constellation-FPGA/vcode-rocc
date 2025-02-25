@@ -114,6 +114,20 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
     results
   }
 
+  /** Perform a reduction on a vector.
+   *
+   * TODO: This function is well-suited to pipelining between elements in the
+   * batch! */
+  def reduction(xs: Vec[DataIO], op: (UInt, UInt) => UInt): DataIO = {
+    val xsData = xs.map(_.data)
+    // NOTE: .reduce could be replaced by reduceTree
+    val result = op(identity, xsData.reduce(op))
+    val retData = Wire(new DataIO(xLen))
+    retData.addr := io.baseAddress
+    retData.data := result
+    retData
+  }
+
   when(io.execute) {
     switch(io.fn) {
       is(0.U) {
@@ -122,13 +136,9 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
       }
       is(1.U) {
         // +_REDUCE INT
-        lastBatchResult.addr := io.baseAddress
-        val batchData = io.in1.map{ case d => d.data }
-        // NOTE: .reduce could be replaced by reduceTree
-        val result = identity + batchData.reduce(_ + _)
-        lastBatchResult.data := result
-        identity := result
-        // lastBatchResult := reduction(io.in1, _ + _)
+        val result = reduction(io.in1, _ + _)
+        lastBatchResult := result
+        identity := result.data
       }
       is(2.U) { // +_SCAN INT
         val batchData = io.in1.map{ case d => d.data }
@@ -362,30 +372,21 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
       }
       is(31.U) {
         // AND_REDUCE INT
-        lastBatchResult.addr := io.baseAddress
-        val batchData = io.in1.map{ case d => d.data }
-        val result = identity & batchData.reduce(_ & _)
-        lastBatchResult.data := result
-        identity := result
-        // lastBatchResult := reduction(io.in1, _ & _)
+        val result = reduction(io.in1, _ & _)
+        lastBatchResult := result
+        identity := result.data
       }
       is(32.U) {
         // OR_REDUCE INT
-        lastBatchResult.addr := io.baseAddress
-        val batchData = io.in1.map{ case d => d.data }
-        val result = identity | batchData.reduce(_ | _)
-        lastBatchResult.data := result
-        identity := result
-        // lastBatchResult := reduction(io.in1, _ | _)
+        val result = reduction(io.in1, _ | _)
+        lastBatchResult := result
+        identity := result.data
       }
       is(33.U) {
         // XOR_REDUCE INT
-        lastBatchResult.addr := io.baseAddress
-        val batchData = io.in1.map{ case d => d.data }
-        val result = identity ^ batchData.reduce(_ ^ _)
-        lastBatchResult.data := result
-        identity := result
-        // lastBatchResult := reduction(io.in1, _ ^ _)
+        val result = reduction(io.in1, _ ^ _)
+        lastBatchResult := result
+        identity := result.data
       }
     }
   }
