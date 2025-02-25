@@ -369,32 +369,50 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
       is(23.U){
         // MAX SCAN INT
         val batchData = io.in1.map{ case d => d.data.asSInt }
-        val scanTmp = batchData.scan(identity.asSInt) {(x, y) => x.max(y)}
-        val results = scanTmp.zipWithIndex.map{ case(d, idx) => {
-          val result = Wire(new DataIO(xLen))
-          result.addr := io.baseAddress + (idx.U * 8.U)
-          result.data := d.asUInt
-          result
-          }
+        for (i <- 0 until batchSize) {
+          workingSpace(i).addr := io.baseAddress + (i.U * 8.U)
         }
-        workingSpace := results.slice(0, batchSize)
-        identity := results(batchSize).data
-        io.out.valid := true.B
+
+        compareBank(0).io.req.bits.in1 := identity.asSInt
+        compareBank(0).io.req.bits.in2 := batchData(0)
+        compareBank(0).io.req.bits.fn := ComparatorOp.max
+        workingSpace(0).data := identity
+        for (i <- 1 until batchSize) {
+          compareBank(i).io.req.bits.in1 := compareBank(i-1).io.resp.bits.data
+          compareBank(i).io.req.bits.in2 := batchData(i)
+          compareBank(i).io.req.bits.fn := ComparatorOp.max
+          compareBank(i).io.req.valid := compareBank(i-1).io.resp.valid
+          workingSpace(i).data := compareBank(i-1).io.resp.bits.data.asUInt
+        }
+
+        when (compareBank(batchSize-1).io.resp.valid) {
+          identity := compareBank(batchSize-1).io.resp.bits.data.asUInt
+        }
+        io.out.valid := compareBank(batchSize-1).io.resp.valid
       }
       is(24.U){
         // MIN SCAN INT
         val batchData = io.in1.map{ case d => d.data.asSInt }
-        val scanTmp = batchData.scan(identity.asSInt) {(x, y) => x.min(y)}
-        val results = scanTmp.zipWithIndex.map{ case(d, idx) => {
-          val result = Wire(new DataIO(xLen))
-          result.addr := io.baseAddress + (idx.U * 8.U)
-          result.data := d.asUInt
-          result
-          }
+        for (i <- 0 until batchSize) {
+          workingSpace(i).addr := io.baseAddress + (i.U * 8.U)
         }
-        workingSpace := results.slice(0, batchSize)
-        identity := results(batchSize).data
-        io.out.valid := true.B
+
+        compareBank(0).io.req.bits.in1 := identity.asSInt
+        compareBank(0).io.req.bits.in2 := batchData(0)
+        compareBank(0).io.req.bits.fn := ComparatorOp.min
+        workingSpace(0).data := identity
+        for (i <- 1 until batchSize) {
+          compareBank(i).io.req.bits.in1 := compareBank(i-1).io.resp.bits.data
+          compareBank(i).io.req.bits.in2 := batchData(i)
+          compareBank(i).io.req.bits.fn := ComparatorOp.min
+          compareBank(i).io.req.valid := compareBank(i-1).io.resp.valid
+          workingSpace(i).data := compareBank(i-1).io.resp.bits.data.asUInt
+        }
+
+        when (compareBank(batchSize-1).io.resp.valid) {
+          identity := compareBank(batchSize-1).io.resp.bits.data.asUInt
+        }
+        io.out.valid := compareBank(batchSize-1).io.resp.valid
       }
       is(25.U){
         // AND SCAN INT
