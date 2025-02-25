@@ -136,7 +136,7 @@ class DCacheFetcher(val bufferEntries: Int)(implicit p: Parameters) extends Core
   io.req.bits.cmd := DontCare
   switch (io.opToPerform) {
     is (MemoryOperation.read) {
-      io.req.bits.addr := io.baseAddress.bits + (reqsSent << 3)
+      io.req.bits.addr := io.baseAddress.bits + (reqsSent * 8.U)
       io.req.bits.data := 0.U // Does not matter what data is set to for reads
       io.req.bits.cmd := M_XRD
     }

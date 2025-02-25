@@ -221,8 +221,8 @@ class ControlUnit(val batchSize: Int)(implicit p: Parameters) extends CoreModule
             // We have not yet completed the reduction, go back.
             accelState := State.fetch1
             // Multiply address by 8 because all values use 64 bits
-            currentRs1 := currentRs1 + (batchSize.U << 3)
-            currentRs2 := currentRs2 + (batchSize.U << 3)
+            currentRs1 := currentRs1 + (batchSize * 8).U
+            currentRs2 := currentRs2 + (batchSize * 8).U
           } .otherwise {
             /* The reduction's computation is complete, write exactly 1 value. */
             accelState := State.write
@@ -257,13 +257,13 @@ class ControlUnit(val batchSize: Int)(implicit p: Parameters) extends CoreModule
           // We have not yet completed the vector, go back.
           accelState := State.fetch1
           // Multiply address by 8 because all values use 64 bits
-          currentRs1 := currentRs1 + (batchSize.U << 3)
-          currentRs2 := currentRs2 + (batchSize.U << 3)
+          currentRs1 := currentRs1 + (batchSize * 8).U
+          currentRs2 := currentRs2 + (batchSize * 8).U
           /* Permute instructions are weird and keep their base address the
            * same throughout their entire execution. All other instructions move
            * their destination address forward. */
           when (io.ctrlSigs.aluFn =/= PermuteUnit.FN_PERMUTE) {
-            currentDestAddr := currentDestAddr + (batchSize.U << 3)
+            currentDestAddr := currentDestAddr + (batchSize * 8).U
           }
         } .otherwise {
           // We have finished processing the vector. Move onwards.
