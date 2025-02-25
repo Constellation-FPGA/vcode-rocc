@@ -138,6 +138,17 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
     muldiv
   }
 
+  val compareBank = for (i <- 0 until batchSize) yield {
+    // val comparator = Module(new Comparator[SInt](xLen))
+    val comparator = Module(new Comparator(xLen))
+    comparator.io.req.valid := pipelineStart
+    comparator.io.req.bits.fn  := DontCare
+    comparator.io.req.bits.in1 := DontCare
+    comparator.io.req.bits.in2 := DontCare
+    /* NOTE: comparator MUST BE RETURNED from this for-yield's lambda! */
+    comparator
+  }
+
   val identity = withReset(io.accelIdle) {
     RegInit(io.identityVal)
   }
