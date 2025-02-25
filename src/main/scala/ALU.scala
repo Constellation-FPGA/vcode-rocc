@@ -480,24 +480,40 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
       is(29.U) {
         // MAX_REDUCE INT
         val batchData = io.in1.map{ case d => d.data.asSInt }
-        val reduceData = Seq(identity.asSInt) ++ batchData
-        // NOTE: .reduce could be replaced by reduceTree
-        val result = reduceData.reduce((x,y) => x.max(y)).asUInt
+        compareBank(0).io.req.bits.in1 := identity.asSInt
+        compareBank(0).io.req.bits.in2 := batchData(0)
+        compareBank(0).io.req.bits.fn := ComparatorOp.max
+
+        for (i <- 1 until batchSize) yield {
+          compareBank(i).io.req.bits.in1 := compareBank(i-1).io.resp.bits.data
+          compareBank(i).io.req.bits.in2 := batchData(i)
+          compareBank(i).io.req.bits.fn := ComparatorOp.max
+          compareBank(i).io.req.valid := compareBank(i-1).io.resp.valid
+        }
+
         lastBatchResult.addr := io.baseAddress
-        lastBatchResult.data := result
-        identity := result
-        io.out.valid := true.B
+        lastBatchResult.data := compareBank(batchSize-1).io.resp.bits.data.asUInt
+        identity := compareBank(batchSize-1).io.resp.bits.data.asUInt
+        io.out.valid := compareBank(batchSize-1).io.resp.valid
       }
       is(30.U) {
         // MIN_REDUCE INT
         val batchData = io.in1.map{ case d => d.data.asSInt }
-        val reduceData = Seq(identity.asSInt) ++ batchData
-        // NOTE: .reduce could be replaced by reduceTree
-        val result = reduceData.reduce((x,y) => x.min(y)).asUInt
+        compareBank(0).io.req.bits.in1 := identity.asSInt
+        compareBank(0).io.req.bits.in2 := batchData(0)
+        compareBank(0).io.req.bits.fn := ComparatorOp.min
+
+        for (i <- 1 until batchSize) yield {
+          compareBank(i).io.req.bits.in1 := compareBank(i-1).io.resp.bits.data
+          compareBank(i).io.req.bits.in2 := batchData(i)
+          compareBank(i).io.req.bits.fn := ComparatorOp.min
+          compareBank(i).io.req.valid := compareBank(i-1).io.resp.valid
+        }
+
         lastBatchResult.addr := io.baseAddress
-        lastBatchResult.data := result
-        identity := result
-        io.out.valid := true.B
+        lastBatchResult.data := compareBank(batchSize-1).io.resp.bits.data.asUInt
+        identity := compareBank(batchSize-1).io.resp.bits.data.asUInt
+        io.out.valid := compareBank(batchSize-1).io.resp.valid
       }
       is(31.U) {
         // AND_REDUCE INT
