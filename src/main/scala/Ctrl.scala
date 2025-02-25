@@ -27,6 +27,7 @@ class ControlUnit(val batchSize: Int)(implicit p: Parameters) extends CoreModule
     val numToFetch = Output(UInt(xLen.W))
     val memOpCompleted = Input(Bool())
     val shouldExecute = Output(Bool())
+    val executeCompleted = Input(Bool())
     val writebackReady = Output(Bool())
     // Writeback completion is marked by mem_op_completed
     val responseReady = Output(Bool())
@@ -202,35 +203,37 @@ class ControlUnit(val batchSize: Int)(implicit p: Parameters) extends CoreModule
         printf("Ctrl\tIn execution state\n")
       }
 
-      // Where to go once in EXE?
-      when(io.ctrlSigs.aluFn === ALU.FN_RED_ADD ||
+      when (io.executeCompleted) {
+        // Where to go once in EXE?
+        when(io.ctrlSigs.aluFn === ALU.FN_RED_ADD ||
            io.ctrlSigs.aluFn === ALU.FN_RED_MUL ||
            io.ctrlSigs.aluFn === ALU.FN_RED_MAX ||
            io.ctrlSigs.aluFn === ALU.FN_RED_MIN ||
            io.ctrlSigs.aluFn === ALU.FN_RED_AND ||
            io.ctrlSigs.aluFn === ALU.FN_RED_OR ||
            io.ctrlSigs.aluFn === ALU.FN_RED_XOR) {
-        // If this operation is a reduction, we may need to go around again
-        // FIXME: Turn this into a function?
-        // Decrement our "counter"
-        val remainingOperands = Mux(operandsToGo <= batchSize.U, 0.U, operandsToGo - batchSize.U)
-        operandsToGo := remainingOperands
-        when(remainingOperands > 0.U) {
-          // We have not yet completed the reduction, go back.
-          accelState := State.fetch1
-          // Multiply address by 8 because all values use 64 bits
-          currentRs1 := currentRs1 + (batchSize.U << 3)
-          currentRs2 := currentRs2 + (batchSize.U << 3)
+          // If this operation is a reduction, we may need to go around again
+          // FIXME: Turn this into a function?
+          // Decrement our "counter"
+          val remainingOperands = Mux(operandsToGo <= batchSize.U, 0.U, operandsToGo - batchSize.U)
+          operandsToGo := remainingOperands
+          when(remainingOperands > 0.U) {
+            // We have not yet completed the reduction, go back.
+            accelState := State.fetch1
+            // Multiply address by 8 because all values use 64 bits
+            currentRs1 := currentRs1 + (batchSize.U << 3)
+            currentRs2 := currentRs2 + (batchSize.U << 3)
+          } .otherwise {
+            /* The reduction's computation is complete, write exactly 1 value. */
+            accelState := State.write
+            operandsToGo := 1.U
+          }
         } .otherwise {
-          /* The reduction's computation is complete, write exactly 1 value. */
+          // Execution completed, but this is NOT a reduction
           accelState := State.write
-          operandsToGo := 1.U
-        }
-      } .otherwise {
-        // Execution completed, but this is NOT a reduction
-        accelState := State.write
-        if(p(VCodePrintfEnable)) {
-          printf("Ctrl\tMoving from exe state to write state\n")
+          if(p(VCodePrintfEnable)) {
+            printf("Ctrl\tMoving from exe state to write state\n")
+          }
         }
       }
     }
