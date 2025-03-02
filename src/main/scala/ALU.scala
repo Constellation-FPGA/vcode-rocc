@@ -174,6 +174,15 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
     results
   }
 
+  /** Convert a vector of unsigned integers to a single boolean where each bit
+   *  in the boolean is set based on the index of the integer in the vector. */
+  def uintVecToDenseBool(xs: Vec[UInt]): Bits ={
+    val bs = VecInit(xs.map { x => x.asBool })
+    // FIXME: This is not padded out to xLen right now! It will only be as long
+    // as the input xs vector!
+    bs.asUInt
+  }
+
   /** Perform a reduction on a vector.
    *
    * TODO: This function is well-suited to pipelining between elements in the
