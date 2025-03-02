@@ -270,7 +270,15 @@ class ALU(val xLen: Int)(val batchSize: Int) extends Module {
       }
       is(9.U){
         // LESS
-        workingSpace := elementWiseMap(io.in1, io.in2, _ < _)
+        val result = RegInit(0.U(xLen.W))
+        /* foldLeft is necessary to accumulate and assign value. It avoids 
+        * the data coverage problem caused by ":=".                       */
+        val newResult = (0 until batchSize).foldLeft(result)((res, i) =>
+          Mux(io.in1(i).data < io.in2(i).data, res | (1.U << i.U), res)
+        )
+        result := newResult
+        workingSpace(0).data := result
+        workingSpace(0).addr := io.baseAddress
         io.out.valid := true.B
       }
       is(10.U){

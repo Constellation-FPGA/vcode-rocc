@@ -16,18 +16,18 @@ int main() {
     /* The value put back into the rd register is IMMEDIATELY stored back into
      * memory! */
     // Host-side mul: (a < b)
-    int64_t expected[3]; 
+    int64_t expected = 0; 
     for(int i = 0; i < 3; i++) {
-        expected[i] = (a[i] < b[i]) ? 1 : 0;
+        if(a[i] < b[i]) {
+            expected |= (1LL << i);
+        }
     }
 
     int arrays_equal = 1;
     if (status == 0) {
-        for(int i = 0; i < 3; i++) {
-            if(c[i] != expected[i]) {
-                arrays_equal = 0;
-                return i+1;
-            }
+        if(c[0] != expected) {
+            arrays_equal = 0;
+            return 1;
         }
     }
     else { return 10; }
