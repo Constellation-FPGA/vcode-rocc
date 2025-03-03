@@ -211,7 +211,8 @@ class ControlUnit(val batchSize: Int)(implicit p: Parameters) extends CoreModule
            io.ctrlSigs.aluFn === ALU.FN_RED_MIN ||
            io.ctrlSigs.aluFn === ALU.FN_RED_AND ||
            io.ctrlSigs.aluFn === ALU.FN_RED_OR ||
-           io.ctrlSigs.aluFn === ALU.FN_RED_XOR) {
+           io.ctrlSigs.aluFn === ALU.FN_RED_XOR ||
+           io.ctrlSigs.aluFn === ALU.FN_LESS) {
           // If this operation is a reduction, we may need to go around again
           // FIXME: Turn this into a function?
           // Decrement our "counter"
